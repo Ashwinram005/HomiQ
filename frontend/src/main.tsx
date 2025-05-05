@@ -12,6 +12,7 @@ import DemoFormAddress from "./routes/demo.form.address";
 import DemoFormSimple from "./routes/demo.form.simple";
 import DemoTable from "./routes/demo.table";
 import DemoTanstackQuery from "./routes/demo.tanstack-query";
+import Dashboard from "./routes/Dashboard.tsx"
 
 import Header from "./components/Header";
 
@@ -48,6 +49,7 @@ const routeTree = rootRoute.addChildren([
 	DemoFormSimple(rootRoute),
 	DemoTable(rootRoute),
 	DemoTanstackQuery(rootRoute),
+	Dashboard(rootRoute)
 ]);
 
 const router = createRouter({

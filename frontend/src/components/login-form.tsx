@@ -34,7 +34,6 @@ export function LoginForm({
 
   const onSubmit = (data: any) => {
     console.log("Form Data:", data);
-    // handle login logic here
   };
 
   return (

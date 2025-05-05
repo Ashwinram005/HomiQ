@@ -7,17 +7,30 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useNavigate } from "@tanstack/react-router";
 
 // Validation schemas
 export const loginSchema = z.object({
-  email: z.string().nonempty("Email is required").email("Enter a valid email address"),
-  password: z.string().nonempty("Password is required").min(10, "Password must be at least 10 characters"),
+  email: z
+    .string()
+    .nonempty("Email is required")
+    .email("Enter a valid email address"),
+  password: z
+    .string()
+    .nonempty("Password is required")
+    .min(10, "Password must be at least 10 characters"),
 });
 
 export const signupSchema = z
   .object({
-    email: z.string().nonempty("Email is required").email("Enter a valid email address"),
-    password: z.string().nonempty("Password is required").min(10, "Password must be at least 10 characters"),
+    email: z
+      .string()
+      .nonempty("Email is required")
+      .email("Enter a valid email address"),
+    password: z
+      .string()
+      .nonempty("Password is required")
+      .min(10, "Password must be at least 10 characters"),
     confirmPassword: z.string().nonempty("Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -34,7 +47,13 @@ export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
   const [tab, setTab] = useState("login");
 
   return (
-    <Tabs defaultValue="login" value={tab} onValueChange={setTab} className={cn("w-full max-w-md mx-auto", className)} {...props}>
+    <Tabs
+      defaultValue="login"
+      value={tab}
+      onValueChange={setTab}
+      className={cn("w-full max-w-md mx-auto", className)}
+      {...props}
+    >
       <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="login">Login</TabsTrigger>
         <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -47,13 +66,14 @@ export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
 
       {/* Signup Tab */}
       <TabsContent value="signup">
-        <SignupForm onSuccess={() => setTab("login")}/>
+        <SignupForm onSuccess={() => setTab("login")} />
       </TabsContent>
     </Tabs>
   );
 }
 
 function LoginForm() {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -62,8 +82,31 @@ function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async(data: LoginSchema) => {
-    console.log("login")
+  const onSubmit = async (data: LoginSchema) => {
+    try {
+      const response = await fetch("http://localhost:5000/api/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.message || "Login failed");
+        return;
+      }
+
+      console.log("Login success:", result);
+      navigate({to : '/dashboard'})
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Something went wrong");
+    }
   };
 
   return (
@@ -77,23 +120,44 @@ function LoginForm() {
 
       <div className="grid gap-3">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-        {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+        <Input
+          id="email"
+          type="email"
+          placeholder="you@example.com"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email.message}</p>
+        )}
       </div>
 
       <div className="grid gap-3">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" placeholder="Enter password" {...register("password")} />
-        {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+        <Input
+          id="password"
+          type="password"
+          placeholder="Enter password"
+          {...register("password")}
+        />
+        {errors.password && (
+          <p className="text-sm text-red-500">{errors.password.message}</p>
+        )}
       </div>
 
-      <Button type="submit" className="w-full">Login</Button>
+      <Button type="submit" className="w-full">
+        Login
+      </Button>
 
       <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:border-t after:border-border">
-        <span className="bg-background relative z-10 px-2 text-muted-foreground">Or continue with</span>
+        <span className="bg-background relative z-10 px-2 text-muted-foreground">
+          Or continue with
+        </span>
       </div>
 
-      <Button variant="outline" className="w-full flex items-center gap-2 justify-center">
+      <Button
+        variant="outline"
+        className="w-full flex items-center gap-2 justify-center"
+      >
         Login with GitHub
       </Button>
     </form>
@@ -112,7 +176,7 @@ function SignupForm({ onSuccess }: SignupFormProps) {
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = async(data: SignupSchema) => {
+  const onSubmit = async (data: SignupSchema) => {
     try {
       const response = await fetch("http://localhost:5000/api/users/register", {
         method: "POST",
@@ -122,7 +186,7 @@ function SignupForm({ onSuccess }: SignupFormProps) {
         body: JSON.stringify({
           email: data.email,
           password: data.password,
-          confirmPassword:data.confirmPassword
+          confirmPassword: data.confirmPassword,
         }),
       });
 
@@ -151,29 +215,59 @@ function SignupForm({ onSuccess }: SignupFormProps) {
 
       <div className="grid gap-3">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-        {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+        <Input
+          id="email"
+          type="email"
+          placeholder="you@example.com"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email.message}</p>
+        )}
       </div>
 
       <div className="grid gap-3">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" placeholder="Enter password" {...register("password")} />
-        {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+        <Input
+          id="password"
+          type="password"
+          placeholder="Enter password"
+          {...register("password")}
+        />
+        {errors.password && (
+          <p className="text-sm text-red-500">{errors.password.message}</p>
+        )}
       </div>
 
       <div className="grid gap-3">
         <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <Input id="confirmPassword" type="password" placeholder="Confirm your password" {...register("confirmPassword")} />
-        {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>}
+        <Input
+          id="confirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          {...register("confirmPassword")}
+        />
+        {errors.confirmPassword && (
+          <p className="text-sm text-red-500">
+            {errors.confirmPassword.message}
+          </p>
+        )}
       </div>
 
-      <Button type="submit" className="w-full">Sign Up</Button>
+      <Button type="submit" className="w-full">
+        Sign Up
+      </Button>
 
       <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:border-t after:border-border">
-        <span className="bg-background relative z-10 px-2 text-muted-foreground">Or continue with</span>
+        <span className="bg-background relative z-10 px-2 text-muted-foreground">
+          Or continue with
+        </span>
       </div>
 
-      <Button variant="outline" className="w-full flex items-center gap-2 justify-center">
+      <Button
+        variant="outline"
+        className="w-full flex items-center gap-2 justify-center"
+      >
         Sign Up with GitHub
       </Button>
     </form>
