@@ -31,9 +31,10 @@ export type SignupSchema = z.infer<typeof signupSchema>;
 export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [tab, setTab] = useState("login");
 
   return (
-    <Tabs defaultValue="login" className={cn("w-full max-w-md mx-auto", className)} {...props}>
+    <Tabs defaultValue="login" value={tab} onValueChange={setTab} className={cn("w-full max-w-md mx-auto", className)} {...props}>
       <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="login">Login</TabsTrigger>
         <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -46,7 +47,7 @@ export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
 
       {/* Signup Tab */}
       <TabsContent value="signup">
-        <SignupForm />
+        <SignupForm onSuccess={() => setTab("login")}/>
       </TabsContent>
     </Tabs>
   );
@@ -61,8 +62,8 @@ function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginSchema) => {
-    console.log("Login Data", data);
+  const onSubmit = async(data: LoginSchema) => {
+    console.log("login")
   };
 
   return (
@@ -93,24 +94,50 @@ function LoginForm() {
       </div>
 
       <Button variant="outline" className="w-full flex items-center gap-2 justify-center">
-        <GitHubIcon className="h-4 w-4" />
         Login with GitHub
       </Button>
     </form>
   );
 }
-
-function SignupForm() {
+interface SignupFormProps {
+  onSuccess: () => void;
+}
+function SignupForm({ onSuccess }: SignupFormProps) {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<SignupSchema>({
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = (data: SignupSchema) => {
-    console.log("Signup Data", data);
+  const onSubmit = async(data: SignupSchema) => {
+    try {
+      const response = await fetch("http://localhost:5000/api/users/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          confirmPassword:data.confirmPassword
+        }),
+      });
+
+      if (response.ok) {
+        onSuccess();
+        console.log("Signup successful");
+        reset();
+      } else {
+        const error = await response.json();
+        alert(error.message || "Signup failed");
+      }
+    } catch (err) {
+      console.error("Signup error", err);
+      alert("An unexpected error occurred. Try again.");
+    }
   };
 
   return (
@@ -147,7 +174,6 @@ function SignupForm() {
       </div>
 
       <Button variant="outline" className="w-full flex items-center gap-2 justify-center">
-        <GitHubIcon className="h-4 w-4" />
         Sign Up with GitHub
       </Button>
     </form>
@@ -155,10 +181,3 @@ function SignupForm() {
 }
 
 // SVG GitHub icon component
-function GitHubIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M12 .297c-6.63 0-12 5.373-12 12...z" />
-    </svg>
-  );
-}
