@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff } from "lucide-react"; // For password visibility toggle
+
 
 // Validation schema for login
 export const loginSchema = z.object({
@@ -185,6 +185,7 @@ export function AuthForm({
           </>
         )}
       </div>
+      
     </form>
   );
 }
