@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate } from "@tanstack/react-router";
+import { isAuthenticated } from "@/lib/auth";
 
 // Validation schemas
 export const loginSchema = z.object({
@@ -74,6 +75,19 @@ export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
 
 function LoginForm() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Use async function inside useEffect to await the promise
+    const checkAuthentication = async () => {
+      const auth = await isAuthenticated();
+      if (auth) {
+        navigate({ to: "/dashboard" }); // Redirect to the dashboard if the user is already logged in
+      }
+    };
+
+    checkAuthentication();
+  }, [navigate]);
+  
   const {
     register,
     handleSubmit,
@@ -100,9 +114,9 @@ function LoginForm() {
         alert(result.message || "Login failed");
         return;
       }
-
+      localStorage.setItem("token", result.token);
       console.log("Login success:", result);
-      navigate({to : '/dashboard'})
+      navigate({ to: "/dashboard" });
     } catch (error) {
       console.error("Error:", error);
       alert("Something went wrong");

@@ -8,6 +8,8 @@ const router = express.Router();
 // User registration route
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.get('/validate-token',verifyToken);
+router.get("/validate-token", verifyToken, (req, res) => {
+  res.status(200).json({ message: "Token is valid" });
+});
 
 module.exports = router;

@@ -1,18 +1,15 @@
 import {
-	Outlet,
-	RouterProvider,
-	createRootRoute,
-	createRoute,
-	createRouter,
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  redirect,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
-import DemoFormAddress from "./routes/demo.form.address";
-import DemoFormSimple from "./routes/demo.form.simple";
-import DemoTable from "./routes/demo.table";
-import DemoTanstackQuery from "./routes/demo.tanstack-query";
-import Dashboard from "./routes/Dashboard.tsx"
+import Dashboard from "./routes/Dashboard.tsx";
 
 import Header from "./components/Header";
 
@@ -24,61 +21,68 @@ import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
 
 import App from "./App.tsx";
+import Wildcard from "./routes/Wildcard.tsx";
+import { AuthForm } from "./components/AuthForm.tsx";
+import { isAuthenticated } from "./lib/auth.ts";
 
 const rootRoute = createRootRoute({
-	component: () => (
-		<>
-			{/* <Header /> */}
-			<Outlet />
-			<TanStackRouterDevtools />
+  component: () => (
+    <>
+      {/* <Header /> */}
+      <Outlet />
+      <TanStackRouterDevtools />
 
-			<TanstackQueryLayout />
-		</>
-	),
+      <TanstackQueryLayout />
+    </>
+  ),
 });
 
 const indexRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: "/",
-	component: App,
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: App,
+  beforeLoad: async () => {
+    const auth = await isAuthenticated();
+    if (auth) {
+      return redirect({ to: "/dashboard" });
+    }
+  },
 });
 
 const routeTree = rootRoute.addChildren([
-	indexRoute,
-	DemoFormAddress(rootRoute),
-	DemoFormSimple(rootRoute),
-	DemoTable(rootRoute),
-	DemoTanstackQuery(rootRoute),
-	Dashboard(rootRoute)
+  indexRoute,
+
+  Dashboard(rootRoute),
+  Wildcard(rootRoute),
 ]);
 
 const router = createRouter({
-	routeTree,
-	context: {
-		...TanstackQuery.getContext(),
-	},
-	defaultPreload: "intent",
-	scrollRestoration: true,
-	defaultStructuralSharing: true,
-	defaultPreloadStaleTime: 0,
+  routeTree,
+  context: {
+    ...TanstackQuery.getContext(),
+  },
+  defaultPreload: "intent",
+  scrollRestoration: true,
+  defaultStructuralSharing: true,
+  defaultPreloadStaleTime: 0,
 });
 
 declare module "@tanstack/react-router" {
-	interface Register {
-		router: typeof router;
-	}
+  interface Register {
+    router: typeof router;
+  }
 }
 
 const rootElement = document.getElementById("app");
 if (rootElement && !rootElement.innerHTML) {
-	const root = ReactDOM.createRoot(rootElement);
-	root.render(
-		<StrictMode>
-			<TanstackQuery.Provider>
-				<RouterProvider router={router} />
-			</TanstackQuery.Provider>
-		</StrictMode>,
-	);
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <StrictMode>
+      <TanstackQuery.Provider>
+        <RouterProvider router={router} />
+      </TanstackQuery.Provider>
+    </StrictMode>
+  );
 }
 
 // If you want to start measuring performance in your app, pass a function

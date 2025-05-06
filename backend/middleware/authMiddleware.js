@@ -10,8 +10,7 @@ const verifyToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
-    res.status(200).json({ message: 'Token is valid' })
-    next(); // proceed to the actual route
+    next(); // Only call next, don't send response here
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
