@@ -87,7 +87,7 @@ export const Dashboard = () => {
           </div>
         </section>
       </main>
-      {/* <MultiStepPostForm/> */}
+      <MultiStepPostForm/>
     </div>
   );
 };

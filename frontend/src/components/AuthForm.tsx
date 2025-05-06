@@ -85,7 +85,7 @@ function LoginForm() {
 
     checkAuthentication();
   }, [navigate]);
-  
+
   const {
     register,
     handleSubmit,
@@ -158,19 +158,6 @@ function LoginForm() {
 
       <Button type="submit" className="w-full">
         Login
-      </Button>
-
-      <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:border-t after:border-border">
-        <span className="bg-background relative z-10 px-2 text-muted-foreground">
-          Or continue with
-        </span>
-      </div>
-
-      <Button
-        variant="outline"
-        className="w-full flex items-center gap-2 justify-center"
-      >
-        Login with GitHub
       </Button>
     </form>
   );
@@ -269,21 +256,6 @@ function SignupForm({ onSuccess }: SignupFormProps) {
       <Button type="submit" className="w-full">
         Sign Up
       </Button>
-
-      <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:border-t after:border-border">
-        <span className="bg-background relative z-10 px-2 text-muted-foreground">
-          Or continue with
-        </span>
-      </div>
-
-      <Button
-        variant="outline"
-        className="w-full flex items-center gap-2 justify-center"
-      >
-        Sign Up with GitHub
-      </Button>
     </form>
   );
 }
-
-// SVG GitHub icon component

@@ -28,7 +28,7 @@ const rootRoute = createRootRoute({
     <>
       {/* <Header /> */}
       <Outlet />
-      <TanStackRouterDevtools />
+      {/* <TanStackRouterDevtools /> */}
 
       <TanstackQueryLayout />
     </>
