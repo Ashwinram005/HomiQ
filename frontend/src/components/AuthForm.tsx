@@ -43,8 +43,6 @@ export type LoginSchema = z.infer<typeof loginSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
 
 export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [tab, setTab] = useState("login");
 
   return (

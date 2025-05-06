@@ -11,7 +11,6 @@ import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import Dashboard from "./routes/Dashboard.tsx";
 
-import Header from "./components/Header";
 
 import TanstackQueryLayout from "./integrations/tanstack-query/layout";
 
@@ -22,7 +21,6 @@ import reportWebVitals from "./reportWebVitals.ts";
 
 import App from "./App.tsx";
 import Wildcard from "./routes/Wildcard.tsx";
-import { AuthForm } from "./components/AuthForm.tsx";
 import { isAuthenticated } from "./lib/auth.ts";
 
 const rootRoute = createRootRoute({

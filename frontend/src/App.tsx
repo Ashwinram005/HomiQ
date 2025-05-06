@@ -1,6 +1,4 @@
-import { GalleryVerticalEnd } from "lucide-react";
-import { LoginForm } from "./components/login-form";
-import { SignupForm } from "./components/SignUP-Form";
+
 import { AuthForm } from "./components/AuthForm";
 
 function App() {
@@ -10,7 +8,6 @@ function App() {
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
             <AuthForm/>
-          
           </div>
         </div>
       </div>
