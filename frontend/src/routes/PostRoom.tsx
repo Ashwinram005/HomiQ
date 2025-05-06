@@ -1,18 +1,30 @@
+// src/components/PostForm.tsx
 import { useState } from "react";
-import { Button } from "@/components/ui/button"; // ShadCN Button
-import { Input } from "@/components/ui/input"; // ShadCN Input
-import { Textarea } from "@/components/ui/textarea"; // ShadCN Textarea
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
-import { z } from "zod"; // Using Zod for form validation
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
+// Validation Schema
 const postFormSchema = z.object({
-  title: z.string().min(5, "Title should be at least 5 characters long"),
-  description: z.string().min(10, "Description should be at least 10 characters long"),
-  price: z.number().positive("Price must be a positive number"),
-  location: z.string().min(3, "Location is required"),
-  imageUrl: z.string().url("Invalid image URL format").optional(),
+  title: z.string().min(5),
+  description: z.string().min(10),
+  price: z.number().positive(),
+  location: z.string().min(3),
+  accommodationType: z.enum(["PG", "Hostel", "Apartment", "House", "Shared Room"]),
+  roomType: z.enum(["Private", "Shared", "Entire Place"]),
+  beds: z.number().min(1),
+  availableFrom: z.string(),
+  availableTo: z.string(),
+  genderPreference: z.enum(["Male", "Female", "Unisex"]),
+  amenities: z.array(z.string()).optional(),
+  furnishing: z.enum(["Furnished", "Semi-Furnished", "Unfurnished"]),
+  rules: z.string().optional(),
+  contact: z.string().min(10),
+  imageUrl: z.string().url().optional(),
 });
 
 type PostFormValues = z.infer<typeof postFormSchema>;
@@ -31,25 +43,18 @@ const PostForm = () => {
 
   const handlePostSubmit = async (data: PostFormValues) => {
     setLoading(true);
-
     try {
       const response = await fetch("/api/posts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
       if (response.ok) {
-        alert("Post created successfully!");
-        navigate({ to: "/dashboard" }); // Redirect to dashboard
-      } else {
-        alert("Error creating post.");
-      }
-    } catch (error) {
-      console.error("Error submitting the post:", error);
-      alert("Failed to create post.");
+        alert("Post created!");
+        navigate({ to: "/dashboard" });
+      } else alert("Failed to post.");
+    } catch (err) {
+      alert("Server error.");
     } finally {
       setLoading(false);
     }
@@ -57,73 +62,59 @@ const PostForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg mt-6">
-      <h2 className="text-3xl font-semibold text-gray-800 mb-6">Post a Room</h2>
-      <form onSubmit={handleSubmit(handlePostSubmit)} className="space-y-6">
-        
-        <div className="space-y-2">
-          <label htmlFor="title" className="block text-gray-700">Room Title</label>
-          <Input
-            id="title"
-            {...register("title")}
-            className="w-full p-4 border rounded-md"
-            placeholder="Enter room title"
-          />
-          {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
-        </div>
+      <h2 className="text-3xl font-semibold text-gray-800 mb-6">Post Accommodation</h2>
+      <form onSubmit={handleSubmit(handlePostSubmit)} className="space-y-5">
 
-        <div className="space-y-2">
-          <label htmlFor="description" className="block text-gray-700">Description</label>
-          <Textarea
-            id="description"
-            {...register("description")}
-            className="w-full p-4 border rounded-md"
-            placeholder="Enter a brief description"
-            rows={4}
-          />
-          {errors.description && <p className="text-sm text-red-500">{errors.description.message}</p>}
-        </div>
+        <Input label="Title" {...register("title")} placeholder="Room title" />
+        {errors.title && <p className="text-red-500">{errors.title.message}</p>}
 
-        <div className="space-y-2">
-          <label htmlFor="price" className="block text-gray-700">Price</label>
-          <Input
-            id="price"
-            type="number"
-            {...register("price")}
-            className="w-full p-4 border rounded-md"
-            placeholder="Enter price per night"
-          />
-          {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
-        </div>
+        <Textarea label="Description" {...register("description")} placeholder="Room description" />
 
-        <div className="space-y-2">
-          <label htmlFor="location" className="block text-gray-700">Location</label>
-          <Input
-            id="location"
-            {...register("location")}
-            className="w-full p-4 border rounded-md"
-            placeholder="Enter location"
-          />
-          {errors.location && <p className="text-sm text-red-500">{errors.location.message}</p>}
-        </div>
+        <Input label="Price" type="number" {...register("price", { valueAsNumber: true })} />
+        <Input label="Location" {...register("location")} />
+        <Input label="Contact" {...register("contact")} />
 
-        <div className="space-y-2">
-          <label htmlFor="imageUrl" className="block text-gray-700">Image URL</label>
-          <Input
-            id="imageUrl"
-            {...register("imageUrl")}
-            className="w-full p-4 border rounded-md"
-            placeholder="Optional: Enter image URL"
-          />
-          {errors.imageUrl && <p className="text-sm text-red-500">{errors.imageUrl.message}</p>}
-        </div>
+        <select {...register("accommodationType")} className="w-full border rounded p-2">
+          <option value="">Select Accommodation Type</option>
+          <option value="PG">PG</option>
+          <option value="Hostel">Hostel</option>
+          <option value="Apartment">Apartment</option>
+          <option value="House">House</option>
+          <option value="Shared Room">Shared Room</option>
+        </select>
 
-        <Button
-          type="submit"
-          variant="primary"
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg mt-4"
-          disabled={loading}
-        >
-          {loading ? "Posting..." : "Post Room"}
+        <select {...register("roomType")} className="w-full border rounded p-2">
+          <option value="">Select Room Type</option>
+          <option value="Private">Private</option>
+          <option value="Shared">Shared</option>
+          <option value="Entire Place">Entire Place</option>
+        </select>
+
+        <Input label="Beds" type="number" {...register("beds", { valueAsNumber: true })} />
+
+        <Input label="Available From" type="date" {...register("availableFrom")} />
+        <Input label="Available To" type="date" {...register("availableTo")} />
+
+        <select {...register("genderPreference")} className="w-full border rounded p-2">
+          <option value="">Gender Preference</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Unisex">Unisex</option>
+        </select>
+
+        <select {...register("furnishing")} className="w-full border rounded p-2">
+          <option value="">Furnishing</option>
+          <option value="Furnished">Furnished</option>
+          <option value="Semi-Furnished">Semi-Furnished</option>
+          <option value="Unfurnished">Unfurnished</option>
+        </select>
+
+        <Textarea label="Rules" {...register("rules")} placeholder="e.g., No pets, No smoking" />
+
+        <Input label="Image URL" {...register("imageUrl")} />
+
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Posting..." : "Post Accommodation"}
         </Button>
       </form>
     </div>
