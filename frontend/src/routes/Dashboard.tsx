@@ -2,7 +2,7 @@ import { createRoute, redirect, RootRoute, useNavigate } from "@tanstack/react-r
 import { isAuthenticated, logout } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import PostForm from "./PostRoom";
+import MultiStepPostForm from "./MultiStepPostForm";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -87,7 +87,7 @@ export const Dashboard = () => {
           </div>
         </section>
       </main>
-      {/* <PostForm/> */}
+      {/* <MultiStepPostForm/> */}
     </div>
   );
 };

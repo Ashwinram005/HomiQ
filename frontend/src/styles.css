@@ -136,3 +136,8 @@ code {
 		@apply bg-background text-foreground;
 	}
 }
+
+.input {
+	@apply w-full p-3 border rounded-md mt-2;
+  }
+  

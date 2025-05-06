@@ -1,13 +1,11 @@
-import { createRoute, Navigate, redirect } from "@tanstack/react-router";
+import { createRoute, redirect } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth"; // Assuming isAuthenticated checks login status
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
 
 export default (parentRoute: RootRoute) =>
     createRoute({
         path: "*",
         component: () => {
-          return <div>Loading...</div>; // Fallback UI while determining the redirect
+          return <div>Loading...</div>; 
         },
         getParentRoute: () => parentRoute,
         beforeLoad:async () => {
