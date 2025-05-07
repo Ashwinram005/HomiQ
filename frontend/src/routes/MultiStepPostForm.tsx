@@ -33,7 +33,9 @@ const postSchema = z.object({
   type: z.enum(["Room", "House", "PG", "Shared"]),
   occupancy: z.enum(["Single", "Double", "Triple", "Any"]),
   furnished: z.boolean(),
-  availableFrom: z.string().min(1),
+  availableFrom: z
+    .string()
+    .min(1, { message: "Available From date is required" }), // required
   amenities: z.array(z.string()).optional(),
   imageUrl: z.string().url().optional(),
 });
@@ -165,50 +167,46 @@ export const MultiStepPostForm = () => {
           </div>
 
           <div className="flex justify-between items-center border-t pt-6 mt-auto">
-  <div className="flex gap-3">
-    <Button
-      variant="outline"
-      type="button"
-      disabled={step === 0}
-      onClick={() => setStep((s) => s - 1)}
-    >
-      Back
-    </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                type="button"
+                disabled={step === 0}
+                onClick={() => setStep((s) => s - 1)}
+              >
+                Back
+              </Button>
 
-    <Button
-      variant="ghost"
-      type="button"
-      onClick={() => navigate({ to: "/dashboard" })}
-    >
-      Cancel
-    </Button>
-  </div>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => navigate({ to: "/dashboard" })}
+              >
+                Cancel
+              </Button>
+            </div>
 
-  {step < steps.length - 1 ? (
-    <Button
-      type="button"
-      onClick={handleNext}
-    >
-      Next
-    </Button>
-  ) : (
-    <Button
-      type="button"
-      onClick={() => methods.handleSubmit(onSubmit)()}
-      disabled={loading}
-    >
-      {loading ? (
-        <span className="flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" />
-          Submitting...
-        </span>
-      ) : (
-        "Submit"
-      )}
-    </Button>
-  )}
-</div>
-
+            {step < steps.length - 1 ? (
+              <Button type="button" onClick={handleNext}>
+                Next
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => methods.handleSubmit(onSubmit)()}
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    Submitting...
+                  </span>
+                ) : (
+                  "Submit"
+                )}
+              </Button>
+            )}
+          </div>
         </form>
       </div>
     </FormProvider>
@@ -288,6 +286,9 @@ const Step2 = () => {
               ))}
             </SelectContent>
           </Select>
+          <p className="text-red-500 text-sm">
+            {formState.errors.type?.message}
+          </p>
         </div>
         <div>
           <Label>Occupancy</Label>
@@ -306,6 +307,9 @@ const Step2 = () => {
               ))}
             </SelectContent>
           </Select>
+          <p className="text-red-500 text-sm">
+            {formState.errors.type?.message}
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -317,7 +321,11 @@ const Step2 = () => {
         </div>
         <div>
           <Label>Available From</Label>
-          <Input type="date" {...register("availableFrom")} />
+          <Input
+            type="date"
+            min={new Date().toISOString().split("T")[0]}
+            {...register("availableFrom")}
+          />{" "}
           <p className="text-red-500 text-sm">
             {formState.errors.availableFrom?.message}
           </p>
