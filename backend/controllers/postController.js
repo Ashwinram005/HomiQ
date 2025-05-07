@@ -1,9 +1,5 @@
-const Post = require('../models/Post');
-const Post = require('../models/Post');
+const Post = require("../models/Post");
 
-// @desc    Create a new post
-// @route   POST /api/posts
-// @access  Private
 const createPost = async (req, res) => {
   try {
     const {
@@ -16,8 +12,10 @@ const createPost = async (req, res) => {
       furnished,
       availableFrom,
       amenities,
-      images
+      images,
     } = req.body;
+
+    const { userId } = req.user; // Access the userId set by the middleware
 
     // Create new post
     const post = new Post({
@@ -31,15 +29,15 @@ const createPost = async (req, res) => {
       availableFrom,
       amenities,
       images,
-      postedBy: req.user._id, // from auth middleware
+      postedBy: userId, // from auth middleware
     });
 
     await post.save();
 
     res.status(201).json(post);
   } catch (error) {
-    console.error('Create post error:', error.message);
-    res.status(500).json({ message: 'Server error while creating post' });
+    console.error("Create post error:", error.message);
+    res.status(500).json({ message: "Server error while creating post" });
   }
 };
 
