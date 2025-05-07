@@ -165,46 +165,50 @@ export const MultiStepPostForm = () => {
           </div>
 
           <div className="flex justify-between items-center border-t pt-6 mt-auto">
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                type="button"
-                disabled={step === 0}
-                onClick={() => setStep((s) => s - 1)}
-              >
-                Back
-              </Button>
+  <div className="flex gap-3">
+    <Button
+      variant="outline"
+      type="button"
+      disabled={step === 0}
+      onClick={() => setStep((s) => s - 1)}
+    >
+      Back
+    </Button>
 
-              <Button
-                variant="ghost"
-                type="button"
-                onClick={() => navigate({ to: "/dashboard" })}
-              >
-                Cancel
-              </Button>
-            </div>
+    <Button
+      variant="ghost"
+      type="button"
+      onClick={() => navigate({ to: "/dashboard" })}
+    >
+      Cancel
+    </Button>
+  </div>
 
-            {step < steps.length - 1 ? (
-              <Button type="button" onClick={handleNext}>
-                Next
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={() => methods.handleSubmit(onSubmit)()}
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 size={16} className="animate-spin" />
-                    Submitting...
-                  </span>
-                ) : (
-                  "Submit"
-                )}
-              </Button>
-            )}
-          </div>
+  {step < steps.length - 1 ? (
+    <Button
+      type="button"
+      onClick={handleNext}
+    >
+      Next
+    </Button>
+  ) : (
+    <Button
+      type="button"
+      onClick={() => methods.handleSubmit(onSubmit)()}
+      disabled={loading}
+    >
+      {loading ? (
+        <span className="flex items-center gap-2">
+          <Loader2 size={16} className="animate-spin" />
+          Submitting...
+        </span>
+      ) : (
+        "Submit"
+      )}
+    </Button>
+  )}
+</div>
+
         </form>
       </div>
     </FormProvider>
@@ -431,7 +435,7 @@ export default (parentRoute: RootRoute) =>
     getParentRoute: () => parentRoute,
     beforeLoad: async () => {
       const auth = await isAuthenticated();
-      if (!auth) {  
+      if (!auth) {
         return redirect({ to: "/" });
       }
     },
