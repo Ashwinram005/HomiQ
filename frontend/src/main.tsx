@@ -30,7 +30,7 @@ const rootRoute = createRootRoute({
       <Outlet />
       {/* <TanStackRouterDevtools /> */}
 
-      <TanstackQueryLayout />
+      {/* <TanstackQueryLayout /> */}
     </>
   ),
 });
