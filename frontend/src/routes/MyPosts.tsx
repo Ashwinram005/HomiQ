@@ -11,6 +11,17 @@ import {
   Trash2,
 } from "lucide-react";
 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+
 export const MyPosts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,100 +47,114 @@ export const MyPosts = () => {
     fetchPosts();
   }, []);
 
-  if (loading)
+  if (loading) {
     return (
-      <p className="text-center mt-10 text-lg font-medium text-blue-600">
-        Loading your posts...
-      </p>
+      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Card key={i} className="space-y-4 p-4">
+            <Skeleton className="h-40 w-full rounded-lg" />
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-10 w-full" />
+          </Card>
+        ))}
+      </div>
     );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
-      <h1 className="text-4xl font-extrabold text-center mb-10 text-neutral-800">
+      <h1 className="text-4xl font-bold text-center mb-10 text-primary">
         🏡 Your Property Listings
       </h1>
 
       {posts.length === 0 ? (
-        <p className="text-center text-gray-500 text-lg">
-          You haven't posted any listings yet.
-        </p>
+        <div className="text-center py-20">
+          <p className="text-lg text-gray-500">
+            You haven't posted anything yet.
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            Start posting to showcase your listings!
+          </p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.map((post) => (
-            <div
+            <Card
               key={post._id}
-              className="bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 flex flex-col"
+              className="flex flex-col justify-between shadow-md border hover:shadow-xl transition-shadow duration-300 rounded-xl"
             >
-              {/* Thumbnail or Placeholder */}
-              <div className="h-48 bg-gradient-to-br from-blue-200 to-blue-100 flex items-center justify-center text-5xl text-white font-bold">
+              <CardHeader className="bg-gradient-to-br from-blue-200 to-sky-100 h-48 flex justify-center items-center text-6xl rounded-t-xl">
                 🏠
-              </div>
+              </CardHeader>
 
-              {/* Post Content */}
-              <div className="p-5 flex flex-col justify-between h-full">
-                <div className="space-y-3 flex-grow">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-blue-800 truncate">
-                      {post.title}
-                    </h2>
-                    <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700 capitalize font-medium">
-                      {post.type}
+              <CardContent className="space-y-4 py-5 px-5 flex-1">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg font-semibold text-primary truncate">
+                    {post.title}
+                  </CardTitle>
+                  <Badge className="capitalize" variant="secondary">
+                    {post.type}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    <span>
+                      {format(new Date(post.createdAt), "dd MMM yyyy")}
                     </span>
                   </div>
-
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-blue-500" />
-                      <span>
-                        {format(new Date(post.createdAt), "dd MMM yyyy")}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-green-500" />
-                      <span>{post.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <IndianRupee className="w-4 h-4 text-yellow-500" />
-                      <span className="font-semibold">
-                        {post.price?.toLocaleString()}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-green-500" />
+                    <span>{post.location}</span>
                   </div>
-
-                  <p className="text-gray-700 text-sm">
-                    <strong>Description:</strong>{" "}
-                    {post.description || "No description provided."}
-                  </p>
-
-                  <div>
-                    <strong className="text-sm text-gray-700">
-                      Amenities:
-                    </strong>
-                    {post.amenities?.length > 0 ? (
-                      <ul className="list-disc ml-5 mt-1 text-sm text-gray-600">
-                        {post.amenities.map((amenity, idx) => (
-                          <li key={idx}>{amenity}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-gray-500 mt-1">None</p>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <IndianRupee className="w-4 h-4 text-yellow-500" />
+                    <span className="font-medium">
+                      {post.price?.toLocaleString()}
+                    </span>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="pt-4 flex justify-between items-center">
-                  <button className="flex items-center gap-1 px-4 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition">
-                    <PencilLine className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button className="flex items-center gap-1 px-4 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition">
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Description:</strong>{" "}
+                  {post.description || "No description provided."}
+                </p>
+
+                <div>
+                  <strong className="text-sm text-foreground">
+                    Amenities:
+                  </strong>
+                  {post.amenities?.length > 0 ? (
+                    <ul className="list-disc ml-5 mt-1 text-sm text-muted-foreground">
+                      {post.amenities.map((amenity, idx) => (
+                        <li key={idx}>{amenity}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-400 mt-1">None</p>
+                  )}
                 </div>
-              </div>
-            </div>
+              </CardContent>
+
+              <CardFooter className="grid grid-cols-2 gap-3 px-5 pb-5">
+                <Button
+                  variant="outline"
+                  className="flex gap-2 w-full justify-center hover:cursor-pointer"
+                >
+                  <PencilLine className="w-4 h-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex gap-2 w-full justify-center hover:cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </Button>
+              </CardFooter>
+            </Card>
           ))}
         </div>
       )}
