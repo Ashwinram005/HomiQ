@@ -40,7 +40,7 @@ export const Dashboard = () => {
   };
 
   const handleMyPosts = () => {
-    navigate({ to: "/my-posts" });
+    navigate({ to: "/myposts" });
   };
 
   const handleBrowseRooms = () => {
