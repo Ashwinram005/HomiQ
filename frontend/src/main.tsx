@@ -11,7 +11,6 @@ import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import Dashboard from "./routes/Dashboard.tsx";
 
-
 import TanstackQueryLayout from "./integrations/tanstack-query/layout";
 
 import * as TanstackQuery from "./integrations/tanstack-query/root-provider";

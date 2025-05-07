@@ -77,11 +77,24 @@ export const MultiStepPostForm = () => {
   const onSubmit = async (data: PostFormData) => {
     setLoading(true);
     try {
-      navigate({ to: "/dashboard" });
-      // } else {
-      //   alert("Failed to submit post.");
-      // }
-    } catch {
+      // Send data to the API
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        console.log("Posted Data: ", data);
+        navigate({ to: "/dashboard" });
+      } else {
+        throw new Error("Failed to submit post");
+      }
+    } catch (error) {
       alert("Something went wrong.");
     } finally {
       setLoading(false);

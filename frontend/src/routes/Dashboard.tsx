@@ -1,4 +1,9 @@
-import { createRoute, redirect, RootRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createRoute,
+  redirect,
+  RootRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import { isAuthenticated, logout } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -60,7 +65,10 @@ export const Dashboard = () => {
             <p className="text-gray-500 mb-4">
               Create a new room listing to rent or share.
             </p>
-            <Button className="bg-blue-600 hover:bg-blue-700 hover:cursor-pointer text-white" onClick={handlePostFeature}>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 hover:cursor-pointer text-white"
+              onClick={handlePostFeature}
+            >
               Post Now
             </Button>
           </div>
@@ -70,7 +78,10 @@ export const Dashboard = () => {
             <p className="text-gray-500 mb-4">
               View and manage the rooms you've posted.
             </p>
-            <Button className="bg-gray-600 hover:bg-gray-700 text-white hover:cursor-pointer" onClick={() => navigate({ to: "/my-posts" })}>
+            <Button
+              className="bg-gray-600 hover:bg-gray-700 text-white hover:cursor-pointer"
+              onClick={() => navigate({ to: "/my-posts" })}
+            >
               View Posts
             </Button>
           </div>
@@ -80,7 +91,10 @@ export const Dashboard = () => {
             <p className="text-gray-500 mb-4">
               Explore available rooms to rent or share.
             </p>
-            <Button className="bg-gray-600 hover:bg-gray-700 text-white hover:cursor-pointer" onClick={() => navigate({ to: "/browse" })}>
+            <Button
+              className="bg-gray-600 hover:bg-gray-700 text-white hover:cursor-pointer"
+              onClick={() => navigate({ to: "/browse" })}
+            >
               Browse Now
             </Button>
           </div>
