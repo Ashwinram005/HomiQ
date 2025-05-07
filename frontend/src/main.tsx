@@ -22,6 +22,7 @@ import reportWebVitals from "./reportWebVitals.ts";
 import App from "./App.tsx";
 import Wildcard from "./routes/Wildcard.tsx";
 import { isAuthenticated } from "./lib/auth.ts";
+import MultiStepPostForm from "./routes/MultiStepPostForm.tsx";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -52,6 +53,7 @@ const routeTree = rootRoute.addChildren([
 
   Dashboard(rootRoute),
   Wildcard(rootRoute),
+  MultiStepPostForm(rootRoute),
 ]);
 
 const router = createRouter({

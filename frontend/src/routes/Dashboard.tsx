@@ -2,7 +2,6 @@ import { createRoute, redirect, RootRoute, useNavigate } from "@tanstack/react-r
 import { isAuthenticated, logout } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import MultiStepPostForm from "./MultiStepPostForm";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -38,7 +37,7 @@ export const Dashboard = () => {
         </h1>
         <Button
           variant="destructive"
-          className="bg-red-600 hover:bg-red-700 text-white"
+          className="bg-red-600 hover:bg-red-700 text-white hover:cursor-pointer"
           onClick={handleLogout}
         >
           Logout
@@ -61,7 +60,7 @@ export const Dashboard = () => {
             <p className="text-gray-500 mb-4">
               Create a new room listing to rent or share.
             </p>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handlePostFeature}>
+            <Button className="bg-blue-600 hover:bg-blue-700 hover:cursor-pointer text-white" onClick={handlePostFeature}>
               Post Now
             </Button>
           </div>
@@ -71,7 +70,7 @@ export const Dashboard = () => {
             <p className="text-gray-500 mb-4">
               View and manage the rooms you've posted.
             </p>
-            <Button className="bg-gray-600 hover:bg-gray-700 text-white" onClick={() => navigate({ to: "/my-posts" })}>
+            <Button className="bg-gray-600 hover:bg-gray-700 text-white hover:cursor-pointer" onClick={() => navigate({ to: "/my-posts" })}>
               View Posts
             </Button>
           </div>
@@ -81,13 +80,12 @@ export const Dashboard = () => {
             <p className="text-gray-500 mb-4">
               Explore available rooms to rent or share.
             </p>
-            <Button className="bg-gray-600 hover:bg-gray-700 text-white" onClick={() => navigate({ to: "/browse" })}>
+            <Button className="bg-gray-600 hover:bg-gray-700 text-white hover:cursor-pointer" onClick={() => navigate({ to: "/browse" })}>
               Browse Now
             </Button>
           </div>
         </section>
       </main>
-      <MultiStepPostForm/>
     </div>
   );
 };

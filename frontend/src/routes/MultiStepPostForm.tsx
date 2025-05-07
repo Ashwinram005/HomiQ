@@ -14,19 +14,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useNavigate } from "@tanstack/react-router";
 import { Label } from "@/components/ui/label";
+import { Check, Loader2 } from "lucide-react";
+import {
+  createRoute,
+  redirect,
+  RootRoute,
+  useNavigate,
+} from "@tanstack/react-router";
+import { isAuthenticated } from "@/lib/auth";
 
-// Schema and Types
+// Form schema
 const postSchema = z.object({
-  title: z.string().min(3, "Title is required"),
-  description: z.string().min(10, "Description is required"),
-  price: z.string().min(1, "Price is required"),
-  location: z.string().min(3, "Location is required"),
+  title: z.string().min(3).max(100),
+  description: z.string().min(10).max(1000),
+  price: z.string().regex(/^\d+$/, "Price must be numeric"),
+  location: z.string().min(3),
   type: z.enum(["Room", "House", "PG", "Shared"]),
   occupancy: z.enum(["Single", "Double", "Triple", "Any"]),
   furnished: z.boolean(),
-  availableFrom: z.string().min(1, "Availability date is required"),
+  availableFrom: z.string().min(1),
   amenities: z.array(z.string()).optional(),
   imageUrl: z.string().url().optional(),
 });
@@ -41,138 +48,196 @@ const amenitiesList = [
   "Refrigerator",
 ];
 
-export default function MultiStepPostForm() {
+export const MultiStepPostForm = () => {
   const methods = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
+    defaultValues: { amenities: [], furnished: false },
     mode: "onBlur",
-    defaultValues: { amenities: [] },
   });
 
-  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const steps = [<Step1 key="1" />, <Step2 key="2" />, <Step3 key="3" />];
-  const stepLabels = ["Basic Info", "Property Details", "Amenities & Image"];
+  const steps = [
+    <Step1 key="step1" />,
+    <Step2 key="step2" />,
+    <Step3 key="step3" />,
+    <Step4 key="step4" />, // Add this step to the steps array
+  ];
+  const stepLabels = [
+    "Basic Info",
+    "Details",
+    "Amenities & Image",
+    "Confirm details",
+  ];
 
   const onSubmit = async (data: PostFormData) => {
     setLoading(true);
     try {
-      const response = await fetch("/api/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (response.ok) {
-        alert("Post created!");
-        navigate({ to: "/dashboard" });
-      } else alert("Failed to create post.");
+      navigate({ to: "/dashboard" });
+      // } else {
+      //   alert("Failed to submit post.");
+      // }
     } catch {
-      alert("Error posting data.");
+      alert("Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleNext = async () => {
+    let isValid = false;
+
+    if (step === 0) {
+      isValid = await methods.trigger(["title", "description"]);
+    } else if (step === 1) {
+      isValid = await methods.trigger([
+        "price",
+        "location",
+        "type",
+        "occupancy",
+        "furnished",
+        "availableFrom",
+      ]);
+    } else if (step === 2) {
+      isValid = await methods.trigger(["imageUrl", "amenities"]);
+    }
+
+    if (isValid && step < steps.length - 1) {
+      setStep((s) => s + 1);
+    } else {
+      console.log("Validation errors:", methods.formState.errors);
+    }
+  };
+
   return (
     <FormProvider {...methods}>
-      <form
-        onSubmit={methods.handleSubmit(onSubmit)}
-        className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-md space-y-6"
-      >
-        {/* Stepper UI */}
-        <div className="flex items-center justify-between mb-6">
-          {stepLabels.map((label, index) => (
-            <div key={label} className="flex items-center flex-1">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                  step === index
-                    ? "bg-blue-600"
-                    : step > index
-                    ? "bg-green-500"
-                    : "bg-gray-300"
-                }`}
-              >
-                {index + 1}
-              </div>
-              <div className="ml-2 text-sm font-medium">
-                <span
-                  className={step === index ? "text-blue-600" : "text-gray-600"}
+      <div className="w-full h-screen mx-auto p-6 sm:p-10 bg-white rounded-3xl shadow-2xl flex gap-10">
+        {/* Stepper Sidebar */}
+        <div className="w-1/4 min-w-[220px] bg-white border-r px-6 py-10 space-y-6 shadow-md">
+          {stepLabels.map((label, index) => {
+            const isActive = index === step;
+            const isCompleted = step > index;
+
+            return (
+              <div key={label} className="flex items-start gap-3">
+                <div
+                  className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm transition-colors
+                ${
+                  isCompleted
+                    ? "bg-green-500 text-white"
+                    : isActive
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-300 text-gray-800"
+                }
+              `}
+                >
+                  {isCompleted ? <Check size={16} /> : index + 1}
+                </div>
+                <div
+                  className={`text-sm font-medium ${
+                    isActive ? "text-blue-600" : "text-gray-600"
+                  }`}
                 >
                   {label}
-                </span>
-              </div>
-              {index < stepLabels.length - 1 && (
-                <div className="flex-1 h-1 bg-gray-300 mx-2 relative">
-                  <div
-                    className={`absolute top-0 left-0 h-1 transition-all duration-300 ${
-                      step > index ? "bg-green-500 w-full" : "bg-blue-500 w-0"
-                    }`}
-                  />
                 </div>
-              )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Form Area */}
+        <form className="w-3/4 flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto space-y-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -50 }}
+                transition={{ duration: 0.4 }}
+                className="bg-gray-50 border p-8 rounded-xl shadow-inner space-y-6"
+              >
+                {steps[step]}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="flex justify-between items-center border-t pt-6 mt-auto">
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                type="button"
+                disabled={step === 0}
+                onClick={() => setStep((s) => s - 1)}
+              >
+                Back
+              </Button>
+
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => navigate({ to: "/dashboard" })}
+              >
+                Cancel
+              </Button>
             </div>
-          ))}
-        </div>
 
-        {/* Step Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-          >
-            {steps[step]}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Navigation */}
-        <div className="flex justify-between pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setStep((s) => s - 1)}
-            disabled={step === 0}
-          >
-            Back
-          </Button>
-
-          {step < steps.length - 1 ? (
-            <Button type="button" onClick={() => setStep((s) => s + 1)}>
-              Next
-            </Button>
-          ) : (
-            <Button type="submit" disabled={loading}>
-              {loading ? "Submitting..." : "Submit"}
-            </Button>
-          )}
-        </div>
-      </form>
+            {step < steps.length - 1 ? (
+              <Button type="button" onClick={handleNext}>
+                Next
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => methods.handleSubmit(onSubmit)()}
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    Submitting...
+                  </span>
+                ) : (
+                  "Submit"
+                )}
+              </Button>
+            )}
+          </div>
+        </form>
+      </div>
     </FormProvider>
   );
-}
+};
 
 // Step 1
 const Step1 = () => {
   const { register, formState } = useFormContext<PostFormData>();
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Basic Information</h2>
-      <div>
-        <Label>Title</Label>
-        <Input {...register("title")} />
-        <p className="text-red-500 text-sm">
-          {formState.errors.title?.message}
-        </p>
-      </div>
-      <div>
-        <Label>Description</Label>
-        <Textarea {...register("description")} rows={4} />
-        <p className="text-red-500 text-sm">
-          {formState.errors.description?.message}
-        </p>
+    <div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        Basic Information
+      </h3>
+      <div className="space-y-4">
+        <div>
+          <Label>
+            Title <span className="text-red-500">*</span>
+          </Label>
+          <Input {...register("title")} />
+          <p className="text-red-500 text-sm">
+            {formState.errors.title?.message}
+          </p>
+        </div>
+        <div>
+          <Label>
+            Description <span className="text-red-500">*</span>
+          </Label>
+          <Textarea rows={4} {...register("description")} />
+          <p className="text-red-500 text-sm">
+            {formState.errors.description?.message}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -183,79 +248,76 @@ const Step2 = () => {
   const { register, setValue, watch, formState } =
     useFormContext<PostFormData>();
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Property Details</h2>
-
-      <div>
-        <Label>Price (₹)</Label>
-        <Input type="number" {...register("price")} />
-        <p className="text-red-500 text-sm">
-          {formState.errors.price?.message}
-        </p>
-      </div>
-
-      <div>
-        <Label>Location</Label>
-        <Input {...register("location")} />
-        <p className="text-red-500 text-sm">
-          {formState.errors.location?.message}
-        </p>
-      </div>
-
-      <div>
-        <Label>Accommodation Type</Label>
-        <Select
-          onValueChange={(value) =>
-            setValue("type", value as PostFormData["type"])
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            {["Room", "House", "PG", "Shared"].map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label>Occupancy</Label>
-        <Select
-          onValueChange={(value) =>
-            setValue("occupancy", value as PostFormData["occupancy"])
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select occupancy" />
-          </SelectTrigger>
-          <SelectContent>
-            {["Single", "Double", "Triple", "Any"].map((occ) => (
-              <SelectItem key={occ} value={occ}>
-                {occ}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="furnished"
-          onCheckedChange={(checked) => setValue("furnished", !!checked)}
-        />
-        <Label htmlFor="furnished">Furnished</Label>
-      </div>
-
-      <div>
-        <Label>Available From</Label>
-        <Input type="date" {...register("availableFrom")} />
-        <p className="text-red-500 text-sm">
-          {formState.errors.availableFrom?.message}
-        </p>
+    <div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        Property Details
+      </h3>
+      <div className="space-y-4">
+        <div>
+          <Label>Price (₹)</Label>
+          <Input type="number" {...register("price")} />
+          <p className="text-red-500 text-sm">
+            {formState.errors.price?.message}
+          </p>
+        </div>
+        <div>
+          <Label>Location</Label>
+          <Input {...register("location")} />
+          <p className="text-red-500 text-sm">
+            {formState.errors.location?.message}
+          </p>
+        </div>
+        <div>
+          <Label>Type</Label>
+          <Select
+            value={watch("type")}
+            onValueChange={(v) => setValue("type", v as any)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Choose type" />
+            </SelectTrigger>
+            <SelectContent>
+              {["Room", "House", "PG", "Shared"].map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Occupancy</Label>
+          <Select
+            value={watch("occupancy")}
+            onValueChange={(v) => setValue("occupancy", v as any)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Choose occupancy" />
+            </SelectTrigger>
+            <SelectContent>
+              {["Single", "Double", "Triple", "Any"].map((o) => (
+                <SelectItem key={o} value={o}>
+                  {o}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="furnished"
+            checked={watch("furnished")}
+            onCheckedChange={(v) => setValue("furnished", !!v)}
+          />
+          <Label htmlFor="furnished">Furnished</Label>
+        </div>
+        <div>
+          <Label>Available From</Label>
+          <Input type="date" {...register("availableFrom")} />
+          <p className="text-red-500 text-sm">
+            {formState.errors.availableFrom?.message}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -263,7 +325,8 @@ const Step2 = () => {
 
 // Step 3
 const Step3 = () => {
-  const { register, setValue, watch } = useFormContext<PostFormData>();
+  const { register, setValue, watch, formState } =
+    useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
 
   const toggleAmenity = (item: string) => {
@@ -274,10 +337,11 @@ const Step3 = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Amenities & Image</h2>
-
-      <div className="grid grid-cols-2 gap-3">
+    <div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        Amenities & Image
+      </h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
         {amenitiesList.map((item) => (
           <div key={item} className="flex items-center space-x-2">
             <Checkbox
@@ -289,11 +353,86 @@ const Step3 = () => {
           </div>
         ))}
       </div>
-
       <div>
         <Label>Image URL</Label>
-        <Input {...register("imageUrl")} placeholder="https://your-image.url" />
+        <Input
+          {...register("imageUrl")}
+          placeholder="https://example.com/image.jpg"
+        />
+        <p className="text-red-500 text-sm">
+          {formState.errors.imageUrl?.message}
+        </p>
       </div>
     </div>
   );
 };
+
+const Step4 = () => {
+  const { watch, formState } = useFormContext<PostFormData>();
+  const data = watch();
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        Confirm Details
+      </h3>
+      <div className="space-y-4">
+        <div>
+          <Label>Title</Label>
+          <p>{data.title}</p>
+        </div>
+        <div>
+          <Label>Description</Label>
+          <p>{data.description}</p>
+        </div>
+        <div>
+          <Label>Price (₹)</Label>
+          <p>{data.price}</p>
+        </div>
+        <div>
+          <Label>Location</Label>
+          <p>{data.location}</p>
+        </div>
+        <div>
+          <Label>Type</Label>
+          <p>{data.type}</p>
+        </div>
+        <div>
+          <Label>Occupancy</Label>
+          <p>{data.occupancy}</p>
+        </div>
+        <div>
+          <Label>Furnished</Label>
+          <p>{data.furnished ? "Yes" : "No"}</p>
+        </div>
+        <div>
+          <Label>Available From</Label>
+          <p>{data.availableFrom}</p>
+        </div>
+        <div>
+          <Label>Amenities</Label>
+          <p>{data.amenities?.join(", ") || "None"}</p>
+        </div>
+        {data.imageUrl && (
+          <div>
+            <Label>Image URL</Label>
+            <p>{data.imageUrl}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default (parentRoute: RootRoute) =>
+  createRoute({
+    path: "/post",
+    component: MultiStepPostForm,
+    getParentRoute: () => parentRoute,
+    beforeLoad: async () => {
+      const auth = await isAuthenticated();
+      if (!auth) {  
+        return redirect({ to: "/" });
+      }
+    },
+  });
