@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
-import { createRoute, redirect, type RootRoute } from "@tanstack/react-router";
+import {
+  createRoute,
+  redirect,
+  useNavigate,
+  type RootRoute,
+} from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 import {
   MapPin,
@@ -9,6 +14,7 @@ import {
   IndianRupee,
   PencilLine,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 
 import {
@@ -25,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const MyPosts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); // Initialize the navigate function
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -52,7 +59,7 @@ export const MyPosts = () => {
       <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i} className="space-y-4 p-4">
-            <Skeleton className="h-40 w-full rounded-lg" />
+            <Skeleton className="h-40 w-full rounded-lg bg-gradient-to-r from-blue-300 to-blue-500" />
             <Skeleton className="h-6 w-2/3" />
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="h-10 w-full" />
@@ -64,7 +71,16 @@ export const MyPosts = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
-      <h1 className="text-4xl font-bold text-center mb-10 text-primary">
+      <div className="mb-6 flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={() => navigate({ to: "/dashboard" })} // Navigate to the dashboard
+          className="flex gap-2 justify-center hover:cursor-pointer transition duration-300 ease-in-out transform hover:bg-indigo-600 hover:text-white hover:scale-105"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </Button>
+      </div>
+      <h1 className="text-4xl font-bold text-center mb-10 text-indigo-800">
         🏡 Your Property Listings
       </h1>
 
@@ -82,23 +98,38 @@ export const MyPosts = () => {
           {posts.map((post) => (
             <Card
               key={post._id}
-              className="flex flex-col justify-between shadow-md border hover:shadow-xl transition-shadow duration-300 rounded-xl"
+              className="flex flex-col justify-between shadow-xl border border-gray-300 hover:shadow-2xl hover:border-blue-500 transition duration-300 rounded-xl overflow-hidden bg-gradient-to-br from-indigo-100 to-blue-50"
             >
-              <CardHeader className="bg-gradient-to-br from-blue-200 to-sky-100 h-48 flex justify-center items-center text-6xl rounded-t-xl">
-                🏠
-              </CardHeader>
+              {/* Image or Banner */}
+              {post.images.length > 0 ? (
+                <img
+                  src={post.images[0]} // Assuming the first image is the main image
+                  alt="Property"
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="bg-gradient-to-br from-blue-100 to-blue-50 h-48 flex justify-center items-center text-6xl">
+                  🏠
+                </div>
+              )}
 
-              <CardContent className="space-y-4 py-5 px-5 flex-1">
+              <CardContent className="space-y-3 py-4 px-5 flex-1">
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg font-semibold text-primary truncate">
+                  <CardTitle className="text-xl font-semibold text-primary text-indigo-800 truncate">
                     {post.title}
                   </CardTitle>
-                  <Badge className="capitalize" variant="secondary">
-                    {post.type}
+                  <Badge
+                    className={`capitalize ${
+                      post.status === "Booked"
+                        ? "bg-red-200 text-red-700"
+                        : "bg-green-200 text-green-700"
+                    } p-2 rounded-full text-sm font-medium`}
+                  >
+                    {post.status || "Available"}
                   </Badge>
                 </div>
 
-                <div className="space-y-1 text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground space-y-1">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-blue-500" />
                     <span>
@@ -106,49 +137,80 @@ export const MyPosts = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-green-500" />
+                    <MapPin className="w-4 h-4 text-green-600" />
                     <span>{post.location}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <IndianRupee className="w-4 h-4 text-yellow-500" />
-                    <span className="font-medium">
-                      {post.price?.toLocaleString()}
+                    <span className="font-medium text-lg text-indigo-800">
+                      ₹ {post.price?.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    🛏️ <span>Occupancy: {post.occupancy}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    🛋️ <span>Furnished: {post.furnished ? "Yes" : "No"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <strong>Available From: </strong>
+                    <span>
+                      {format(new Date(post.availableFrom), "dd MMM yyyy")}
                     </span>
                   </div>
                 </div>
 
-                <p className="text-sm text-muted-foreground">
-                  <strong>Description:</strong>{" "}
-                  {post.description || "No description provided."}
-                </p>
+                <div>
+                  <strong className="text-sm text-foreground">
+                    Description:
+                  </strong>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {post.description || "No description provided."}
+                  </p>
+                </div>
 
                 <div>
                   <strong className="text-sm text-foreground">
                     Amenities:
                   </strong>
-                  {post.amenities?.length > 0 ? (
-                    <ul className="list-disc ml-5 mt-1 text-sm text-muted-foreground">
-                      {post.amenities.map((amenity, idx) => (
-                        <li key={idx}>{amenity}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-400 mt-1">None</p>
-                  )}
+                  <div className="max-h-24 overflow-auto mt-1 text-sm text-muted-foreground">
+                    {post.amenities?.length > 0 ? (
+                      <ul className="list-disc ml-5">
+                        {post.amenities.map((amenity, idx) => (
+                          <li key={idx}>{amenity}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-400">None</p>
+                    )}
+                  </div>
                 </div>
+
+                {post.contactEmail && (
+                  <div className="text-sm mt-2">
+                    📧{" "}
+                    <span className="text-blue-600">{post.contactEmail}</span>
+                  </div>
+                )}
+                {post.contactPhone && (
+                  <div className="text-sm">
+                    📱{" "}
+                    <span className="text-blue-600">{post.contactPhone}</span>
+                  </div>
+                )}
               </CardContent>
 
               <CardFooter className="grid grid-cols-2 gap-3 px-5 pb-5">
                 <Button
                   variant="outline"
-                  className="flex gap-2 w-full justify-center hover:cursor-pointer"
+                  className="flex gap-2 hover:cursor-pointer justify-center w-full transition duration-300 ease-in-out transform hover:bg-indigo-600 hover:text-white hover:scale-105"
                 >
                   <PencilLine className="w-4 h-4" />
                   Edit
                 </Button>
                 <Button
                   variant="destructive"
-                  className="flex gap-2 w-full justify-center hover:cursor-pointer"
+                  className="flex gap-2 justify-center hover:cursor-pointer w-full transition duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete
