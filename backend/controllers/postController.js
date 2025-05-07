@@ -41,6 +41,20 @@ const createPost = async (req, res) => {
   }
 };
 
+const getMyPosts = async (req, res) => {
+  try {
+    console.log("Authenticated User ID:", req.user.userId);  // Debug line
+    const posts = await Post.find({ postedBy: req.user.userId }).sort({
+      createdAt: -1,
+    });
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch posts" });
+  }
+};
+
 module.exports = {
   createPost,
+  getMyPosts,
 };
