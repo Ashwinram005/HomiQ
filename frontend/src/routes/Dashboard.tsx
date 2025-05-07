@@ -132,7 +132,7 @@ export const Dashboard = () => {
             <p className="text-gray-500 mb-4">
               View and manage the rooms you've posted.
             </p>
-            <Button className="bg-gray-600 hover:bg-gray-700 text-white">
+            <Button className="bg-gray-600  hover:cursor-pointer hover:bg-gray-700 text-white">
               View Posts
             </Button>
           </div>
