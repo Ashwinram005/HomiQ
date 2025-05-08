@@ -109,7 +109,7 @@ export const MyPosts = () => {
 
               <CardContent className="space-y-3 py-4 px-5 flex-1">
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-xl font-semibold text-primary text-indigo-800 truncate">
+                  <CardTitle className="text-xl font-semibold  text-indigo-800 truncate">
                     {post.title}
                   </CardTitle>
                   <Badge

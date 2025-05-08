@@ -1,6 +1,11 @@
 // Updated OtherPosts.tsx with professional and colorful UI
 import { isAuthenticated } from "@/lib/auth";
-import { createRoute, redirect, RootRoute } from "@tanstack/react-router";
+import {
+  createRoute,
+  redirect,
+  RootRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -38,6 +43,12 @@ const amenitiesList = [
 ];
 
 export const OtherPosts = () => {
+  const navigate = useNavigate(); // Set up navigation hook
+
+  const handleGoToDashboard = () => {
+    navigate({ to: "/dashboard" }); // Adjust the path to your actual dashboard route
+  };
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -203,9 +214,17 @@ export const OtherPosts = () => {
 
         {/* Main Content */}
         <div className="lg:col-span-3">
-          <h1 className="text-3xl font-bold text-indigo-800 mb-6">
-            🏡 Explore Available Rooms
-          </h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-indigo-800">
+              🏡 Explore Available Rooms
+            </h1>
+            <button
+              onClick={handleGoToDashboard}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition-all"
+            >
+              Go to Dashboard
+            </button>
+          </div>
 
           {filteredPosts.length === 0 ? (
             <p className="text-gray-500">
