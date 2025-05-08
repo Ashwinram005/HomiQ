@@ -44,7 +44,7 @@ export const Dashboard = () => {
   };
 
   const handleBrowseRooms = () => {
-    navigate({ to: "/browse" });
+    navigate({ to: "/otherposts" });
   };
 
   return (

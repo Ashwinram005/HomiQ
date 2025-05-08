@@ -23,6 +23,7 @@ import Wildcard from "./routes/Wildcard.tsx";
 import { isAuthenticated } from "./lib/auth.ts";
 import MultiStepPostForm from "./routes/MultiStepPostForm.tsx";
 import MyPosts from "./routes/MyPosts.tsx";
+import OtherPosts from "./routes/OtherPosts.tsx";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -55,6 +56,7 @@ const routeTree = rootRoute.addChildren([
   Wildcard(rootRoute),
   MultiStepPostForm(rootRoute),
   MyPosts(rootRoute),
+  OtherPosts(rootRoute),
 ]);
 
 const router = createRouter({
