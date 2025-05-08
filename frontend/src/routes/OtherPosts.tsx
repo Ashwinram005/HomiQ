@@ -1,17 +1,16 @@
-// Updated OtherPosts.tsx with professional and colorful UI
-import { isAuthenticated } from "@/lib/auth";
-import {
-  createRoute,
-  redirect,
-  RootRoute,
-  useNavigate,
-} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { Wifi, Snowflake, Car, Home, Tv, Refrigerator } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
+import {
+  createRoute,
+  redirect,
+  RootRoute,
+  useNavigate,
+} from "@tanstack/react-router";
+import { isAuthenticated } from "@/lib/auth";
 
 interface Post {
   _id: string;
@@ -43,10 +42,10 @@ const amenitiesList = [
 ];
 
 export const OtherPosts = () => {
-  const navigate = useNavigate(); // Set up navigation hook
+  const navigate = useNavigate();
 
   const handleGoToDashboard = () => {
-    navigate({ to: "/dashboard" }); // Adjust the path to your actual dashboard route
+    navigate({ to: "/dashboard" });
   };
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -130,12 +129,13 @@ export const OtherPosts = () => {
   }
 
   return (
-    <div className="bg-gradient-to-tr from-sky-50 to-indigo-100 min-h-screen p-4 lg:p-8">
+    <div className="bg-gradient-to-tr from-sky-50 to-indigo-100 min-h-screen p-6 lg:p-8">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-4 gap-8">
         {/* Sidebar Filters */}
         <div className="bg-white shadow-xl rounded-2xl p-6 h-fit sticky top-4">
           <h2 className="text-2xl font-bold text-indigo-700 mb-4">Filters</h2>
 
+          {/* Search Bar */}
           <input
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
             placeholder="Search by title or description"
@@ -143,6 +143,7 @@ export const OtherPosts = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
+          {/* Location Input */}
           <input
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
             placeholder="Location"
@@ -150,6 +151,7 @@ export const OtherPosts = () => {
             onChange={(e) => setLocationQuery(e.target.value)}
           />
 
+          {/* Price Filter */}
           <select
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
             value={priceFilter}
@@ -161,6 +163,7 @@ export const OtherPosts = () => {
             <option value="6000">Under ₹6000</option>
           </select>
 
+          {/* Room Type Filter */}
           <select
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
             value={roomTypeFilter}
@@ -173,6 +176,7 @@ export const OtherPosts = () => {
             <option value="Shared">Shared</option>
           </select>
 
+          {/* Occupancy Filter */}
           <select
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
             value={occupancyFilter}
@@ -185,6 +189,7 @@ export const OtherPosts = () => {
             <option value="Any">Any</option>
           </select>
 
+          {/* Available From Date */}
           <input
             type="date"
             className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-md"
@@ -192,6 +197,7 @@ export const OtherPosts = () => {
             onChange={(e) => setAvailableFrom(e.target.value)}
           />
 
+          {/* Amenities Filters */}
           <div className="mb-2 font-semibold text-sm text-indigo-600">
             Amenities
           </div>
@@ -245,7 +251,7 @@ export const OtherPosts = () => {
                     {post.images[0] && (
                       <img
                         src={post.images[0]}
-                        alt=""
+                        alt="Room"
                         className="w-full h-48 object-cover"
                       />
                     )}
@@ -322,7 +328,6 @@ export const OtherPosts = () => {
                 <strong>Amenities:</strong>{" "}
                 {selectedPost.amenities.join(", ") || "None"}
               </p>
-              {/* Add Contact Button */}
               {selectedPost.postedBy?.email ? (
                 <a
                   href={`mailto:${selectedPost.postedBy.email}?subject=Inquiry about ${selectedPost.title}&body=Hello, I am interested in the ${selectedPost.title}.`}
