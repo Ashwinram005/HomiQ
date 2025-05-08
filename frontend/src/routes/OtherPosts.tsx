@@ -46,6 +46,7 @@ export const OtherPosts = () => {
   const [occupancyFilter, setOccupancyFilter] = useState("all");
   const [amenityFilters, setAmenityFilters] = useState<string[]>([]);
   const [availableFrom, setAvailableFrom] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -78,12 +79,14 @@ export const OtherPosts = () => {
   };
 
   const filteredPosts = posts
-    .filter((post) => {
-      return (
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.location.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    })
+    .filter((post) =>
+      post.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter(
+      (post) =>
+        locationQuery === "" ||
+        post.location.toLowerCase().includes(locationQuery.toLowerCase())
+    )
     .filter((post) => {
       if (priceFilter !== "all") {
         const max = parseInt(priceFilter);
@@ -143,10 +146,18 @@ export const OtherPosts = () => {
 
           <input
             type="text"
-            placeholder="Search by title or location..."
+            placeholder="Search by title or Description..."
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          <input
+            type="text"
+            placeholder="Search by location..."
+            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-400"
+            value={locationQuery}
+            onChange={(e) => setLocationQuery(e.target.value)}
           />
 
           <select
