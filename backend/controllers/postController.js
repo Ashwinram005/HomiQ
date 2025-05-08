@@ -54,7 +54,29 @@ const getMyPosts = async (req, res) => {
   }
 };
 
+
+// Get posts not created by the current user
+const getOtherUsersPosts = async (req, res) => {
+  try {
+    const currentUserId = req.user.userId;
+
+    const posts = await Post.find({
+      postedBy: { $ne: currentUserId },
+    }).populate("postedBy", "email"); // only email field
+    
+
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error("Error fetching other users' posts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
+
 module.exports = {
   createPost,
   getMyPosts,
+  getOtherUsersPosts
 };
