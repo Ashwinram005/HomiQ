@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
-
 interface Post {
   _id: string;
   title: string;
@@ -17,10 +16,10 @@ interface Post {
   price: number;
   deposit: number;
   availableFrom: string;
-  type: "single" | "shared" | "apartment";
+  type: "Room" | "House" | "PG" | "Shared";
   images: string[];
   amenities: string[];
-  occupancy: string;
+  occupancy: "Single" | "Double" | "Triple" | "Any";
   furnished: boolean;
   postedBy?: {
     email?: string;
@@ -33,6 +32,7 @@ export const OtherPosts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
   const [roomTypeFilter, setRoomTypeFilter] = useState("all");
+  const [occupancyFilter, setOccupancyFilter] = useState("all");
   const [amenityFilters, setAmenityFilters] = useState<string[]>([]);
   const [availableFrom, setAvailableFrom] = useState("");
 
@@ -65,30 +65,45 @@ export const OtherPosts = () => {
   };
 
   const filteredPosts = posts
-    .filter(
-      (post) =>
+    .filter((post) => {
+      return (
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.location.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+      );
+    })
     .filter((post) => {
       if (priceFilter !== "all") {
         const max = parseInt(priceFilter);
         if (post.price > max) return false;
       }
+      return true;
+    })
+    .filter((post) => {
       if (roomTypeFilter !== "all" && post.type !== roomTypeFilter) {
         return false;
       }
+      return true;
+    })
+    .filter((post) => {
+      if (occupancyFilter !== "all" && post.occupancy !== occupancyFilter) {
+        return false;
+      }
+      return true;
+    })
+    .filter((post) => {
       if (
         availableFrom &&
         new Date(post.availableFrom) < new Date(availableFrom)
       ) {
         return false;
       }
-      if (
-        amenityFilters.length > 0 &&
-        !amenityFilters.every((amenity) => post.amenities.includes(amenity))
-      ) {
-        return false;
+      return true;
+    })
+    .filter((post) => {
+      if (amenityFilters.length > 0) {
+        return amenityFilters.every((amenity) =>
+          post.amenities.includes(amenity)
+        );
       }
       return true;
     });
@@ -137,9 +152,22 @@ export const OtherPosts = () => {
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg"
           >
             <option value="all">All Room Types</option>
-            <option value="single">Single</option>
-            <option value="shared">Shared</option>
-            <option value="apartment">Apartment</option>
+            <option value="Room">Room</option>
+            <option value="House">House</option>
+            <option value="PG">PG</option>
+            <option value="Shared">Shared</option>
+          </select>
+
+          <select
+            value={occupancyFilter}
+            onChange={(e) => setOccupancyFilter(e.target.value)}
+            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg"
+          >
+            <option value="all">All Occupancy</option>
+            <option value="Single">Single</option>
+            <option value="Double">Double</option>
+            <option value="Triple">Triple</option>
+            <option value="Any">Any</option>
           </select>
 
           <input
@@ -221,9 +249,7 @@ export const OtherPosts = () => {
                       <div className="text-xs text-gray-500 mt-2">
                         <strong>Occupancy:</strong> {post.occupancy} <br />
                         <strong>Furnished:</strong>{" "}
-                        {post.furnished ? "Yes" : "No"} <br />
-                        <strong>Posted By:</strong>{" "}
-                        {post.postedBy?.email || "Unknown"}
+                        {post.furnished ? "Yes" : "No"}
                       </div>
                     </div>
                   </motion.div>
@@ -236,7 +262,6 @@ export const OtherPosts = () => {
     </div>
   );
 };
-
 export default (parentRoute: RootRoute) =>
   createRoute({
     path: "/otherposts",
