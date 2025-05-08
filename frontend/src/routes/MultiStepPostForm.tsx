@@ -23,6 +23,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
+import { useMutation } from "@tanstack/react-query";
 
 // Form schema
 const postSchema = z.object({
@@ -51,6 +52,34 @@ const amenitiesList = [
 ];
 
 export const MultiStepPostForm = () => {
+  const createPost = async (data: PostFormData) => {
+    const token = localStorage.getItem("token");
+    const response = await fetch("http://localhost:5000/api/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to submit post");
+    }
+
+    return response.json();
+  };
+
+  const mutation = useMutation({
+    mutationFn: createPost,
+    onSuccess: () => {
+      navigate({ to: "/dashboard" });
+    },
+    onError: () => {
+      alert("Something went wrong.");
+    },
+  });
+
   const methods = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
     defaultValues: { amenities: [], furnished: false },
@@ -58,7 +87,6 @@ export const MultiStepPostForm = () => {
   });
 
   const [step, setStep] = useState(0);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const steps = [
@@ -74,31 +102,8 @@ export const MultiStepPostForm = () => {
     "Confirm details",
   ];
 
-  const onSubmit = async (data: PostFormData) => {
-    setLoading(true);
-    try {
-      // Send data to the API
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        console.log("Posted Data: ", data);
-        navigate({ to: "/dashboard" });
-      } else {
-        throw new Error("Failed to submit post");
-      }
-    } catch (error) {
-      alert("Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = (data: PostFormData) => {
+    mutation.mutate(data);
   };
 
   const handleNext = async () => {
@@ -207,9 +212,9 @@ export const MultiStepPostForm = () => {
               <Button
                 type="button"
                 onClick={() => methods.handleSubmit(onSubmit)()}
-                disabled={loading}
+                disabled={mutation.isPending}
               >
-                {loading ? (
+                {mutation.isPending ? (
                   <span className="flex items-center gap-2">
                     <Loader2 size={16} className="animate-spin" />
                     Submitting...
@@ -393,7 +398,7 @@ const Step3 = () => {
 };
 
 const Step4 = () => {
-  const { watch, formState } = useFormContext<PostFormData>();
+  const { watch } = useFormContext<PostFormData>();
   const data = watch();
 
   return (

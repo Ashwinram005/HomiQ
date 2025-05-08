@@ -89,6 +89,7 @@ export const OtherPosts = () => {
   const { data: posts, isLoading } = useQuery({
     queryKey: ["otherposts"], // unique query key
     queryFn: fetchPosts,
+    // staleTime : 5 * 60 * 1000
   });
 
   const toggleAmenity = (amenity: string) => {
@@ -146,7 +147,6 @@ export const OtherPosts = () => {
         {/* Sidebar Filters */}
         <div className="bg-white shadow-xl rounded-2xl p-6 h-fit sticky top-4">
           <h2 className="text-2xl font-bold text-indigo-700 mb-4">Filters</h2>
-
           {/* Search Bar */}
           <input
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
