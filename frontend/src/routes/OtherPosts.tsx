@@ -3,14 +3,7 @@ import { createRoute, redirect, RootRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import {
-  Wifi,
-  Snowflake,
-  Car,
-  Home,
-  Tv,
-  Refrigerator,
-} from "lucide-react";
+import { Wifi, Snowflake, Car, Home, Tv, Refrigerator } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
 interface Post {
@@ -75,11 +68,13 @@ export const OtherPosts = () => {
   }, []);
 
   const toggleAmenity = (amenity: string) => {
-    setAmenityFilters((prev) =>
-      prev.includes(amenity)
+    setAmenityFilters((prev) => {
+      const updatedFilters = prev.includes(amenity)
         ? prev.filter((a) => a !== amenity)
-        : [...prev, amenity]
-    );
+        : [...prev, amenity];
+      console.log("Updated Amenity Filters:", updatedFilters); // Log updated filters
+      return updatedFilters;
+    });
   };
 
   const filteredPosts = posts
@@ -119,8 +114,9 @@ export const OtherPosts = () => {
     })
     .filter((post) => {
       if (amenityFilters.length > 0) {
+        const postAmenities = post.amenities.map((a) => a.toLowerCase());
         return amenityFilters.every((amenity) =>
-          post.amenities.includes(amenity)
+          postAmenities.includes(amenity.toLowerCase())
         );
       }
       return true;
