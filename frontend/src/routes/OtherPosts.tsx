@@ -152,7 +152,7 @@ export const OtherPosts = () => {
           <div className="text-sm font-medium mb-2">Amenities:</div>
           <div className="flex flex-wrap gap-2">
             {[
-              { key: "wifi", icon: <Wifi size={16} /> },
+              { key: "wi-fi", icon: <Wifi size={16} /> },
               { key: "ac", icon: <Snowflake size={16} /> },
               { key: "parking", icon: <Car size={16} /> },
               { key: "furnished", icon: <Home size={16} /> },
@@ -218,10 +218,13 @@ export const OtherPosts = () => {
                       <p className="text-xs mt-1 text-gray-500">
                         {post.amenities.join(", ") || "No amenities"}
                       </p>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <div className="text-xs text-gray-500 mt-2">
+                        <strong>Occupancy:</strong> {post.occupancy} <br />
+                        <strong>Furnished:</strong>{" "}
+                        {post.furnished ? "Yes" : "No"} <br />
                         <strong>Posted By:</strong>{" "}
                         {post.postedBy?.email || "Unknown"}
-                      </p>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
