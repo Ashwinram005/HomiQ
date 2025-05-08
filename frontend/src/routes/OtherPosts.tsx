@@ -3,9 +3,14 @@ import { createRoute, redirect, RootRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { Wifi, Car, Home, CheckCircle, Snowflake } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Wifi,
+  Snowflake,
+  Car,
+  Home,
+  Tv,
+  Refrigerator,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
 interface Post {
@@ -25,6 +30,19 @@ interface Post {
     email?: string;
   };
 }
+
+const amenitiesList = [
+  { key: "wi-fi", label: "Wi-Fi", icon: <Wifi size={16} /> },
+  { key: "ac", label: "AC", icon: <Snowflake size={16} /> },
+  { key: "parking", label: "Parking", icon: <Car size={16} /> },
+  { key: "laundry", label: "Laundry", icon: <Home size={16} /> },
+  { key: "tv", label: "TV", icon: <Tv size={16} /> },
+  {
+    key: "refrigerator",
+    label: "Refrigerator",
+    icon: <Refrigerator size={16} />,
+  },
+];
 
 export const OtherPosts = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -179,13 +197,7 @@ export const OtherPosts = () => {
 
           <div className="text-sm font-medium mb-2">Amenities:</div>
           <div className="flex flex-wrap gap-2">
-            {[
-              { key: "wi-fi", icon: <Wifi size={16} /> },
-              { key: "ac", icon: <Snowflake size={16} /> },
-              { key: "parking", icon: <Car size={16} /> },
-              { key: "furnished", icon: <Home size={16} /> },
-              { key: "washingMachine", icon: <CheckCircle size={16} /> },
-            ].map(({ key, icon }) => (
+            {amenitiesList.map(({ key, label, icon }) => (
               <button
                 key={key}
                 className={`text-xs px-3 py-1 rounded-full border flex items-center gap-1 ${
@@ -196,7 +208,7 @@ export const OtherPosts = () => {
                 onClick={() => toggleAmenity(key)}
               >
                 {icon}
-                {key}
+                {label}
               </button>
             ))}
           </div>
