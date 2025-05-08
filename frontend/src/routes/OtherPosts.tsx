@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { Wifi, Snowflake, Car, Home, Tv, Refrigerator } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 
 interface Post {
   _id: string;
@@ -48,8 +49,6 @@ export const OtherPosts = () => {
     navigate({ to: "/dashboard" });
   };
 
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
   const [roomTypeFilter, setRoomTypeFilter] = useState("all");
@@ -59,25 +58,38 @@ export const OtherPosts = () => {
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
-  useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/posts/others",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setPosts(response.data);
-      } catch (err) {
-        console.error("Error loading posts", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPosts();
-  }, []);
+  // useEffect(() => {
+  //   const loadPosts = async () => {
+  //     try {
+  //       const token = localStorage.getItem("token");
+  //       const response = await axios.get(
+  //         "http://localhost:5000/api/posts/others",
+  //         {
+  //           headers: { Authorization: `Bearer ${token}` },
+  //         }
+  //       );
+  //       setPosts(response.data);
+  //     } catch (err) {
+  //       console.error("Error loading posts", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   loadPosts();
+  // }, []);
+
+  const fetchPosts = async () => {
+    const token = localStorage.getItem("token");
+    const response = await axios.get("http://localhost:5000/api/posts/others", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  };
+
+  const { data: posts, isLoading } = useQuery({
+    queryKey: ["otherposts"], // unique query key
+    queryFn: fetchPosts,
+  });
 
   const toggleAmenity = (amenity: string) => {
     setAmenityFilters((prev) =>
@@ -87,7 +99,7 @@ export const OtherPosts = () => {
     );
   };
 
-  const filteredPosts = posts
+  const filteredPosts = (posts || [])
     .filter((post) =>
       post.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -116,7 +128,7 @@ export const OtherPosts = () => {
         )
     );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array(6)
