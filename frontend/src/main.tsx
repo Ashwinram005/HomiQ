@@ -6,7 +6,7 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import Dashboard from "./routes/Dashboard.tsx";
@@ -32,7 +32,7 @@ const rootRoute = createRootRoute({
       <Outlet />
       {/* <TanStackRouterDevtools /> */}
 
-      {/* <TanstackQueryLayout /> */}
+      <TanstackQueryLayout />
     </>
   ),
 });

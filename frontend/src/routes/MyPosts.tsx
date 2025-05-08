@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import {
@@ -21,34 +20,30 @@ import { Card, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+
+const fetchPosts = async () => {
+  const token = localStorage.getItem("token");
+  const response = await axios.get("http://localhost:5000/api/posts/myPosts", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to fetch posts");
+  }
+
+  return response.data; // Return posts data
+};
 
 export const MyPosts = () => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: posts, isLoading } = useQuery({
+    queryKey: ["myPosts"], // Define the query key
+    queryFn: fetchPosts, // Define the function to fetch the posts
+  });
+
   const navigate = useNavigate(); // Initialize the navigate function
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/posts/myPosts",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setPosts(response.data);
-      } catch (error) {
-        console.error("Error fetching my posts:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
