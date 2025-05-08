@@ -3,9 +3,18 @@ import { createRoute, redirect, RootRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { Wifi, Snowflake, Car, Home, Tv, Refrigerator } from "lucide-react";
+import {
+  Wifi,
+  Snowflake,
+  Car,
+  Home,
+  Tv,
+  Refrigerator,
+  Bold,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
+
 interface Post {
   _id: string;
   title: string;
@@ -47,6 +56,7 @@ export const OtherPosts = () => {
   const [amenityFilters, setAmenityFilters] = useState<string[]>([]);
   const [availableFrom, setAvailableFrom] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -69,13 +79,11 @@ export const OtherPosts = () => {
   }, []);
 
   const toggleAmenity = (amenity: string) => {
-    setAmenityFilters((prev) => {
-      const updatedFilters = prev.includes(amenity)
+    setAmenityFilters((prev) =>
+      prev.includes(amenity)
         ? prev.filter((a) => a !== amenity)
-        : [...prev, amenity];
-      console.log("Updated Amenity Filters:", updatedFilters); // Log updated filters
-      return updatedFilters;
-    });
+        : [...prev, amenity]
+    );
   };
 
   const filteredPosts = posts
@@ -95,24 +103,21 @@ export const OtherPosts = () => {
       return true;
     })
     .filter((post) => {
-      if (roomTypeFilter !== "all" && post.type !== roomTypeFilter) {
+      if (roomTypeFilter !== "all" && post.type !== roomTypeFilter)
         return false;
-      }
       return true;
     })
     .filter((post) => {
-      if (occupancyFilter !== "all" && post.occupancy !== occupancyFilter) {
+      if (occupancyFilter !== "all" && post.occupancy !== occupancyFilter)
         return false;
-      }
       return true;
     })
     .filter((post) => {
       if (
         availableFrom &&
         new Date(post.availableFrom) < new Date(availableFrom)
-      ) {
+      )
         return false;
-      }
       return true;
     })
     .filter((post) => {
@@ -147,7 +152,7 @@ export const OtherPosts = () => {
           <input
             type="text"
             placeholder="Search by title or Description..."
-            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-400"
+            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -155,7 +160,7 @@ export const OtherPosts = () => {
           <input
             type="text"
             placeholder="Search by location..."
-            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-400"
+            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-lg"
             value={locationQuery}
             onChange={(e) => setLocationQuery(e.target.value)}
           />
@@ -255,21 +260,12 @@ export const OtherPosts = () => {
                       <p className="text-blue-600 font-bold text-sm mt-1">
                         ₹{post.price} / month
                       </p>
-                      <p className="text-xs text-gray-500">
-                        Available:{" "}
-                        {format(new Date(post.availableFrom), "dd MMM yyyy")}
-                      </p>
-                      <p className="text-xs capitalize text-gray-600">
-                        {post.type}
-                      </p>
-                      <p className="text-xs mt-1 text-gray-500">
-                        {post.amenities.join(", ") || "No amenities"}
-                      </p>
-                      <div className="text-xs text-gray-500 mt-2">
-                        <strong>Occupancy:</strong> {post.occupancy} <br />
-                        <strong>Furnished:</strong>{" "}
-                        {post.furnished ? "Yes" : "No"}
-                      </div>
+                      <button
+                        className="text-sm mt-2 text-blue-600 underline"
+                        onClick={() => setSelectedPost(post)}
+                      >
+                        View Details
+                      </button>
                     </div>
                   </motion.div>
                 ))}
@@ -278,9 +274,67 @@ export const OtherPosts = () => {
           )}
         </div>
       </div>
+
+      {/* Modal for Post Details */}
+      {selectedPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white max-w-2xl w-full p-6 rounded-xl overflow-y-auto max-h-[90vh] relative">
+            <button
+              className="absolute top-2 right-4 text-gray-500 hover:text-black text-xl"
+              onClick={() => setSelectedPost(null)}
+            >
+              ×
+            </button>
+
+            {selectedPost.images?.[0] && (
+              <img
+                src={selectedPost.images[0]}
+                alt="room"
+                className="w-full h-64 object-cover rounded-lg mb-4"
+              />
+            )}
+
+            <h2 className="text-2xl font-bold mb-2">{selectedPost.title}</h2>
+
+            <p className="text-gray-600 mb-2">
+              {" "}
+              <span className="font-bold">Description: </span>
+              {selectedPost.description}
+            </p>
+
+            <div className="space-y-1 text-sm text-gray-700">
+              <p>
+                <strong>Location:</strong> {selectedPost.location}
+              </p>
+              <p>
+                <strong>Price:</strong> ₹{selectedPost.price}
+              </p>
+              <p>
+                <strong>Available From:</strong>{" "}
+                {format(new Date(selectedPost.availableFrom), "dd MMM yyyy")}
+              </p>
+              <p>
+                <strong>Type:</strong> {selectedPost.type}
+              </p>
+              <p>
+                <strong>Occupancy:</strong> {selectedPost.occupancy}
+              </p>
+              <p>
+                <strong>Furnished:</strong>{" "}
+                {selectedPost.furnished ? "Yes" : "No"}
+              </p>
+              <p>
+                <strong>Amenities:</strong>{" "}
+                {selectedPost.amenities.join(", ") || "None"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 export default (parentRoute: RootRoute) =>
   createRoute({
     path: "/otherposts",
