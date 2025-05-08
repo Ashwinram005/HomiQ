@@ -43,7 +43,7 @@ const createPost = async (req, res) => {
 
 const getMyPosts = async (req, res) => {
   try {
-    console.log("Authenticated User ID:", req.user.userId);  // Debug line
+    console.log("Authenticated User ID:", req.user.userId); // Debug line
     const posts = await Post.find({ postedBy: req.user.userId }).sort({
       createdAt: -1,
     });
@@ -54,7 +54,6 @@ const getMyPosts = async (req, res) => {
   }
 };
 
-
 // Get posts not created by the current user
 const getOtherUsersPosts = async (req, res) => {
   try {
@@ -63,7 +62,6 @@ const getOtherUsersPosts = async (req, res) => {
     const posts = await Post.find({
       postedBy: { $ne: currentUserId },
     }).populate("postedBy", "email"); // only email field
-    
 
     res.status(200).json(posts);
   } catch (error) {
@@ -72,11 +70,8 @@ const getOtherUsersPosts = async (req, res) => {
   }
 };
 
-
-
-
 module.exports = {
   createPost,
   getMyPosts,
-  getOtherUsersPosts
+  getOtherUsersPosts,
 };

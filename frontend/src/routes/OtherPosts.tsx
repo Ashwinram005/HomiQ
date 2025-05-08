@@ -83,15 +83,21 @@ export const OtherPosts = () => {
     const response = await axios.get("http://localhost:5000/api/posts/others", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data;
+    const posts = response.data;
+    console.log("Fetched posts:", posts);
+    return posts;
   };
 
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ["otherposts"], // unique query key
+  const {
+    data: posts,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["otherposts"],
     queryFn: fetchPosts,
-    // staleTime : 5 * 60 * 1000
   });
 
+  console.log("Posts response:", posts);
   const toggleAmenity = (amenity: string) => {
     setAmenityFilters((prev) =>
       prev.includes(amenity)
@@ -147,6 +153,7 @@ export const OtherPosts = () => {
         {/* Sidebar Filters */}
         <div className="bg-white shadow-xl rounded-2xl p-6 h-fit sticky top-4">
           <h2 className="text-2xl font-bold text-indigo-700 mb-4">Filters</h2>
+
           {/* Search Bar */}
           <input
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
