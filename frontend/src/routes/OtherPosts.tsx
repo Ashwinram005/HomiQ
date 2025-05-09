@@ -13,22 +13,6 @@ import {
 import { isAuthenticated } from "@/lib/auth";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-interface Post {
-  _id: string;
-  title: string;
-  description: string;
-  location: string;
-  price: number;
-  deposit: number;
-  availableFrom: string;
-  type: "Room" | "House" | "PG" | "Shared";
-  images: string[];
-  amenities: string[];
-  occupancy: "Single" | "Double" | "Triple" | "Any";
-  furnished: boolean;
-  postedBy?: { email?: string };
-}
-
 const amenitiesList = [
   { key: "wi-fi", label: "Wi-Fi", icon: <Wifi size={16} /> },
   { key: "ac", label: "AC", icon: <Snowflake size={16} /> },
@@ -45,23 +29,30 @@ const amenitiesList = [
 export const OtherPosts = () => {
   const navigate = useNavigate();
   const observer = useRef<IntersectionObserver | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [priceFilter, setPriceFilter] = useState("all");
-  const [roomTypeFilter, setRoomTypeFilter] = useState("all");
-  const [occupancyFilter, setOccupancyFilter] = useState("all");
-  const [amenityFilters, setAmenityFilters] = useState<string[]>([]);
-  const [availableFrom, setAvailableFrom] = useState("");
-  const [locationQuery, setLocationQuery] = useState("");
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [filters, setFilters] = useState({
+    searchQuery: "",
+    locationQuery: "",
+    priceFilter: "all",
+    roomTypeFilter: "all",
+    occupancyFilter: "all",
+    availableFrom: "",
+    amenityFilters: [] as string[],
+  });
+  const [tempFilters, setTempFilters] = useState(filters);
 
+  const [selectedPost, setSelectedPost] = useState(null);
+
+  // Fetch posts from backend using infinite query
   const fetchOtherPosts = async ({ pageParam = 1 }) => {
     const token = localStorage.getItem("token");
     const res = await axios.get(
-      `http://localhost:5000/api/posts/others?page=${pageParam}&limit=7`,
+      `http://localhost:5000/api/posts/others?page=${pageParam}&limit=7`, // Update this URL as needed
       {
         headers: { Authorization: `Bearer ${token}` },
+        params: filters,
       }
     );
+    console.log(res.data);
     return res.data;
   };
 
@@ -72,7 +63,7 @@ export const OtherPosts = () => {
     isFetchingNextPage,
     isLoading,
   } = useInfiniteQuery({
-    queryKey: ["otherposts"],
+    queryKey: ["otherposts", , filters],
     queryFn: fetchOtherPosts,
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) => {
@@ -80,54 +71,22 @@ export const OtherPosts = () => {
     },
   });
 
-  const allPosts: Post[] =
-    posts?.pages.flatMap((page) => page?.posts || []) || [];
+  const allPosts = posts?.pages.flatMap((page) => page?.posts || []) || [];
+  const filteredPosts = allPosts;
 
-  const filteredPosts = allPosts
-    .filter(
-      (post) =>
-        post &&
-        post.title &&
-        post.title.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter(
-      (post) =>
-        locationQuery === "" ||
-        post.location.toLowerCase().includes(locationQuery.toLowerCase())
-    )
-    .filter(
-      (post) => priceFilter === "all" || post.price <= parseInt(priceFilter)
-    )
-    .filter((post) => roomTypeFilter === "all" || post.type === roomTypeFilter)
-    .filter(
-      (post) => occupancyFilter === "all" || post.occupancy === occupancyFilter
-    )
-    .filter(
-      (post) =>
-        availableFrom === "" ||
-        new Date(post.availableFrom) >= new Date(availableFrom)
-    )
-    .filter(
-      (post) =>
-        amenityFilters.length === 0 ||
-        amenityFilters.every((a) =>
-          post.amenities.map((x) => x.toLowerCase()).includes(a.toLowerCase())
-        )
-    );
-
-  const toggleAmenity = (amenity: string) => {
-    setAmenityFilters((prev) =>
-      prev.includes(amenity)
-        ? prev.filter((a) => a !== amenity)
-        : [...prev, amenity]
-    );
+  const toggleAmenity = (amenity) => {
+    setTempFilters((prev) => ({
+      ...prev,
+      amenityFilters: prev.amenityFilters.includes(amenity)
+        ? prev.amenityFilters.filter((a) => a !== amenity)
+        : [...prev.amenityFilters, amenity],
+    }));
   };
 
-  const lastPostRef = useRef<HTMLDivElement | null>(null);
+  const lastPostRef = useRef(null);
 
   useEffect(() => {
     if (isLoading || !hasNextPage) return;
-
     const options = {
       root: null,
       rootMargin: "100px",
@@ -148,17 +107,8 @@ export const OtherPosts = () => {
       if (observer.current && lastPostRef.current) {
         observer.current.unobserve(lastPostRef.current);
       }
-      if (filteredPosts.length < 6 && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
     };
-  }, [
-    isLoading,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    filteredPosts,
-  ]);
+  }, [isLoading, hasNextPage, fetchNextPage, isFetchingNextPage]);
 
   if (isLoading) {
     return (
@@ -178,40 +128,40 @@ export const OtherPosts = () => {
         {/* Sidebar Filters */}
         <div className="bg-white shadow-xl rounded-2xl p-6 h-fit sticky top-4">
           <h2 className="text-2xl font-bold text-indigo-700 mb-4">Filters</h2>
-
-          {/* Search Bar */}
           <input
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
             placeholder="Search by title or description"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={tempFilters.searchQuery}
+            onChange={(e) =>
+              setTempFilters({ ...tempFilters, searchQuery: e.target.value })
+            }
           />
-
-          {/* Location Input */}
           <input
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
             placeholder="Location"
-            value={locationQuery}
-            onChange={(e) => setLocationQuery(e.target.value)}
+            value={tempFilters.locationQuery}
+            onChange={(e) =>
+              setTempFilters({ ...tempFilters, locationQuery: e.target.value })
+            }
           />
-
-          {/* Price Filter */}
           <select
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
-            value={priceFilter}
-            onChange={(e) => setPriceFilter(e.target.value)}
+            value={tempFilters.priceFilter}
+            onChange={(e) =>
+              setTempFilters({ ...tempFilters, priceFilter: e.target.value })
+            }
           >
             <option value="all">All Prices</option>
             <option value="2500">Under ₹2500</option>
             <option value="4000">Under ₹4000</option>
             <option value="6000">Under ₹6000</option>
           </select>
-
-          {/* Room Type Filter */}
           <select
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
-            value={roomTypeFilter}
-            onChange={(e) => setRoomTypeFilter(e.target.value)}
+            value={tempFilters.roomTypeFilter}
+            onChange={(e) =>
+              setTempFilters({ ...tempFilters, roomTypeFilter: e.target.value })
+            }
           >
             <option value="all">All Room Types</option>
             <option value="Room">Room</option>
@@ -219,12 +169,15 @@ export const OtherPosts = () => {
             <option value="PG">PG</option>
             <option value="Shared">Shared</option>
           </select>
-
-          {/* Occupancy Filter */}
           <select
             className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
-            value={occupancyFilter}
-            onChange={(e) => setOccupancyFilter(e.target.value)}
+            value={tempFilters.occupancyFilter}
+            onChange={(e) =>
+              setTempFilters({
+                ...tempFilters,
+                occupancyFilter: e.target.value,
+              })
+            }
           >
             <option value="all">All Occupancy</option>
             <option value="Single">Single</option>
@@ -232,16 +185,14 @@ export const OtherPosts = () => {
             <option value="Triple">Triple</option>
             <option value="Any">Any</option>
           </select>
-
-          {/* Available From Date */}
           <input
             type="date"
             className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-md"
-            value={availableFrom}
-            onChange={(e) => setAvailableFrom(e.target.value)}
+            value={tempFilters.availableFrom}
+            onChange={(e) =>
+              setTempFilters({ ...tempFilters, availableFrom: e.target.value })
+            }
           />
-
-          {/* Amenities Filters */}
           <div className="mb-2 font-semibold text-sm text-indigo-600">
             Amenities
           </div>
@@ -251,7 +202,7 @@ export const OtherPosts = () => {
                 key={key}
                 onClick={() => toggleAmenity(key)}
                 className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-all ${
-                  amenityFilters.includes(key)
+                  tempFilters.amenityFilters.includes(key)
                     ? "bg-indigo-600 text-white border-indigo-600"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
@@ -260,6 +211,12 @@ export const OtherPosts = () => {
               </button>
             ))}
           </div>
+          <button
+            onClick={() => setFilters(tempFilters)}
+            className="mt-4 w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition"
+          >
+            Apply Filters
+          </button>
         </div>
 
         {/* Main Content */}
@@ -275,7 +232,6 @@ export const OtherPosts = () => {
               Go to Dashboard
             </button>
           </div>
-
           {filteredPosts.length === 0 ? (
             <p className="text-gray-500">
               No rooms found matching the filters.
@@ -327,7 +283,6 @@ export const OtherPosts = () => {
               <p className="text-indigo-600 font-semibold">Loading more...</p>
             </div>
           )}
-
           {/* No more posts */}
           {!hasNextPage && (
             <div className="flex justify-center items-center py-4">
@@ -336,7 +291,7 @@ export const OtherPosts = () => {
           )}
         </div>
       </div>
-
+      {/* Selected Post Modal */}
       {selectedPost && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
@@ -349,7 +304,7 @@ export const OtherPosts = () => {
               className="absolute top-3 right-4 text-gray-400 hover:text-black text-2xl"
               onClick={() => setSelectedPost(null)}
             >
-              &times;
+              ×
             </button>
             {selectedPost.images[0] && (
               <img

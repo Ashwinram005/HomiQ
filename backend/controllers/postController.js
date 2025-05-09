@@ -54,39 +54,98 @@ const getMyPosts = async (req, res) => {
   }
 };
 
-// Get posts not created by the current user
 // const getOtherUsersPosts = async (req, res) => {
 //   try {
 //     const currentUserId = req.user.userId;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 6;
 
 //     const posts = await Post.find({
 //       postedBy: { $ne: currentUserId },
-//     }).populate("postedBy", "email"); // only email field
+//     })
+//       .populate("postedBy", "email")
+//       .skip((page - 1) * limit)
+//       .limit(limit)
+//       .exec();
 
-//     res.status(200).json(posts);
+//     const total = await Post.countDocuments({
+//       postedBy: { $ne: currentUserId },
+//     });
+
+//     res.status(200).json({
+//       posts,
+//       hasMore: page * limit < total,
+//     });
 //   } catch (error) {
 //     console.error("Error fetching other users' posts:", error);
 //     res.status(500).json({ message: "Internal server error" });
 //   }
 // };
 
+// Helper function to build filter conditions
+const buildFilterConditions = (query, currentUserId) => {
+  const {
+    searchQuery = "",
+    locationQuery = "",
+    priceFilter = "all",
+    roomTypeFilter = "all",
+    occupancyFilter = "all",
+    availableFrom = "",
+  } = query;
+
+    const amenityFilters = query['amenityFilters[]'] ? query['amenityFilters[]'] : [];
+  console.log("Amenities",amenityFilters)
+  const filterConditions = {
+    postedBy: { $ne: currentUserId },
+  };
+
+  if (searchQuery) {
+    filterConditions.title = { $regex: searchQuery, $options: "i" };
+  }
+
+  if (locationQuery) {
+    filterConditions.location = { $regex: locationQuery, $options: "i" };
+  }
+
+  if (priceFilter !== "all") {
+    filterConditions.price = { $lte: parseInt(priceFilter) };
+  }
+
+  if (roomTypeFilter !== "all") {
+    filterConditions.type = roomTypeFilter;
+  }
+
+  if (occupancyFilter !== "all") {
+    filterConditions.occupancy = occupancyFilter;
+  }
+
+  if (availableFrom) {
+    filterConditions.availableFrom = { $gte: new Date(availableFrom) };
+  }
+  if (amenityFilters.length > 0) {
+    filterConditions.amenities = { $all: amenityFilters };
+  }
+
+  return filterConditions;
+};
+
+// Main function to fetch posts
 const getOtherUsersPosts = async (req, res) => {
   try {
     const currentUserId = req.user.userId;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 6;
 
-    const posts = await Post.find({
-      postedBy: { $ne: currentUserId },
-    })
+    // Get filter conditions using the helper function
+    const filterConditions = buildFilterConditions(req.query, currentUserId);
+
+    const posts = await Post.find(filterConditions)
       .populate("postedBy", "email")
       .skip((page - 1) * limit)
       .limit(limit)
       .exec();
 
-    const total = await Post.countDocuments({
-      postedBy: { $ne: currentUserId },
-    });
+    const total = await Post.countDocuments(filterConditions);
 
     res.status(200).json({
       posts,
