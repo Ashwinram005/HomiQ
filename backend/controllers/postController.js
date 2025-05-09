@@ -70,7 +70,6 @@ const getMyPosts = async (req, res) => {
 //   }
 // };
 
-
 const getOtherUsersPosts = async (req, res) => {
   try {
     const currentUserId = req.user.userId;
@@ -85,7 +84,9 @@ const getOtherUsersPosts = async (req, res) => {
       .limit(limit)
       .exec();
 
-    const total = await Post.countDocuments({ postedBy: { $ne: currentUserId } });
+    const total = await Post.countDocuments({
+      postedBy: { $ne: currentUserId },
+    });
 
     res.status(200).json({
       posts,
