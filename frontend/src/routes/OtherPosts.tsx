@@ -63,7 +63,7 @@ export const OtherPosts = () => {
     isFetchingNextPage,
     isLoading,
   } = useInfiniteQuery({
-    queryKey: ["otherposts", , filters],
+    queryKey: ["otherposts", filters],
     queryFn: fetchOtherPosts,
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) => {

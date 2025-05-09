@@ -70,9 +70,6 @@ const buildFilterConditions = (query, currentUserId) => {
   if (typeof amenityFilters === "string") {
     amenityFilters = [amenityFilters];
   }
-  // if (!Array.isArray(amenityFilters)) {
-  //   amenityFilters = [];
-  // }
 
   console.log("Amenities", amenityFilters);
   const filterConditions = {
