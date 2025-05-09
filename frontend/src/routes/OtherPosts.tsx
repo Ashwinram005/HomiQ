@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { Wifi, Snowflake, Car, Home, Tv, Refrigerator } from "lucide-react";
@@ -11,7 +11,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 
 interface Post {
   _id: string;
@@ -44,11 +44,7 @@ const amenitiesList = [
 
 export const OtherPosts = () => {
   const navigate = useNavigate();
-
-  const handleGoToDashboard = () => {
-    navigate({ to: "/dashboard" });
-  };
-
+  const observer = useRef<IntersectionObserver | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
   const [roomTypeFilter, setRoomTypeFilter] = useState("all");
@@ -58,57 +54,41 @@ export const OtherPosts = () => {
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
-  // useEffect(() => {
-  //   const loadPosts = async () => {
-  //     try {
-  //       const token = localStorage.getItem("token");
-  //       const response = await axios.get(
-  //         "http://localhost:5000/api/posts/others",
-  //         {
-  //           headers: { Authorization: `Bearer ${token}` },
-  //         }
-  //       );
-  //       setPosts(response.data);
-  //     } catch (err) {
-  //       console.error("Error loading posts", err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   loadPosts();
-  // }, []);
-
-  const fetchPosts = async () => {
+  const fetchOtherPosts = async ({ pageParam = 1 }) => {
     const token = localStorage.getItem("token");
-    const response = await axios.get("http://localhost:5000/api/posts/others", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const posts = response.data;
-    console.log("Fetched posts:", posts);
-    return posts;
+    const res = await axios.get(
+      `http://localhost:5000/api/posts/others?page=${pageParam}&limit=7`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return res.data;
   };
 
   const {
     data: posts,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     isLoading,
     error,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ["otherposts"],
-    queryFn: fetchPosts,
+    queryFn: fetchOtherPosts,
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.hasMore ? pages.length + 1 : undefined;
+    },
   });
 
-  console.log("Posts response:", posts);
-  const toggleAmenity = (amenity: string) => {
-    setAmenityFilters((prev) =>
-      prev.includes(amenity)
-        ? prev.filter((a) => a !== amenity)
-        : [...prev, amenity]
-    );
-  };
+  const allPosts: Post[] =
+    posts?.pages.flatMap((page) => page?.posts || []) || [];
 
-  const filteredPosts = (posts || [])
-    .filter((post) =>
-      post.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPosts = allPosts
+    .filter(
+      (post) =>
+        post &&
+        post.title &&
+        post.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .filter(
       (post) =>
@@ -134,6 +114,51 @@ export const OtherPosts = () => {
           post.amenities.map((x) => x.toLowerCase()).includes(a.toLowerCase())
         )
     );
+
+  const toggleAmenity = (amenity: string) => {
+    setAmenityFilters((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((a) => a !== amenity)
+        : [...prev, amenity]
+    );
+  };
+
+  const lastPostRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isLoading || !hasNextPage) return;
+
+    const options = {
+      root: null,
+      rootMargin: "100px",
+      threshold: 1.0,
+    };
+
+    observer.current = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    }, options);
+
+    if (lastPostRef.current) {
+      observer.current.observe(lastPostRef.current);
+    }
+
+    return () => {
+      if (observer.current && lastPostRef.current) {
+        observer.current.unobserve(lastPostRef.current);
+      }
+      if (filteredPosts.length < 6 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    };
+  }, [
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    filteredPosts,
+  ]);
 
   if (isLoading) {
     return (
@@ -244,7 +269,7 @@ export const OtherPosts = () => {
               🏡 Explore Available Rooms
             </h1>
             <button
-              onClick={handleGoToDashboard}
+              onClick={() => navigate({ to: "/dashboard" })}
               className="px-6 py-3 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition-all"
             >
               Go to Dashboard
@@ -258,7 +283,7 @@ export const OtherPosts = () => {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <AnimatePresence>
-                {filteredPosts.map((post) => (
+                {filteredPosts.map((post, index) => (
                   <motion.div
                     key={post._id}
                     initial={{ opacity: 0, y: 20 }}
@@ -266,6 +291,9 @@ export const OtherPosts = () => {
                     exit={{ opacity: 0 }}
                     whileHover={{ scale: 1.03 }}
                     className="bg-white rounded-2xl shadow-md border hover:shadow-lg transition-all overflow-hidden"
+                    ref={
+                      index === filteredPosts.length - 1 ? lastPostRef : null
+                    }
                   >
                     {post.images[0] && (
                       <img
@@ -292,6 +320,18 @@ export const OtherPosts = () => {
                   </motion.div>
                 ))}
               </AnimatePresence>
+            </div>
+          )}
+          {isFetchingNextPage && (
+            <div className="flex justify-center items-center py-4">
+              <p className="text-indigo-600 font-semibold">Loading more...</p>
+            </div>
+          )}
+
+          {/* No more posts */}
+          {!hasNextPage && (
+            <div className="flex justify-center items-center py-4">
+              <p className="text-gray-500">No more posts available.</p>
             </div>
           )}
         </div>
