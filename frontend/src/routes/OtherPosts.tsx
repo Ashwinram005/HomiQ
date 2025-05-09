@@ -11,7 +11,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 interface Post {
   _id: string;
@@ -71,10 +71,10 @@ export const OtherPosts = () => {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-    error,
   } = useInfiniteQuery({
     queryKey: ["otherposts"],
     queryFn: fetchOtherPosts,
+    initialPageParam: 1,
     getNextPageParam: (lastPage, pages) => {
       return lastPage.hasMore ? pages.length + 1 : undefined;
     },
