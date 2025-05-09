@@ -52,7 +52,7 @@ export const OtherPosts = () => {
         params: filters,
       }
     );
-    console.log(res.data);
+    console.log("Sent data",filters);
     return res.data;
   };
 

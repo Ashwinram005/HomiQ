@@ -93,8 +93,14 @@ const buildFilterConditions = (query, currentUserId) => {
     availableFrom = "",
   } = query;
 
-    const amenityFilters = query['amenityFilters[]'] ? query['amenityFilters[]'] : [];
-  console.log("Amenities",amenityFilters)
+  let amenityFilters = query["amenityFilters[]"] || query.amenityFilters || [];
+  if (typeof amenityFilters === "string") {
+    amenityFilters = [amenityFilters];
+  }
+  if (!Array.isArray(amenityFilters)) {
+    amenityFilters = [];
+  }
+  console.log("Amenities", amenityFilters);
   const filterConditions = {
     postedBy: { $ne: currentUserId },
   };
@@ -122,8 +128,12 @@ const buildFilterConditions = (query, currentUserId) => {
   if (availableFrom) {
     filterConditions.availableFrom = { $gte: new Date(availableFrom) };
   }
+
   if (amenityFilters.length > 0) {
-    filterConditions.amenities = { $all: amenityFilters };
+    filterConditions.amenities = {
+      $all: amenityFilters.map((amenity) => new RegExp(`^${amenity}$`, "i")),
+    };
+    console.log("filter amenities", filterConditions.amenities);
   }
 
   return filterConditions;
