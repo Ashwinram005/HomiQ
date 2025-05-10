@@ -4,6 +4,7 @@ const connectDB = require("./db"); // Import the database connection
 const dotenv = require("dotenv");
 const userRoutes = require("./routes/userRoutes"); // Importing the user routes
 const postRoutes = require("./routes/postRoutes");
+const chatRoomRoutes=require("./routes/chatRoomRoutes")
 const cors = require("cors");
 dotenv.config();
 
@@ -18,7 +19,7 @@ connectDB();
 
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
-
+app.use("/api/chatRoom",chatRoomRoutes);
 // Start server
 const PORT = process.env.PORT || 5000;
 
