@@ -1,35 +1,35 @@
-// controllers/chatRoomController.js
-const ChatRoom = require("../models/ChatRoom");
-const User = require("../models/User");
+const mongoose = require('mongoose');
+const ChatRoom = require('../models/ChatRoom');
 
-// Controller to create a new chat room
 const createChatRoom = async (req, res) => {
-  const { userId1, userId2 } = req.body; // Get user IDs from the request body
-  
   try {
-    // Find both users from the database using their IDs
-    const user1 = await User.findById(userId1);
-    const user2 = await User.findById(userId2);
+    const { user1, user2 } = req.body;
 
-    if (!user1 || !user2) {
-      return res.status(404).json({ message: "One or both users not found" });
+    // Check if user1 and user2 are valid ObjectIds
+    if (!mongoose.Types.ObjectId.isValid(user1) || !mongoose.Types.ObjectId.isValid(user2)) {
+      return res.status(400).json({ message: 'Invalid user IDs' });
     }
 
-    // Create a new chat room with the two users as participants
+    // Use 'new' keyword to create ObjectId instances
+    const user1Id = new mongoose.Types.ObjectId(user1);
+    const user2Id = new mongoose.Types.ObjectId(user2);
+
+    // Create a new chat room with ObjectId participants
     const newChatRoom = new ChatRoom({
-      participants: [userId1, userId2]
+      participants: [user1Id, user2Id], // Store ObjectIds in the participants array
     });
 
-    await newChatRoom.save(); // Save the chat room in the database
+    // Save the new chat room to the database
+    await newChatRoom.save();
 
-    // Send a success response
-    res.status(200).json({ message: "Chat room created successfully", chatRoom: newChatRoom });
+    // Respond with the created chat room
+    res.status(201).json(newChatRoom);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(error);
+    res.status(500).json({ message: 'Error creating chat room' });
   }
 };
 
-// Export the controller function
 module.exports = {
-  createChatRoom
+  createChatRoom,
 };

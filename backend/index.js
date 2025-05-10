@@ -5,6 +5,8 @@ const dotenv = require("dotenv");
 const userRoutes = require("./routes/userRoutes"); // Importing the user routes
 const postRoutes = require("./routes/postRoutes");
 const chatRoomRoutes=require("./routes/chatRoomRoutes")
+const messageRoutes = require("./routes/messageRoutes");
+
 const cors = require("cors");
 dotenv.config();
 
@@ -19,7 +21,8 @@ connectDB();
 
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
-app.use("/api/chatRoom",chatRoomRoutes);
+app.use("/api/chatroom",chatRoomRoutes);
+app.use("/api/messages", messageRoutes);
 // Start server
 const PORT = process.env.PORT || 5000;
 
