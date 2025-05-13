@@ -71,7 +71,7 @@ const buildFilterConditions = (query, currentUserId) => {
     amenityFilters = [amenityFilters];
   }
 
-  console.log("Amenities", amenityFilters);
+  // console.log("Amenities", amenityFilters);
   const filterConditions = {
     postedBy: { $ne: currentUserId },
   };
@@ -104,7 +104,7 @@ const buildFilterConditions = (query, currentUserId) => {
     filterConditions.amenities = {
       $all: amenityFilters.map((amenity) => new RegExp(`^${amenity}$`, "i")),
     };
-    console.log("filter amenities", filterConditions.amenities);
+    // console.log("filter amenities", filterConditions.amenities);
   }
 
   return filterConditions;
