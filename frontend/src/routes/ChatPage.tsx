@@ -18,7 +18,7 @@ export const ChatPage = () => {
     setActiveConversation(conversation);
   };
 
-  // Handle sending a message (for now, just add to the active conversation)
+  // Handle sending a message
   const handleSendMessage = () => {
     if (message.trim()) {
       setActiveConversation((prevConversation) => {
@@ -37,63 +37,62 @@ export const ChatPage = () => {
   return (
     <div className="h-screen flex bg-gray-100">
       {/* Sidebar */}
-      <div className="w-1/3 bg-white p-4 shadow-lg">
-        <h2 className="text-2xl font-semibold mb-4">Conversations</h2>
-        <div className="space-y-4">
+      <div className="w-80 bg-gradient-to-b from-blue-500 to-blue-700 text-white p-6 shadow-lg">
+        <h2 className="text-3xl font-semibold mb-6">Conversations</h2>
+        <div className="space-y-4 overflow-y-auto">
           {conversations.map((conversation) => (
             <div
               key={conversation.id}
               onClick={() => handleSelectConversation(conversation)}
-              className={`p-3 rounded-lg cursor-pointer hover:bg-gray-200 ${
-                activeConversation?.id === conversation.id ? "bg-gray-300" : ""
+              className={`p-3 rounded-lg cursor-pointer hover:bg-blue-400 transition-all ${
+                activeConversation?.id === conversation.id ? "bg-blue-600" : ""
               }`}
             >
-              <p className="text-lg font-semibold">{conversation.name}</p>
+              <p className="text-xl">{conversation.name}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Chat Window */}
-      <div className="flex-1 bg-white p-4">
+      <div className="flex-1 bg-gray-50 p-6 flex flex-col">
         {activeConversation ? (
           <>
-            <div className="h-full flex flex-col">
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-                {activeConversation.messages.map((msg: any, index: number) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg ${
-                      msg.sender === "user"
-                        ? "bg-blue-200 text-blue-800"
-                        : "bg-gray-200 text-gray-800"
-                    }`}
-                  >
-                    <p>{msg.text}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Message Input */}
-              <div className="flex space-x-3">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="flex-1 p-3 border rounded-lg"
-                  placeholder="Type a message..."
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg"
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+              {activeConversation.messages.map((msg: any, index: number) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-lg max-w-xs ${
+                    msg.sender === "user"
+                      ? "self-end bg-blue-500 text-white"
+                      : "self-start bg-gray-300 text-gray-800"
+                  }`}
                 >
-                  Send
-                </Button>
-              </div>
+                  <p>{msg.text}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Message Input */}
+            <div className="flex space-x-3 items-center">
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="flex-1 p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Type a message..."
+              />
+              <Button
+                onClick={handleSendMessage}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
+              >
+                Send
+              </Button>
             </div>
           </>
         ) : (
-          <div className="flex justify-center items-center h-full text-lg text-gray-500">
+          <div className="flex justify-center items-center h-full text-xl text-gray-500">
             <p>Select a conversation to start chatting!</p>
           </div>
         )}
