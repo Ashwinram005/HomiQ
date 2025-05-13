@@ -18,7 +18,9 @@ export const ChatPage = () => {
       avatar: "https://via.placeholder.com/40",
     },
   ]);
-  const [activeConversation, setActiveConversation] = useState<any | null>(null);
+  const [activeConversation, setActiveConversation] = useState<any | null>(
+    null
+  );
   const [message, setMessage] = useState("");
 
   // Handle selecting a conversation
@@ -60,7 +62,9 @@ export const ChatPage = () => {
               key={conversation.id}
               onClick={() => handleSelectConversation(conversation)}
               className={`flex items-center p-4 rounded-lg cursor-pointer hover:bg-indigo-700 transition-all ${
-                activeConversation?.id === conversation.id ? "bg-indigo-700" : ""
+                activeConversation?.id === conversation.id
+                  ? "bg-indigo-700"
+                  : ""
               }`}
             >
               <img
@@ -96,7 +100,11 @@ export const ChatPage = () => {
                 >
                   <div className="flex items-center space-x-2">
                     <img
-                      src={msg.sender === "user" ? "https://via.placeholder.com/40" : "https://via.placeholder.com/40"}
+                      src={
+                        msg.sender === "user"
+                          ? "https://via.placeholder.com/40"
+                          : "https://via.placeholder.com/40"
+                      }
                       alt="avatar"
                       className="w-8 h-8 rounded-full"
                     />

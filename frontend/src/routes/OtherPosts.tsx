@@ -344,10 +344,9 @@ export const OtherPosts = () => {
               </p>
               {selectedPost.postedBy?.email ? (
                 <a
-                  href={`mailto:${selectedPost.postedBy.email}?subject=Inquiry about ${selectedPost.title}&body=Hello, I am interested in the ${selectedPost.title}.`}
                   className="mt-4 inline-block px-6 py-2 bg-indigo-600 text-white text-center rounded-full hover:bg-indigo-700 transition-colors"
                 >
-                  Contact via Email
+                  Chat With Owner
                 </a>
               ) : (
                 <p className="mt-4 text-red-600">
