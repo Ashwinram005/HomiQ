@@ -30,8 +30,10 @@ const getMessagesForChatRoom = async (req, res) => {
     const { chatRoomId } = req.params;
 
     // Find all messages in the chat room
-    const messages = await Message.find({ chatRoom: chatRoomId })
-      .populate('sender', 'name email');  // This will populate the sender field with the name and email of the user
+    const messages = await Message.find({ chatRoom: chatRoomId }).populate(
+      "sender",
+      "email"
+    ); // This will populate the sender field with the name and email of the user
 
     if (!messages.length) {
       return res.status(404).json({ message: "No messages found" });
@@ -44,4 +46,4 @@ const getMessagesForChatRoom = async (req, res) => {
   }
 };
 
-module.exports = { sendMessage,getMessagesForChatRoom };
+module.exports = { sendMessage, getMessagesForChatRoom };
