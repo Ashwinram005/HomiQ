@@ -17,6 +17,17 @@ const createChatRoom = async (req, res) => {
     const user1Id = new mongoose.Types.ObjectId(user1);
     const user2Id = new mongoose.Types.ObjectId(user2);
 
+    const existingRoom = await ChatRoom.findOne({
+      participants: { $all: [user1Id, user2Id], $size: 2 },
+    });
+
+    if (existingRoom) {
+      return res.status(200).json({
+        message: "Chat room already exists",
+        chatRoom: existingRoom,
+      });
+    }
+
     // Create a new chat room with ObjectId participants
     const newChatRoom = new ChatRoom({
       participants: [user1Id, user2Id], // Store ObjectIds in the participants array
