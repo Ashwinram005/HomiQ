@@ -19,7 +19,7 @@ export const Chat = () => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    const fetchChatRoom = async () => {
+    const fetchChatRoomAndMessages = async () => {
       try {
         const response = await fetch(
           `http://localhost:5000/api/chatroom/${userId}/${roomid}`
@@ -28,37 +28,49 @@ export const Chat = () => {
         if (!response.ok) {
           const errorData = await response.json();
           console.error("Error response:", errorData);
-          return; // or throw an error if needed
+          return;
         }
 
         const data = await response.json();
-        setChatRoomId(data[0]._id); // Set chat room ID state
+        const roomId = data[0]._id;
+        setChatRoomId(roomId); // ✅ Set the chat room ID
 
-        console.log("Chat room ID:", data[0]._id);
+        console.log("Chat room ID:", roomId);
+
+        // ✅ Fetch messages for the room
+        const messageResponse = await fetch(
+          `http://localhost:5000/api/messages/${roomId}`
+        );
+        if (messageResponse.ok) {
+          const messagesData = await messageResponse.json();
+          // Format messages (backend gives full sender object, we'll format to use "me" or "other")
+          const formattedMessages = messagesData.map((msg) => ({
+            text: msg.content,
+            sender: msg.sender._id === userId ? "me" : "other",
+          }));
+          setMessages(formattedMessages);
+        } else {
+          console.log("No messages found");
+        }
       } catch (err) {
-        console.error("Error fetching chat room:", err);
+        console.error("Error fetching chat room or messages:", err);
       }
     };
 
-    fetchChatRoom();
-    // Check if socket is already connected, if not, connect it
-    if (!socket.connected) {
-      socket.connect();
-    }
+    fetchChatRoomAndMessages();
 
-    // Join the chat room when the component mounts
+    // Socket setup
+    if (!socket.connected) socket.connect();
     socket.emit("joinRoom", roomid);
     console.log("User joined room:", roomid);
 
-    // Listen for messages from the server
     const handleReceiveMessage = (message) => {
       console.log("Received message:", message);
-      setMessages((prev) => [...prev, { ...message, sender: "other" }]); // Add message from other user
+      setMessages((prev) => [...prev, { ...message, sender: "other" }]);
     };
 
     socket.on("receiveMessage", handleReceiveMessage);
 
-    // Cleanup: Remove the event listener when component unmounts
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
     };
