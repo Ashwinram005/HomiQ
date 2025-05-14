@@ -32,7 +32,9 @@ export const Chat = () => {
         }
 
         const data = await response.json();
-        console.log("Chat room data:", data[0]._id);
+        setChatRoomId(data[0]._id); // Set chat room ID state
+
+        console.log("Chat room ID:", data[0]._id);
       } catch (err) {
         console.error("Error fetching chat room:", err);
       }
@@ -67,7 +69,7 @@ export const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (newMessage.trim() === "") return;
 
     const message = {
@@ -83,6 +85,26 @@ export const Chat = () => {
       roomId: roomid,
       message,
     });
+
+    try {
+      const response = await fetch("http://localhost:5000/api/messages/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chatRoomId: chatRoomId, // you already set this in state
+          senderId: userId,
+          content: newMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to save message:", await response.json());
+      }
+    } catch (err) {
+      console.error("Error sending message to server:", err);
+    }
 
     setNewMessage(""); // Clear the input field
   };
