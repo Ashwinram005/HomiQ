@@ -10,6 +10,15 @@ const chatRoomSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    roomId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
+      required: true,
+    },
+    latestMessage: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

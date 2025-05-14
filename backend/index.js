@@ -15,7 +15,7 @@ const app = express();
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "http://localhost:3000", // Or replace with your frontend URL
+    origin: "*", // Or replace with your frontend URL
     methods: ["GET", "POST"],
   },
 });
@@ -34,25 +34,28 @@ app.use("/api/chatroom", chatRoomRoutes);
 app.use("/api/messages", messageRoutes);
 
 io.on("connection", (socket) => {
-  console.log("A user connected");
-
-  // Listen for a message event from the client
-  socket.on("sendMessage", (messageData) => {
-    console.log("Message received:", messageData);
-
-    // Broadcast the message to all connected users
-    io.emit("receiveMessage", messageData);
+  console.log(`🔌 User connected: ${socket.id}`);
+  // Join room
+  socket.on("joinRoom", (roomId) => {
+    socket.join(roomId);
+    console.log(`👥 User joined room: ${roomId}`);
   });
 
-  // Handle disconnection
+  // Listen for new messages
+  socket.on("sendMessage", (data) => {
+    const { roomId, message } = data;
+    console.log(`Sending message to room ${roomId}:`, message); // Debug log to see the message being sent
+    socket.to(roomId).emit("receiveMessage", message); // 👈 This excludes the sender
+  });
+
   socket.on("disconnect", () => {
-    console.log("A user disconnected");
+    console.log(`❌ User disconnected: ${socket.id}`);
   });
 });
 
 // Start server
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

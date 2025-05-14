@@ -12,6 +12,8 @@ import {
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
 
 const amenitiesList = [
   { key: "wi-fi", label: "Wi-Fi", icon: <Wifi size={16} /> },
@@ -41,7 +43,7 @@ export const OtherPosts = () => {
   const [tempFilters, setTempFilters] = useState(filters);
 
   const [selectedPost, setSelectedPost] = useState(null);
-
+  console.log("Selected Post",selectedPost)
   // Fetch posts from backend using infinite query
   const fetchOtherPosts = async ({ pageParam = 1 }) => {
     const token = localStorage.getItem("token");
@@ -52,7 +54,7 @@ export const OtherPosts = () => {
         params: filters,
       }
     );
-    console.log("Sent data", filters);
+    console.log("recieved other post data", res.data);
     return res.data;
   };
 
@@ -121,6 +123,10 @@ export const OtherPosts = () => {
       </div>
     );
   }
+
+  const handleChatClick = () => {
+    navigate({ to:`/chat/${selectedPost._id}` });
+  };
 
   return (
     <div className="bg-gradient-to-tr from-sky-50 to-indigo-100 min-h-screen p-6 lg:p-8">
@@ -319,6 +325,9 @@ export const OtherPosts = () => {
             <p className="text-gray-600 mb-3">{selectedPost.description}</p>
             <div className="space-y-1 text-sm text-gray-700">
               <p>
+                <strong>Posted By :</strong> {selectedPost.postedBy.email}
+              </p>
+              <p>
                 <strong>Location:</strong> {selectedPost.location}
               </p>
               <p>
@@ -343,11 +352,7 @@ export const OtherPosts = () => {
                 {selectedPost.amenities.join(", ") || "None"}
               </p>
               {selectedPost.postedBy?.email ? (
-                <a
-                  className="mt-4 inline-block px-6 py-2 bg-indigo-600 text-white text-center rounded-full hover:bg-indigo-700 transition-colors"
-                >
-                  Chat With Owner
-                </a>
+                <Button onClick={handleChatClick}>Chat with Owner</Button>
               ) : (
                 <p className="mt-4 text-red-600">
                   Email not available for contact.

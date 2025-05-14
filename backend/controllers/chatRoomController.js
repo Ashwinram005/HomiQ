@@ -3,40 +3,38 @@ const ChatRoom = require("../models/ChatRoom");
 
 const createChatRoom = async (req, res) => {
   try {
-    const { user1, user2 } = req.body;
+    const { user1, user2, roomId } = req.body;
 
-    // Check if user1 and user2 are valid ObjectIds
+    // Validate input IDs
     if (
       !mongoose.Types.ObjectId.isValid(user1) ||
-      !mongoose.Types.ObjectId.isValid(user2)
+      !mongoose.Types.ObjectId.isValid(user2) ||
+      !mongoose.Types.ObjectId.isValid(roomId)
     ) {
-      return res.status(400).json({ message: "Invalid user IDs" });
+      return res.status(400).json({ message: "Invalid user or room ID(s)" });
     }
 
-    // Use 'new' keyword to create ObjectId instances
     const user1Id = new mongoose.Types.ObjectId(user1);
     const user2Id = new mongoose.Types.ObjectId(user2);
+    const roomObjectId = new mongoose.Types.ObjectId(roomId);
 
+    // Check if a chat room already exists for these users and this post
     const existingRoom = await ChatRoom.findOne({
       participants: { $all: [user1Id, user2Id], $size: 2 },
+      roomId: roomObjectId, 
     });
 
     if (existingRoom) {
-      return res.status(200).json({
-        message: "Chat room already exists",
-        chatRoom: existingRoom,
-      });
+      return res.status(200).json(existingRoom);
     }
 
-    // Create a new chat room with ObjectId participants
+    // Create a new chat room
     const newChatRoom = new ChatRoom({
-      participants: [user1Id, user2Id], // Store ObjectIds in the participants array
+      participants: [user1Id, user2Id],
+      roomId: roomObjectId,
     });
 
-    // Save the new chat room to the database
     await newChatRoom.save();
-
-    // Respond with the created chat room
     res.status(201).json(newChatRoom);
   } catch (error) {
     console.error(error);
@@ -48,9 +46,14 @@ const getUserChatRooms = async (req, res) => {
   try {
     const { userId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
     const chatRooms = await ChatRoom.find({ participants: userId })
-      .populate("participants", "email") // Optional: return user details
-      .sort({ updatedAt: -1 }); // Show latest chats first
+      .populate("participants", "email")
+      .populate("latestMessage") // Optional: Populate last message if needed
+      .sort({ updatedAt: -1 });
 
     res.status(200).json(chatRooms);
   } catch (err) {
@@ -61,5 +64,5 @@ const getUserChatRooms = async (req, res) => {
 
 module.exports = {
   createChatRoom,
-  getUserChatRooms, // 👈 export the new function
+  getUserChatRooms,
 };

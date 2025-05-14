@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import { Button } from "@/components/ui/button"; // Adjust import as needed for your Button component
 import { createRoute, redirect, type RootRoute } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
@@ -30,18 +30,7 @@ export const ChatPage = () => {
 
   // Handle sending a message
   const handleSendMessage = () => {
-    if (message.trim()) {
-      setActiveConversation((prevConversation) => {
-        return {
-          ...prevConversation,
-          messages: [
-            ...prevConversation.messages,
-            { sender: "user", text: message },
-          ],
-        };
-      });
-      setMessage(""); // Clear message input
-    }
+   
   };
 
   return (

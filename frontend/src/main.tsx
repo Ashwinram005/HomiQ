@@ -25,6 +25,7 @@ import MultiStepPostForm from "./routes/MultiStepPostForm.tsx";
 import MyPosts from "./routes/MyPosts.tsx";
 import OtherPosts from "./routes/OtherPosts.tsx";
 import ChatPage from "./routes/ChatPage.tsx";
+import Chat from "./routes/Chat.tsx";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -58,7 +59,8 @@ const routeTree = rootRoute.addChildren([
   MultiStepPostForm(rootRoute),
   MyPosts(rootRoute),
   OtherPosts(rootRoute),
-  ChatPage(rootRoute)
+  ChatPage(rootRoute),
+  Chat(rootRoute)
 ]);
 
 const router = createRouter({
