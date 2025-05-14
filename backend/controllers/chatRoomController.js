@@ -21,7 +21,7 @@ const createChatRoom = async (req, res) => {
     // Check if a chat room already exists for these users and this post
     const existingRoom = await ChatRoom.findOne({
       participants: { $all: [user1Id, user2Id], $size: 2 },
-      roomId: roomObjectId, 
+      roomId: roomObjectId,
     });
 
     if (existingRoom) {
@@ -44,20 +44,27 @@ const createChatRoom = async (req, res) => {
 
 const getUserChatRooms = async (req, res) => {
   try {
-    const { userId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: "Invalid user ID" });
+    const { userId, roomid } = req.params;
+    console.log("User ID:", userId, "Room ID:", roomid);
+    if (
+      !mongoose.Types.ObjectId.isValid(userId) ||
+      !mongoose.Types.ObjectId.isValid(roomid) // Check if roomId is also valid
+    ) {
+      return res.status(400).json({ message: "Invalid user ID or roomid" });
     }
 
-    const chatRooms = await ChatRoom.find({ participants: userId })
+    const chatRooms = await ChatRoom.find({
+      participants: new mongoose.Types.ObjectId(userId),
+      roomId: new mongoose.Types.ObjectId(roomid),
+    })
       .populate("participants", "email")
-      .populate("latestMessage") // Optional: Populate last message if needed
+      .populate("latestMessage")
       .sort({ updatedAt: -1 });
 
+    console.log("Found chat rooms:", chatRooms);
     res.status(200).json(chatRooms);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching chat rooms:", err); // Log the full error
     res.status(500).json({ message: "Error fetching chat rooms" });
   }
 };

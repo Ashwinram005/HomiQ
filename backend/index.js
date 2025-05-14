@@ -44,6 +44,7 @@ io.on("connection", (socket) => {
   // Listen for new messages
   socket.on("sendMessage", (data) => {
     const { roomId, message } = data;
+    
     console.log(`Sending message to room ${roomId}:`, message); // Debug log to see the message being sent
     socket.to(roomId).emit("receiveMessage", message); // 👈 This excludes the sender
   });

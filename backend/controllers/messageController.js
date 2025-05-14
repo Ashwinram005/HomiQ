@@ -18,6 +18,7 @@ const sendMessage = async (req, res) => {
     });
 
     const savedMessage = await message.save();
+
     res.status(201).json(savedMessage);
   } catch (err) {
     console.error(err);

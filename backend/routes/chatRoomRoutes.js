@@ -8,6 +8,6 @@ const {
 
 // POST route to create a new chat room
 router.post("/create", createChatRoom);
-router.get("/:userId", getUserChatRooms); // 👈 new route
+router.get("/:userId/:roomid", getUserChatRooms); 
 
 module.exports = router;

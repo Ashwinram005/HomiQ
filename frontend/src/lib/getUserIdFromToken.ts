@@ -7,7 +7,6 @@ export const getUserIdFromToken = () => {
   try {
     const decoded = jwtDecode(token);
     const id = decoded.userId || decoded.id || decoded._id; // depends on how you encoded it
-    console.log(id);
     return id;
   } catch (error) {
     console.error("Invalid token:", error);

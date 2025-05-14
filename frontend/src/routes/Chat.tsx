@@ -7,15 +7,38 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
+import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
 
 export const Chat = () => {
   const { roomid } = useParams({ from: "/chat/$roomid" });
-
+  const userId = getUserIdFromToken();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const [chatRoomId, setChatRoomId] = useState(null); // State to store fetched chat room ID
+
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    const fetchChatRoom = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/chatroom/${userId}/${roomid}`
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Error response:", errorData);
+          return; // or throw an error if needed
+        }
+
+        const data = await response.json();
+        console.log("Chat room data:", data[0]._id);
+      } catch (err) {
+        console.error("Error fetching chat room:", err);
+      }
+    };
+
+    fetchChatRoom();
     // Check if socket is already connected, if not, connect it
     if (!socket.connected) {
       socket.connect();
@@ -37,7 +60,7 @@ export const Chat = () => {
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
     };
-  }, [roomid]);
+  }, [roomid, userId]);
 
   useEffect(() => {
     // Scroll to the bottom when new messages are added
