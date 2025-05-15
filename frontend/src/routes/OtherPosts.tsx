@@ -43,7 +43,7 @@ export const OtherPosts = () => {
   const [tempFilters, setTempFilters] = useState(filters);
 
   const [selectedPost, setSelectedPost] = useState(null);
-  console.log("Selected Post",selectedPost)
+  console.log("Selected Post", selectedPost);
   // Fetch posts from backend using infinite query
   const fetchOtherPosts = async ({ pageParam = 1 }) => {
     const token = localStorage.getItem("token");
@@ -125,7 +125,13 @@ export const OtherPosts = () => {
   }
 
   const handleChatClick = () => {
-    navigate({ to:`/chat/${selectedPost._id}` });
+    console.log("Selected Post",selectedPost._id);
+    navigate({
+      to: `/chat/${selectedPost._id}`,
+      search: {
+        otherUserId: selectedPost?.postedBy?._id,
+      },
+    });
   };
 
   return (
@@ -371,6 +377,10 @@ export default (parentRoute: RootRoute) =>
     path: "/otherposts",
     component: OtherPosts,
     getParentRoute: () => parentRoute,
+    validateSearch: (search) => ({
+      otherUserId: search.otherUserId as string,
+    }),
+
     beforeLoad: async () => {
       const auth = await isAuthenticated();
       if (!auth) return redirect({ to: "/" });

@@ -40,7 +40,7 @@ const getMessagesForChatRoom = async (req, res) => {
       return res.status(404).json({ message: "No messages found" });
     }
 
-    res.status(200).json(messages);
+    res.status(200).json({ messages });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Something went wrong" });

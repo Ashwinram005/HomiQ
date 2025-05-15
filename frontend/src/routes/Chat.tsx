@@ -5,68 +5,75 @@ import {
   redirect,
   RootRoute,
   useParams,
+  useSearch,
 } from "@tanstack/react-router";
-import { isAuthenticated } from "@/lib/auth";
 import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
+import { isAuthenticated } from "@/lib/auth";
 
 export const Chat = () => {
   const { roomid } = useParams({ from: "/chat/$roomid" });
   const userId = getUserIdFromToken();
+  const { otherUserId } = useSearch({ from: "/chat/$roomid" });
+  console.log("UserId", userId);
+  console.log("OtherUserId", otherUserId);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const [chatRoomId, setChatRoomId] = useState(null); // State to store fetched chat room ID
-
+  const [chatRoomId, setChatRoomId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    if (!socket.connected) socket.connect();
+
     const fetchChatRoomAndMessages = async () => {
+      if (hasFetchedRef.current) return;
+      hasFetchedRef.current = true;
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/chatroom/${userId}/${roomid}`
+        const res = await fetch("http://localhost:5000/api/chatroom/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId, otherUserId, roomid }),
+        });
+
+        const roomData = await res.json();
+        console.log("roomData:", roomData);
+        setChatRoomId(roomData._id); // ✅ Add this line!
+        const msgRes = await fetch(
+          `http://localhost:5000/api/messages/${roomData._id}`
         );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error response:", errorData);
-          return;
-        }
-
-        const data = await response.json();
-        const roomId = data[0]._id;
-        setChatRoomId(roomId); // ✅ Set the chat room ID
-
-        console.log("Chat room ID:", roomId);
-
-        // ✅ Fetch messages for the room
-        const messageResponse = await fetch(
-          `http://localhost:5000/api/messages/${roomId}`
-        );
-        if (messageResponse.ok) {
-          const messagesData = await messageResponse.json();
-          // Format messages (backend gives full sender object, we'll format to use "me" or "other")
-          const formattedMessages = messagesData.map((msg) => ({
+        const msgData = await msgRes.json();
+        console.log("msgData:", msgData);
+        setMessages(
+          (msgData.messages || []).map((msg) => ({
             text: msg.content,
             sender: msg.sender._id === userId ? "me" : "other",
-          }));
-          setMessages(formattedMessages);
-        } else {
-          console.log("No messages found");
-        }
-      } catch (err) {
-        console.error("Error fetching chat room or messages:", err);
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching chat room or messages:", error);
       }
     };
-
     fetchChatRoomAndMessages();
-
-    // Socket setup
-    if (!socket.connected) socket.connect();
     socket.emit("joinRoom", roomid);
-    console.log("User joined room:", roomid);
+    return () => {
+      socket.off("receiveMessage");
+      socket.disconnect();
+    };
+  }, [roomid, userId]);
 
+  useEffect(() => {
     const handleReceiveMessage = (message) => {
-      console.log("Received message:", message);
-      setMessages((prev) => [...prev, { ...message, sender: "other" }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: message.content,
+          sender: message.sender._id === userId ? "me" : "other", // ✅ Fix here
+        },
+      ]);
     };
 
     socket.on("receiveMessage", handleReceiveMessage);
@@ -74,7 +81,7 @@ export const Chat = () => {
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
     };
-  }, [roomid, userId]);
+  }, [userId]); // add userId as dependency
 
   useEffect(() => {
     // Scroll to the bottom when new messages are added
@@ -84,38 +91,36 @@ export const Chat = () => {
   const sendMessage = async () => {
     if (newMessage.trim() === "") return;
 
-    const message = {
-      text: newMessage,
-      sender: "me", // Mark the sender as "me"
-    };
+    const message = { text: newMessage, sender: "me" };
 
-    console.log("Sending message:", message);
-
-    setMessages((prev) => [...prev, message]); // Add the message to state only for the sender
+    setMessages((prev) => [...prev, message]);
+    setLoading(false); // ✅ Add this here
 
     socket.emit("sendMessage", {
       roomId: roomid,
-      message,
+      message: {
+        content: newMessage,
+        senderId: userId,
+      },
     });
 
     try {
+      console.log("ChatroomId", chatRoomId);
       const response = await fetch("http://localhost:5000/api/messages/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chatRoomId: chatRoomId, // you already set this in state
+          chatRoomId: chatRoomId,
           senderId: userId,
           content: newMessage,
         }),
       });
 
       if (!response.ok) {
-        console.error("Failed to save message:", await response.json());
+        setError("Failed to save message.");
       }
     } catch (err) {
-      console.error("Error sending message to server:", err);
+      setError("Error sending message.");
     }
 
     setNewMessage(""); // Clear the input field
@@ -129,24 +134,28 @@ export const Chat = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 bg-gray-100 space-y-3">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${
-              msg.sender === "me" ? "justify-end" : "justify-start"
-            }`}
-          >
+        {error ? (
+          <div className="text-red-500">{error}</div>
+        ) : (
+          messages.map((msg, index) => (
             <div
-              className={`rounded-xl px-4 py-3 max-w-[70%] text-sm shadow ${
-                msg.sender === "me"
-                  ? "bg-blue-600 text-white rounded-br-none ml-auto"
-                  : "bg-white text-gray-800 rounded-bl-none"
+              key={index}
+              className={`flex ${
+                msg.sender === "me" ? "justify-end" : "justify-start"
               }`}
             >
-              {msg.text}
+              <div
+                className={`rounded-xl px-4 py-3 max-w-[70%] text-sm shadow ${
+                  msg.sender === "me"
+                    ? "bg-blue-600 text-white rounded-br-none ml-auto"
+                    : "bg-white text-gray-800 rounded-bl-none"
+                }`}
+              >
+                {msg.text}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
         <div ref={messagesEndRef} />
       </div>
 

@@ -60,7 +60,7 @@ const routeTree = rootRoute.addChildren([
   MyPosts(rootRoute),
   OtherPosts(rootRoute),
   ChatPage(rootRoute),
-  Chat(rootRoute)
+  Chat(rootRoute),
 ]);
 
 const router = createRouter({

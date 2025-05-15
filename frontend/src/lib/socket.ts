@@ -1,10 +1,9 @@
-import { io, Socket } from "socket.io-client";
+import { io } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:5000"; // Backend server with socket.io
-
-export const socket: Socket = io(SOCKET_URL, {
-  autoConnect:false,
-  transports: ["websocket"], // Use WebSocket transport only to avoid 404s
+const socket = io("http://localhost:5000", {
+  transports: ["websocket"], // Optional: helps avoid fallback issues
+  withCredentials: true,
+  autoConnect:false
 });
 
 export default socket;
