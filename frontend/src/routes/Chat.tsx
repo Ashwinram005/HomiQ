@@ -71,7 +71,8 @@ export const Chat = () => {
         ...prev,
         {
           text: message.content,
-          sender: message.sender._id === userId ? "me" : "other", // ✅ Fix here
+          sender:
+            message.sender && message.sender._id === userId ? "me" : "other", // ✅ Fix here
         },
       ]);
     };
