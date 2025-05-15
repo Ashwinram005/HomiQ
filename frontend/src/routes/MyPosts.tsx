@@ -69,10 +69,21 @@ export const MyPosts = () => {
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
       </div>
-      <h1 className="text-4xl font-bold text-center mb-10 text-indigo-800">
-        🏡 Your Property Listings
-      </h1>
-
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-indigo-900 tracking-tight">
+            🏡 Your Property Listings
+          </h1>
+        </div>
+        <Button
+          variant="default"
+          size="lg"
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-300 rounded-xl px-6 py-2"
+          onClick={() => navigate({ to: "/ownerchatpage" })}
+        >
+          💬 Chat with Tenants
+        </Button>
+      </div>
       {posts.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-lg text-gray-500">

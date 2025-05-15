@@ -125,12 +125,17 @@ export const OtherPosts = () => {
   }
 
   const handleChatClick = () => {
-    console.log("Selected Post",selectedPost._id);
+    console.log("Selected Post", selectedPost._id);
     navigate({
       to: `/chat/${selectedPost._id}`,
       search: {
         otherUserId: selectedPost?.postedBy?._id,
       },
+    });
+  };
+  const handleUserChatClick = () => {
+    navigate({
+      to: `/userchatpage`,
     });
   };
 
@@ -229,6 +234,9 @@ export const OtherPosts = () => {
           >
             Apply Filters
           </button>
+          <div className="mt-4 flex justify-center">
+            <Button onClick={handleUserChatClick}>Chat with Owners</Button>
+          </div>
         </div>
 
         {/* Main Content */}

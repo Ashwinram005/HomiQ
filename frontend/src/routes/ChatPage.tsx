@@ -134,7 +134,7 @@ export const ChatPage = () => {
 
 export default (parentRoute: RootRoute) =>
   createRoute({
-    path: "/chatPage",
+    path: "/chat",
     component: ChatPage,
     getParentRoute: () => parentRoute,
     beforeLoad: async () => {

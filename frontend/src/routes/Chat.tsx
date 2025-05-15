@@ -14,12 +14,10 @@ export const Chat = () => {
   const { roomid } = useParams({ from: "/chat/$roomid" });
   const userId = getUserIdFromToken();
   const { otherUserId } = useSearch({ from: "/chat/$roomid" });
-  console.log("UserId", userId);
-  console.log("OtherUserId", otherUserId);
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [chatRoomId, setChatRoomId] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
   const hasFetchedRef = useRef(false);
@@ -30,23 +28,22 @@ export const Chat = () => {
     const fetchChatRoomAndMessages = async () => {
       if (hasFetchedRef.current) return;
       hasFetchedRef.current = true;
+
       try {
         const res = await fetch("http://localhost:5000/api/chatroom/create", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, otherUserId, roomid }),
         });
 
         const roomData = await res.json();
-        console.log("roomData:", roomData);
-        setChatRoomId(roomData._id); // ✅ Add this line!
+        setChatRoomId(roomData._id);
+
         const msgRes = await fetch(
           `http://localhost:5000/api/messages/${roomData._id}`
         );
         const msgData = await msgRes.json();
-        console.log("msgData:", msgData);
+
         setMessages(
           (msgData.messages || []).map((msg) => ({
             text: msg.content,
@@ -58,20 +55,22 @@ export const Chat = () => {
         );
       } catch (error) {
         console.error("Error fetching chat room or messages:", error);
+        setError("Failed to load messages. Please try again.");
       }
     };
+
     fetchChatRoomAndMessages();
     socket.emit("joinRoom", roomid);
+
     return () => {
       socket.off("receiveMessage");
       socket.disconnect();
     };
-  }, [roomid, userId]);
+  }, [roomid, userId, otherUserId]);
 
   useEffect(() => {
     const handleReceiveMessage = (message) => {
-      console.log("Sende", message);
-      const isSenderMe = message.senderId && message.senderId === userId;
+      const isSenderMe = message.senderId === userId;
       const email = isSenderMe ? "You" : message.email;
 
       setMessages((prev) => [
@@ -80,25 +79,23 @@ export const Chat = () => {
           text: message.content,
           sender: isSenderMe ? "me" : "other",
           email,
-          timestamp: new Date().toISOString(),
+          timestamp: message.timestamp || new Date().toISOString(),
         },
       ]);
     };
 
     socket.on("receiveMessage", handleReceiveMessage);
-
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
     };
-  }, [userId]); // add userId as dependency
+  }, [userId]);
 
   useEffect(() => {
-    // Scroll to the bottom when new messages are added
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sendMessage = async () => {
-    if (newMessage.trim() === "") return;
+    if (!newMessage.trim()) return;
 
     const message = {
       text: newMessage,
@@ -108,23 +105,19 @@ export const Chat = () => {
     };
 
     setMessages((prev) => [...prev, message]);
-    setLoading(false); // ✅ Add this here
 
     try {
-      console.log("ChatroomId", chatRoomId);
       const response = await fetch("http://localhost:5000/api/messages/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chatRoomId: chatRoomId,
+          chatRoomId,
           senderId: userId,
           content: newMessage,
         }),
       });
       const data = await response.json();
-      console.log("Sent data", data);
-      console.log("Sent data", data.timestamp);
-      console.log("Sent data", data.sender.email);
+
       socket.emit("sendMessage", {
         roomId: roomid,
         message: {
@@ -134,6 +127,7 @@ export const Chat = () => {
           timestamp: data.timestamp,
         },
       });
+
       if (!response.ok) {
         setError("Failed to save message.");
       }
@@ -141,72 +135,83 @@ export const Chat = () => {
       setError("Error sending message.");
     }
 
-    setNewMessage(""); // Clear the input field
+    setNewMessage("");
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-white">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 shadow-md flex justify-between items-center">
-        <h2 className="text-xl font-bold">Chat Room</h2>
-        <span className="text-sm opacity-80">Online</span>
-      </div>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-[#f3e5f5] to-[#e3f2fd] text-slate-800">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-[#7e57c2] to-[#42a5f5] p-4 shadow-md text-white flex justify-between items-center">
+        <h1 className="text-lg font-bold">💬 HomiQ Chat</h1>
+        <span className="text-sm opacity-90 font-medium">
+          Secure • Encrypted
+        </span>
+      </header>
 
-      <div className="flex-1 overflow-y-auto p-6 bg-gray-100 space-y-3">
-        {error ? (
-          <div className="text-red-500">{error}</div>
-        ) : (
-          messages.map((msg, index) => {
-            const date = new Date(msg.timestamp);
-            const formattedDate = date.toLocaleDateString(); // e.g. 5/15/2025
-            const formattedTime = date.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }); // e.g. 03:30 PM
+      {/* Messages */}
+      <main className="flex-1 overflow-y-auto p-5 space-y-4 custom-scroll">
+        {error && <div className="text-red-600 font-semibold">{error}</div>}
+        {messages.map((msg, index) => {
+          const date = new Date(msg.timestamp);
+          const time = date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const dateStr = date.toLocaleDateString();
 
-            return (
+          const isMe = msg.sender === "me";
+
+          return (
+            <div
+              key={index}
+              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+            >
               <div
-                key={index}
-                className={`flex ${
-                  msg.sender === "me" ? "justify-end" : "justify-start"
+                className={`px-4 py-3 rounded-2xl max-w-[80%] shadow-md text-sm ${
+                  isMe
+                    ? "bg-gradient-to-br from-[#26c6da] to-[#00acc1] text-white rounded-br-none"
+                    : "bg-gradient-to-br from-[#d1c4e9] to-[#ede7f6] text-gray-900 rounded-bl-none"
                 }`}
               >
-                <div
-                  className={`rounded-xl px-4 py-3 max-w-[70%] text-sm shadow ${
-                    msg.sender === "me"
-                      ? "bg-blue-600 text-white rounded-br-none ml-auto"
-                      : "bg-white text-gray-800 rounded-bl-none"
-                  }`}
-                >
-                  <div className="font-semibold text-xs mb-1">
-                    {msg.sender === "me" ? "You" : msg.email}
-                  </div>
-                  <div>{msg.text}</div>
-                  <div className="text-gray-500 text-[10px] mt-1 text-right">
-                    {formattedDate} {formattedTime}
-                  </div>
+                <div className="font-semibold text-xs opacity-80 mb-1">
+                  {isMe ? "You" : msg.email}
+                </div>
+                <p className="break-words leading-relaxed whitespace-pre-wrap">
+                  {msg.text}
+                </p>
+                <div className="text-[10px] text-right mt-1 opacity-70 italic">
+                  {dateStr} • {time}
                 </div>
               </div>
-            );
-          })
-        )}
+            </div>
+          );
+        })}
         <div ref={messagesEndRef} />
-      </div>
+      </main>
 
-      <div className="border-t p-4 bg-white flex items-center gap-2">
-        <input
-          type="text"
+      {/* Footer */}
+      <footer className="border-t bg-white p-4 flex items-center gap-3 shadow-inner">
+        <textarea
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Type a message..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault(); // Prevent newline
+              sendMessage();
+            }
+            // Shift+Enter will just add a newline naturally
+          }}
+          className="flex-1 rounded-xl border border-gray-300 px-5 py-2 resize-none focus:ring-2 focus:ring-[#7e57c2] text-sm shadow-sm outline-none"
+          placeholder="Type your message..."
+          rows={2}
         />
         <button
           onClick={sendMessage}
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 py-2 transition-all duration-200"
+          className="bg-gradient-to-r from-[#7e57c2] to-[#42a5f5] hover:scale-105 transition-transform duration-150 text-white px-5 py-2 rounded-full font-medium shadow-md"
         >
           Send
         </button>
-      </div>
+      </footer>
     </div>
   );
 };
