@@ -18,6 +18,7 @@ const sendMessage = async (req, res) => {
     });
 
     const savedMessage = await message.save();
+    await savedMessage.populate("sender", "email");
 
     res.status(201).json(savedMessage);
   } catch (err) {
@@ -31,11 +32,9 @@ const getMessagesForChatRoom = async (req, res) => {
     const { chatRoomId } = req.params;
 
     // Find all messages in the chat room
-    const messages = await Message.find({ chatRoom: chatRoomId }).populate(
-      "sender",
-      "email"
-    ); // This will populate the sender field with the name and email of the user
-
+    const messages = await Message.find({ chatRoom: chatRoomId })
+      .populate("sender", "email")
+      .sort({ timestamp: 1 }); // This will populate the sender field with the name and email of the user
     if (!messages.length) {
       return res.status(404).json({ message: "No messages found" });
     }

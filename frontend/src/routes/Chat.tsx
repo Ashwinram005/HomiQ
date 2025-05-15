@@ -50,7 +50,10 @@ export const Chat = () => {
         setMessages(
           (msgData.messages || []).map((msg) => ({
             text: msg.content,
-            sender: msg.sender._id === userId ? "me" : "other",
+            sender: msg.sender && msg.sender._id === userId ? "me" : "other",
+            email: msg.sender?.email || "Unknown",
+            timestamp:
+              msg.createdAt || msg.timestamp || new Date().toISOString(),
           }))
         );
       } catch (error) {
@@ -67,12 +70,17 @@ export const Chat = () => {
 
   useEffect(() => {
     const handleReceiveMessage = (message) => {
+      console.log("Sende", message);
+      const isSenderMe = message.senderId && message.senderId === userId;
+      const email = isSenderMe ? "You" : message.email;
+
       setMessages((prev) => [
         ...prev,
         {
           text: message.content,
-          sender:
-            message.sender && message.sender._id === userId ? "me" : "other", // ✅ Fix here
+          sender: isSenderMe ? "me" : "other",
+          email,
+          timestamp: new Date().toISOString(),
         },
       ]);
     };
@@ -92,18 +100,15 @@ export const Chat = () => {
   const sendMessage = async () => {
     if (newMessage.trim() === "") return;
 
-    const message = { text: newMessage, sender: "me" };
+    const message = {
+      text: newMessage,
+      sender: "me",
+      timestamp: new Date().toISOString(),
+      email: "You",
+    };
 
     setMessages((prev) => [...prev, message]);
     setLoading(false); // ✅ Add this here
-
-    socket.emit("sendMessage", {
-      roomId: roomid,
-      message: {
-        content: newMessage,
-        senderId: userId,
-      },
-    });
 
     try {
       console.log("ChatroomId", chatRoomId);
@@ -116,7 +121,19 @@ export const Chat = () => {
           content: newMessage,
         }),
       });
-
+      const data = await response.json();
+      console.log("Sent data", data);
+      console.log("Sent data", data.timestamp);
+      console.log("Sent data", data.sender.email);
+      socket.emit("sendMessage", {
+        roomId: roomid,
+        message: {
+          content: newMessage,
+          senderId: userId,
+          email: data.sender.email,
+          timestamp: data.timestamp,
+        },
+      });
       if (!response.ok) {
         setError("Failed to save message.");
       }
@@ -138,24 +155,39 @@ export const Chat = () => {
         {error ? (
           <div className="text-red-500">{error}</div>
         ) : (
-          messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                msg.sender === "me" ? "justify-end" : "justify-start"
-              }`}
-            >
+          messages.map((msg, index) => {
+            const date = new Date(msg.timestamp);
+            const formattedDate = date.toLocaleDateString(); // e.g. 5/15/2025
+            const formattedTime = date.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }); // e.g. 03:30 PM
+
+            return (
               <div
-                className={`rounded-xl px-4 py-3 max-w-[70%] text-sm shadow ${
-                  msg.sender === "me"
-                    ? "bg-blue-600 text-white rounded-br-none ml-auto"
-                    : "bg-white text-gray-800 rounded-bl-none"
+                key={index}
+                className={`flex ${
+                  msg.sender === "me" ? "justify-end" : "justify-start"
                 }`}
               >
-                {msg.text}
+                <div
+                  className={`rounded-xl px-4 py-3 max-w-[70%] text-sm shadow ${
+                    msg.sender === "me"
+                      ? "bg-blue-600 text-white rounded-br-none ml-auto"
+                      : "bg-white text-gray-800 rounded-bl-none"
+                  }`}
+                >
+                  <div className="font-semibold text-xs mb-1">
+                    {msg.sender === "me" ? "You" : msg.email}
+                  </div>
+                  <div>{msg.text}</div>
+                  <div className="text-gray-500 text-[10px] mt-1 text-right">
+                    {formattedDate} {formattedTime}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>

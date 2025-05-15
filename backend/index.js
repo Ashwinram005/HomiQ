@@ -44,7 +44,6 @@ io.on("connection", (socket) => {
   // Listen for new messages
   socket.on("sendMessage", (data) => {
     const { roomId, message } = data;
-
     socket.to(roomId).emit("receiveMessage", message); // 👈 This excludes the sender
   });
 
