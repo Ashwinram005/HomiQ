@@ -18,6 +18,9 @@ const sendMessage = async (req, res) => {
     });
 
     const savedMessage = await message.save();
+    await ChatRoom.findByIdAndUpdate(chatRoomId, {
+      latestMessage: savedMessage._id,
+    });
     await savedMessage.populate("sender", "email");
 
     res.status(201).json(savedMessage);
