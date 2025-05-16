@@ -30,7 +30,6 @@ export const UserChatPage = () => {
 
         const rooms: ChatRoom[] = await res.json();
         setChatRooms(rooms);
-
         if (rooms.length > 0) setSelectedRoomId(rooms[0]._id);
       } catch (error) {
         console.error("Error fetching user chat rooms:", error);
@@ -130,6 +129,23 @@ export const UserChatPage = () => {
             }}
           >
             {room.otherUserEmail}
+            {room.latestMessage?.content && (
+              <div
+                style={{
+                  fontSize: "0.85rem",
+                  color: selectedRoomId === room._id ? "#d1d5db" : "#666",
+                  marginTop: 4,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "220px",
+                }}
+              >
+                {room.latestMessage.sender === userId ? "You: " : "Owner: "}
+
+                {room.latestMessage.content}
+              </div>
+            )}
           </div>
         ))}
       </aside>

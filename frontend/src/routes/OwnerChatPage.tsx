@@ -132,6 +132,23 @@ export const OwnerChatPage = () => {
             }}
           >
             {room.otherUserEmail}
+            {room.latestMessage?.content && (
+              <div
+                style={{
+                  fontSize: "0.85rem",
+                  color: selectedRoomId === room._id ? "#d1d5db" : "#666",
+                  marginTop: 4,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "220px",
+                }}
+              >
+                {room.latestMessage.sender === userId ? "You: " : "Tenant: "}
+
+                {room.latestMessage.content}
+              </div>
+            )}
           </div>
         ))}
       </aside>
