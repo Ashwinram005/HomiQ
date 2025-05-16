@@ -34,7 +34,13 @@ export const ChatWindow = ({
         });
 
         const roomData = await res.json();
+        if (!roomData || !roomData._id) {
+          setError("Invalid chat room.");
+          return;
+        }
+
         setChatRoomId(roomData._id);
+        socket.emit("joinRoom", roomData._id);
 
         const msgRes = await fetch(
           `http://localhost:5000/api/messages/${roomData._id}`
@@ -57,11 +63,9 @@ export const ChatWindow = ({
     };
 
     fetchChatRoomAndMessages();
-    socket.emit("joinRoom", roomid);
 
     return () => {
       socket.off("receiveMessage");
-      socket.disconnect();
     };
   }, [roomid, userId, otherUserId]);
 
@@ -116,7 +120,7 @@ export const ChatWindow = ({
       const data = await response.json();
 
       socket.emit("sendMessage", {
-        roomId: roomid,
+        roomId: chatRoomId,
         message: {
           content: newMessage,
           senderId: userId,

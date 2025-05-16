@@ -38,11 +38,13 @@ io.on("connection", (socket) => {
   // Join room
   socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
-    console.log(`👥 User joined room: ${roomId}`);
+  console.log(`👥 User joined room: ${roomId}`);
   });
 
   // Listen for new messages
   socket.on("sendMessage", (data) => {
+      console.log("📨 Received message:", data);
+
     const { roomId, message } = data;
     socket.to(roomId).emit("receiveMessage", message); // 👈 This excludes the sender
   });
