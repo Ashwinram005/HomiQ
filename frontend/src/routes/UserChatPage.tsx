@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createRoute, redirect, RootRoute } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
+import { useNavigate } from "@tanstack/react-router";
 
 import { ChatWindow } from "./ChatWindow";
 
@@ -13,6 +14,8 @@ interface ChatRoom {
 }
 
 export const UserChatPage = () => {
+  const navigate = useNavigate();
+
   const userId = getUserIdFromToken();
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -59,7 +62,44 @@ export const UserChatPage = () => {
           boxShadow: "2px 0 5px rgba(0,0,0,0.05)",
         }}
       >
-        <h2 style={{ marginBottom: 20, fontWeight: "600" }}>Your Chats</h2>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <h2 style={{ fontWeight: "600", margin: 0, fontSize: "1.25rem" }}>
+            Your Chats
+          </h2>
+          <button
+            onClick={() => navigate({ to: "/otherposts" })}
+            style={{
+              padding: "0.4rem 1rem",
+              backgroundColor: "#3b82f6", // a brighter blue
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "0.9rem",
+              boxShadow: "0 2px 6px rgba(59, 130, 246, 0.4)",
+              transition: "background-color 0.3s ease",
+              userSelect: "none",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                "#2563eb";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                "#3b82f6";
+            }}
+          >
+            Back
+          </button>
+        </div>{" "}
         {chatRooms.length === 0 && <p>No chat rooms found</p>}
         {chatRooms.map((room) => (
           <div
