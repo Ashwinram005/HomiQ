@@ -47,10 +47,6 @@ export const Dashboard = () => {
     navigate({ to: "/otherposts" });
   };
 
-  const handleChatFeature = () => {
-    navigate({ to: "/chatPage" }); // Navigate to the Chat page when button is clicked
-  };
-
   return (
     <div className="h-screen w-full bg-gray-100 flex flex-col">
       {/* Top Nav/Header */}
@@ -151,18 +147,6 @@ export const Dashboard = () => {
             </p>
             <Button className="bg-gray-600 hover:bg-gray-700 text-white">
               Browse Now
-            </Button>
-          </div>
-          <div
-            className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
-            onClick={handleChatFeature}
-          >
-            <h3 className="text-xl font-semibold mb-2">Chat with Owners</h3>
-            <p className="text-gray-500 mb-4">
-              Connect with room owners for inquiries or further details.
-            </p>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              Go to Chat
             </Button>
           </div>
         </section>

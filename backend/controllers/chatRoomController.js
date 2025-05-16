@@ -27,7 +27,7 @@ const createChatRoom = async (req, res) => {
         participants: [userId, otherUserId],
         roomId: roomid || null,
       });
-      console.log(chatRoom , 'chatRoom')
+      console.log(chatRoom, "chatRoom");
     }
 
     // Return the found or newly created chat room
@@ -41,7 +41,6 @@ const createChatRoom = async (req, res) => {
     });
   }
 };
-
 
 const getUserChatRooms = async (req, res) => {
   try {
@@ -83,7 +82,9 @@ const getUserChatRooms = async (req, res) => {
         roomId: room.roomId?._id,
         postTitle: room.roomId?.title || "Untitled Post",
         postOwner: room.roomId?.postedBy,
+
         otherUserEmail: otherUser?.email || "Unknown",
+        otherUserId: otherUser?._id, // <== Add this
         latestMessage: room.latestMessage || null,
       };
     });
@@ -131,12 +132,14 @@ const getOwnerChatRooms = async (req, res) => {
       );
 
       return {
-        _id: room._id,                          // Chat room ID
-        roomId: room.roomId?._id,               // Post ID
-        postTitle: room.roomId?.title || "",    // Title of the post
-        postOwner: room.roomId?.postedBy,       // Owner ID (should match userId)
-        otherUserEmail: otherUser?.email || "Unknown", // The person who contacted the post
-        latestMessage: room.latestMessage || null,     // Last message in the chat
+        _id: room._id, // Chat room ID
+        roomId: room.roomId?._id, // Post ID
+        postTitle: room.roomId?.title || "", // Title of the post
+        postOwner: room.roomId?.postedBy, // Owner ID (should match userId)
+        otherUserEmail: otherUser?.email || "Unknown",
+        otherUserId: otherUser?._id, // <== Add this
+        // The person who contacted the post
+        latestMessage: room.latestMessage || null, // Last message in the chat
       };
     });
 
@@ -146,7 +149,6 @@ const getOwnerChatRooms = async (req, res) => {
     res.status(500).json({ message: "Error fetching owner chat rooms" });
   }
 };
-
 
 module.exports = {
   createChatRoom,

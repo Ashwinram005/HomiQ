@@ -1,28 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoute, redirect, RootRoute } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
+import { ChatWindow } from "./ChatWindow";
+
+interface ChatRoom {
+  _id: string;
+  roomId: string;
+  otherUserId: string;
+  otherUserEmail: string;
+}
 
 export const OwnerChatPage = () => {
   const userId = getUserIdFromToken();
-
-  const [chatRooms, setChatRooms] = useState<
-    { _id: string; roomId: string; otherUserEmail: string }[]
-  >([]);
-
+  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-
-  const [messages, setMessages] = useState<
-    Record<string, { text: string; sender: "me" | "them" }[]>
-  >({});
-
-  const [input, setInput] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchChatRooms() {
       try {
-        // Change this URL to your owner's chat rooms endpoint
         const res = await fetch(
           `http://localhost:5000/api/chatroom/ownerchatroom/${userId}`
         );
@@ -30,60 +26,17 @@ export const OwnerChatPage = () => {
           console.error("Failed to fetch owner chat rooms");
           return;
         }
-        const rooms = await res.json();
+        const rooms: ChatRoom[] = await res.json();
         setChatRooms(rooms);
         if (rooms.length > 0) setSelectedRoomId(rooms[0]._id);
       } catch (error) {
         console.error("Error fetching owner chat rooms:", error);
       }
     }
-    fetchChatRooms();
+    if (userId) fetchChatRooms();
   }, [userId]);
 
-  useEffect(() => {
-    if (!selectedRoomId) return;
-
-    async function fetchMessages() {
-      try {
-        // Assuming messages API is the same format but filtered by roomId
-        const res = await fetch(`/api/messages/${selectedRoomId}`);
-        if (!res.ok) {
-          console.error("Failed to fetch messages");
-          return;
-        }
-        const msgs = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [selectedRoomId]: msgs,
-        }));
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-      }
-    }
-
-    if (!messages[selectedRoomId]) {
-      fetchMessages();
-    }
-  }, [selectedRoomId]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, selectedRoomId]);
-
-  function sendMessage() {
-    if (!input.trim() || !selectedRoomId) return;
-
-    // Post to backend API or local update as demo
-    setMessages((prev) => ({
-      ...prev,
-      [selectedRoomId]: [
-        ...(prev[selectedRoomId] || []),
-        { text: input, sender: "me" },
-      ],
-    }));
-
-    setInput("");
-  }
+  const selectedRoom = chatRooms.find((r) => r._id === selectedRoomId);
 
   return (
     <div
@@ -140,117 +93,34 @@ export const OwnerChatPage = () => {
         ))}
       </aside>
 
-      {/* Chat Window */}
+      {/* Main Chat Window */}
       <main
         style={{
           flex: 1,
+          padding: "1.5rem",
+          backgroundColor: "#f9fafb",
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "#ffffff",
-          padding: "1.5rem 2rem",
         }}
       >
-        <header
-          style={{
-            borderBottom: "1px solid #eee",
-            paddingBottom: 12,
-            marginBottom: 20,
-            fontWeight: "700",
-            fontSize: 24,
-            color: "#2563eb",
-          }}
-        >
-          {chatRooms.find((r) => r._id === selectedRoomId)?.otherUserEmail ||
-            "Select a chat"}
-          {" 👤"}
-        </header>
-
-        {/* Messages Container */}
-        <section
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            paddingRight: 10,
-          }}
-        >
-          {(messages[selectedRoomId] || []).map((msg, idx) => {
-            const isMe = msg.sender === "me";
-            return (
-              <div
-                key={idx}
-                style={{
-                  maxWidth: "60%",
-                  padding: "0.6rem 1rem",
-                  marginBottom: 10,
-                  borderRadius: 20,
-                  backgroundColor: isMe ? "#2563eb" : "#e5e7eb",
-                  color: isMe ? "#fff" : "#111",
-                  alignSelf: isMe ? "flex-end" : "flex-start",
-                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 3px 0px",
-                  fontSize: 15,
-                  lineHeight: 1.4,
-                }}
-              >
-                {msg.text}
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </section>
-
-        {/* Input Box */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            sendMessage();
-          }}
-          style={{
-            marginTop: 20,
-            display: "flex",
-            gap: 12,
-            borderTop: "1px solid #eee",
-            paddingTop: 16,
-          }}
-        >
-          <input
-            type="text"
-            placeholder={`Message ${
-              chatRooms.find((r) => r._id === selectedRoomId)?.otherUserEmail ||
-              ""
-            }...`}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "0.75rem 1rem",
-              fontSize: 16,
-              borderRadius: 24,
-              border: "1.5px solid #ddd",
-              outline: "none",
-              transition: "border-color 0.3s",
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "#ddd")}
+        {selectedRoom ? (
+          <ChatWindow
+            key={selectedRoom._id} // IMPORTANT: forces re-render when chat room changes
+            roomid={selectedRoom.roomId}
+            otherUserId={selectedRoom.otherUserId}
           />
-          <button
-            type="submit"
-            disabled={!input.trim()}
+        ) : (
+          <div
             style={{
-              backgroundColor: input.trim() ? "#2563eb" : "#93c5fd",
-              color: "white",
-              border: "none",
-              borderRadius: 24,
-              padding: "0 20px",
-              cursor: input.trim() ? "pointer" : "not-allowed",
-              fontWeight: "600",
-              fontSize: 16,
-              boxShadow: "0 3px 6px rgb(37 99 235 / 0.4)",
-              transition: "background-color 0.3s",
+              margin: "auto",
+              fontSize: 18,
+              color: "#999",
+              userSelect: "none",
             }}
           >
-            Send
-          </button>
-        </form>
+            Select a chat to start messaging
+          </div>
+        )}
       </main>
     </div>
   );
