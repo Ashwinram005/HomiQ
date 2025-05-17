@@ -1,6 +1,6 @@
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -38,8 +38,13 @@ const postSchema = z.object({
     .string()
     .min(1, { message: "Available From date is required" }), // required
   amenities: z.array(z.string()).optional(),
-  imageUrl: z.string().url().optional(),
+  imageFile: z
+    .any()
+    .refine((files) => files instanceof FileList && files.length > 0, {
+      message: "Please upload at least one image",
+    }),
 });
+
 type PostFormData = z.infer<typeof postSchema>;
 
 const amenitiesList = [
@@ -52,6 +57,7 @@ const amenitiesList = [
 ];
 
 export const MultiStepPostForm = () => {
+    
   const createPost = async (data: PostFormData) => {
     const token = localStorage.getItem("token");
     const response = await fetch("http://localhost:5000/api/posts", {
@@ -121,7 +127,7 @@ export const MultiStepPostForm = () => {
         "availableFrom",
       ]);
     } else if (step === 2) {
-      isValid = await methods.trigger(["imageUrl", "amenities"]);
+      isValid = await methods.trigger(["imageFile", "amenities"]);
     }
 
     if (isValid && step < steps.length - 1) {
@@ -354,17 +360,47 @@ const Step2 = () => {
 };
 
 // Step 3
+
 const Step3 = () => {
-  const { register, setValue, watch, formState } =
-    useFormContext<PostFormData>();
+  const { setValue, watch, register, formState } = useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
 
+  // Use a local state to keep track of uploaded images as File[]
+  const [images, setImages] = useState<File[]>([]);
+
+  // Sync form value "imageFile" with images state whenever images state changes
+  useEffect(() => {
+    // Create a DataTransfer object to convert array to FileList (hacky way)
+    const dataTransfer = new DataTransfer();
+    images.forEach((file) => dataTransfer.items.add(file));
+    setValue("imageFile", dataTransfer.files, { shouldValidate: true });
+  }, [images, setValue]);
+
+  // Handler when new files are uploaded
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+
+    // Append new files to existing images array
+    setImages((prev) => [...prev, ...Array.from(e.target.files)]);
+    // Reset input value so same file can be uploaded again if needed
+    e.target.value = "";
+  };
+
+  // Handler to remove image by index
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Toggle amenities function remains same
   const toggleAmenity = (item: string) => {
     const updated = selected.includes(item)
       ? selected.filter((a) => a !== item)
       : [...selected, item];
     setValue("amenities", updated);
   };
+
+  // Generate preview URLs for images
+  const imagePreviews = images.map((file) => URL.createObjectURL(file));
 
   return (
     <div>
@@ -383,22 +419,48 @@ const Step3 = () => {
           </div>
         ))}
       </div>
+
       <div>
-        <Label>Image URL</Label>
-        <Input
-          {...register("imageUrl")}
-          placeholder="https://example.com/image.jpg"
+        <Label>Upload Images</Label>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFileChange}
         />
-        <p className="text-red-500 text-sm">
-          {formState.errors.imageUrl?.message}
-        </p>
+        {formState.errors.imageFile && (
+          <p className="text-red-500 text-sm">{formState.errors.imageFile.message}</p>
+        )}
+      </div>
+
+      {/* Image preview with delete buttons */}
+      <div className="mt-4 flex flex-wrap gap-4">
+        {imagePreviews.map((src, idx) => (
+          <div key={idx} className="relative w-24 h-24 border rounded overflow-hidden">
+            <img src={src} alt={`Preview ${idx}`} className="object-cover w-full h-full" />
+            <button
+              type="button"
+              onClick={() => handleRemoveImage(idx)}
+              className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700"
+            >
+              &times;
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
+
 const Step4 = () => {
   const { watch } = useFormContext<PostFormData>();
+  const imageFiles = watch("imageFile");
+
+  // Create image URLs to preview
+  const imagePreviews = imageFiles
+    ? Array.from(imageFiles).map((file) => URL.createObjectURL(file))
+    : [];
   const data = watch();
 
   return (
@@ -449,6 +511,20 @@ const Step4 = () => {
             <p>{data.imageUrl}</p>
           </div>
         )}
+        <div className="grid grid-cols-3 gap-4">
+          {imagePreviews.length > 0 ? (
+            imagePreviews.map((src, idx) => (
+              <img
+                key={idx}
+                src={src}
+                alt={`Uploaded preview ${idx + 1}`}
+                className="w-full h-40 object-cover rounded-md"
+              />
+            ))
+          ) : (
+            <p>No images uploaded.</p>
+          )}
+        </div>
       </div>
     </div>
   );
