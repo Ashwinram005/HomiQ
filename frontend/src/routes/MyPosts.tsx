@@ -14,6 +14,12 @@ import {
   PencilLine,
   Trash2,
   ArrowLeft,
+  Wifi,
+  Snowflake,
+  Car,
+  Home,
+  Tv,
+  Refrigerator,
 } from "lucide-react";
 
 import { Card, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -21,32 +27,70 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 const PAGE_LIMIT = 4;
 
 // Fetch posts function with pagination for infinite scroll
-const fetchPosts = async ({ pageParam = 1 }) => {
-  const token = localStorage.getItem("token");
-  const response = await axios.get(
-    `http://localhost:5000/api/posts/myPosts?page=${pageParam}&limit=${PAGE_LIMIT}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
 
-  if (response.status !== 200) {
-    throw new Error("Failed to fetch posts");
-  }
-
-  return {
-    posts: response.data.posts,
-    nextPage: response.data.hasMore ? pageParam + 1 : undefined,
-  };
-};
-
+const amenitiesList = [
+  { key: "wi-fi", label: "Wi-Fi", icon: <Wifi size={16} /> },
+  { key: "ac", label: "AC", icon: <Snowflake size={16} /> },
+  { key: "parking", label: "Parking", icon: <Car size={16} /> },
+  { key: "laundry", label: "Laundry", icon: <Home size={16} /> },
+  { key: "tv", label: "TV", icon: <Tv size={16} /> },
+  {
+    key: "refrigerator",
+    label: "Refrigerator",
+    icon: <Refrigerator size={16} />,
+  },
+];
 export const MyPosts = () => {
   const navigate = useNavigate();
+  const [filters, setFilters] = useState({
+    searchQuery: "",
+    locationQuery: "",
+    priceFilter: "all",
+    roomTypeFilter: "all",
+    occupancyFilter: "all",
+    availableFrom: "",
+    amenityFilters: [],
+  });
+
+  const fetchPosts = async ({ pageParam = 1 }) => {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(
+      `http://localhost:5000/api/posts/myPosts?page=${pageParam}&limit=${PAGE_LIMIT}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: filters,
+      }
+    );
+
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch posts");
+    }
+
+    return {
+      posts: response.data.posts,
+      nextPage: response.data.hasMore ? pageParam + 1 : undefined,
+    };
+  };
+  // Temp filters for controlled inputs before applying
+  const [tempFilters, setTempFilters] = useState(filters);
+  const toggleAmenity = (key) => {
+    setTempFilters((prev) => {
+      const exists = prev.amenityFilters.includes(key);
+      if (exists) {
+        return {
+          ...prev,
+          amenityFilters: prev.amenityFilters.filter((a) => a !== key),
+        };
+      } else {
+        return { ...prev, amenityFilters: [...prev.amenityFilters, key] };
+      }
+    });
+  };
 
   const {
     data,
@@ -56,7 +100,7 @@ export const MyPosts = () => {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["myPosts"],
+    queryKey: ["myPosts", filters],
     queryFn: fetchPosts,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
@@ -135,7 +179,107 @@ export const MyPosts = () => {
           💬 Chat with Tenants
         </Button>
       </div>
-
+      <aside className="w-full md:w-1/4 bg-white shadow-xl rounded-2xl p-6 h-fit sticky top-4">
+        <h2 className="text-2xl font-bold text-indigo-700 mb-4">Filters</h2>
+        <input
+          className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+          placeholder="Search by title or description"
+          value={tempFilters.searchQuery}
+          onChange={(e) =>
+            setTempFilters({ ...tempFilters, searchQuery: e.target.value })
+          }
+        />
+        <input
+          className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+          placeholder="Location"
+          value={tempFilters.locationQuery}
+          onChange={(e) =>
+            setTempFilters({ ...tempFilters, locationQuery: e.target.value })
+          }
+        />
+        <select
+          className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+          value={tempFilters.priceFilter}
+          onChange={(e) =>
+            setTempFilters({ ...tempFilters, priceFilter: e.target.value })
+          }
+        >
+          <option value="all">All Prices</option>
+          <option value="2500">Under ₹2500</option>
+          <option value="4000">Under ₹4000</option>
+          <option value="6000">Under ₹6000</option>
+        </select>
+        <select
+          className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+          value={tempFilters.roomTypeFilter}
+          onChange={(e) =>
+            setTempFilters({ ...tempFilters, roomTypeFilter: e.target.value })
+          }
+        >
+          <option value="all">All Room Types</option>
+          <option value="Room">Room</option>
+          <option value="House">House</option>
+          <option value="PG">PG</option>
+          <option value="Shared">Shared</option>
+        </select>
+        <select
+          className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+          value={tempFilters.occupancyFilter}
+          onChange={(e) =>
+            setTempFilters({ ...tempFilters, occupancyFilter: e.target.value })
+          }
+        >
+          <option value="all">All Occupancy</option>
+          <option value="Single">Single</option>
+          <option value="Double">Double</option>
+          <option value="Triple">Triple</option>
+          <option value="Any">Any</option>
+        </select>
+        <input
+          type="date"
+          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-md"
+          value={tempFilters.availableFrom}
+          onChange={(e) =>
+            setTempFilters({ ...tempFilters, availableFrom: e.target.value })
+          }
+        />
+        <div className="mb-2 font-semibold text-sm text-indigo-600">
+          Amenities
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {amenitiesList.map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => toggleAmenity(key)}
+              className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-all ${
+                tempFilters.amenityFilters.includes(key)
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {icon} {label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-5 flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setTempFilters(filters)} // reset temp filters to applied filters
+          >
+            Reset
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={() => {
+              setFilters(tempFilters);
+              // query will refetch because filters changed
+            }}
+          >
+            Apply Filters
+          </Button>
+        </div>
+      </aside>
       {posts.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-lg text-gray-500">
@@ -200,6 +344,9 @@ export const MyPosts = () => {
                       <span className="font-medium text-lg text-indigo-800">
                         ₹ {post.price?.toLocaleString()}
                       </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      🏡<span>Type: {post.type}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       🛏️ <span>Occupancy: {post.occupancy}</span>
