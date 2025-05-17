@@ -513,25 +513,22 @@ const Step4 = () => {
           <Label>Amenities</Label>
           <p>{data.amenities?.join(", ") || "None"}</p>
         </div>
-        {data.imageUrl && (
-          <div>
-            <Label>Image URL</Label>
-            <p>{data.imageUrl}</p>
+        <div>
+          <Label>Images</Label>
+          <div className="grid grid-cols-3 gap-4 mt-2">
+            {imagePreviews.length > 0 ? (
+              imagePreviews.map((src, idx) => (
+                <img
+                  key={idx}
+                  src={src}
+                  alt={`Uploaded preview ${idx + 1}`}
+                  className="w-full h-40 object-cover rounded-md"
+                />
+              ))
+            ) : (
+              <p>No images uploaded.</p>
+            )}
           </div>
-        )}
-        <div className="grid grid-cols-3 gap-4">
-          {imagePreviews.length > 0 ? (
-            imagePreviews.map((src, idx) => (
-              <img
-                key={idx}
-                src={src}
-                alt={`Uploaded preview ${idx + 1}`}
-                className="w-full h-40 object-cover rounded-md"
-              />
-            ))
-          ) : (
-            <p>No images uploaded.</p>
-          )}
         </div>
       </div>
     </div>
