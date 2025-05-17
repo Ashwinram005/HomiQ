@@ -53,7 +53,8 @@ const loginUser = async (req, res) => {
     // Send the JWT token back in the response
     res.status(200).json({
       message: "Login successful",
-      token, // Sending back the JWT token
+      token,
+      email, // Sending back the JWT token
     });
   } catch (error) {
     console.error(error);
@@ -61,4 +62,29 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+async function getUserByEmail(req, res) {
+  const { email } = req.query;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        error: true,
+        success: false,
+      });
+    }
+    return res.status(200).json({
+      data: user,
+      error: false,
+      success: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+}
+
+module.exports = { registerUser, loginUser, getUserByEmail };

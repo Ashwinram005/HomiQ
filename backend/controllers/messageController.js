@@ -5,12 +5,12 @@ const sendMessage = async (req, res) => {
   try {
     const { chatRoomId, senderId, content } = req.body;
 
-    // Validate chat room
     const chatRoom = await ChatRoom.findById(chatRoomId);
     if (!chatRoom)
-      return res.status(404).json({ message: "Chat room not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Chat room not found" });
 
-    // Create and save message
     const message = new Message({
       chatRoom: chatRoomId,
       sender: senderId,
@@ -21,12 +21,13 @@ const sendMessage = async (req, res) => {
     await ChatRoom.findByIdAndUpdate(chatRoomId, {
       latestMessage: savedMessage._id,
     });
-    await savedMessage.populate("sender", "email");
 
-    res.status(201).json(savedMessage);
+    const populatedMessage = await savedMessage.populate("sender", "email");
+
+    res.status(201).json({ success: true, message: populatedMessage });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -34,18 +35,14 @@ const getMessagesForChatRoom = async (req, res) => {
   try {
     const { chatRoomId } = req.params;
 
-    // Find all messages in the chat room
     const messages = await Message.find({ chatRoom: chatRoomId })
       .populate("sender", "email")
-      .sort({ timestamp: 1 }); // This will populate the sender field with the name and email of the user
-    if (!messages.length) {
-      return res.status(404).json({ message: "No messages found" });
-    }
+      .sort({ timestamp: 1 });
 
-    res.status(200).json({ messages });
+    res.status(200).json({ success: true, messages });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 

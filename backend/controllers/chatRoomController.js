@@ -3,10 +3,11 @@ const ChatRoom = require("../models/ChatRoom");
 const Post = require("../models/Post"); // Needed for post data
 
 const createChatRoom = async (req, res) => {
-  const { userId, otherUserId, roomid } = req.body;
+  const { userId, otherUserId, roomId } = req.body;
 
   // Validate if userId and otherUserId are provided
   if (!userId || !otherUserId) {
+    console.log(userId + " " + otherUserId);
     return res.status(400).json({
       message: "Missing User IDs",
       error: true,
@@ -14,26 +15,55 @@ const createChatRoom = async (req, res) => {
     });
   }
 
+  // Validate ObjectId format
+  if (
+    !mongoose.Types.ObjectId.isValid(userId) ||
+    !mongoose.Types.ObjectId.isValid(otherUserId)
+  ) {
+    return res.status(400).json({
+      message: "Invalid User IDs format",
+      error: true,
+      success: false,
+    });
+  }
+
+  // Convert to ObjectId instances
+  const userIdObj = new mongoose.Types.ObjectId(userId);
+  const otherUserIdObj = new mongoose.Types.ObjectId(otherUserId);
+
+  // Sort participants so order is consistent
+  const participantsSorted = [userIdObj, otherUserIdObj].sort();
+
+  // Handle optional roomId
+  let roomObjectId = null;
+  if (roomId && mongoose.Types.ObjectId.isValid(roomId)) {
+    roomObjectId = new mongoose.Types.ObjectId(roomId);
+  }
+
   try {
-    // Try to find an existing chat room with the same participants and roomId if provided
+    // Try to find an existing chat room with the same participants and roomId (if provided)
     let chatRoom = await ChatRoom.findOne({
-      participants: { $all: [userId, otherUserId], $size: 2 },
-      ...(roomid ? { roomId: roomid } : {}),
+      participants: { $all: participantsSorted, $size: 2 },
+      ...(roomObjectId ? { roomId: roomObjectId } : {}),
     });
 
     // If no existing chat room is found, create a new one
     if (!chatRoom) {
       chatRoom = await ChatRoom.create({
-        participants: [userId, otherUserId],
-        roomId: roomid || null,
+        participants: participantsSorted,
+        roomId: roomObjectId || null,
       });
-      console.log(chatRoom, "chatRoom");
+      console.log("Created chatRoom:", chatRoom);
     }
 
     // Return the found or newly created chat room
-    return res.json(chatRoom);
+    return res.status(200).json({
+      data: chatRoom,
+      error: false,
+      success: true,
+    });
   } catch (error) {
-    // Error handling
+    console.error("Error in createChatRoom:", error);
     return res.status(500).json({
       message: error.message || error,
       error: true,

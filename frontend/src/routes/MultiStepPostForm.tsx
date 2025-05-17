@@ -52,20 +52,24 @@ const amenitiesList = [
 ];
 
 export const MultiStepPostForm = () => {
-  const createPost = async (data: PostFormData) => {
+  const createPost = async (data: Omit<PostFormData, "email">) => {
     const token = localStorage.getItem("token");
+    const email = localStorage.getItem("email");
+
+    if (!email) throw new Error("Email not found");
+
+    const payload: PostFormData = { ...data, email };
+
     const response = await fetch("http://localhost:5000/api/posts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to submit post");
-    }
+    if (!response.ok) throw new Error("Failed to submit post");
 
     return response.json();
   };

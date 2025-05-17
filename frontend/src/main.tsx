@@ -24,9 +24,7 @@ import { isAuthenticated } from "./lib/auth.ts";
 import MultiStepPostForm from "./routes/MultiStepPostForm.tsx";
 import MyPosts from "./routes/MyPosts.tsx";
 import OtherPosts from "./routes/OtherPosts.tsx";
-import Chat from "./routes/Chat.tsx";
-import UserChatPage from "./routes/UserChatPage.tsx";
-import OwnerChatPage from "./routes/OwnerChatPage.tsx";
+import ChatRoute from "./routes/Chat.tsx";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -60,9 +58,7 @@ const routeTree = rootRoute.addChildren([
   MultiStepPostForm(rootRoute),
   MyPosts(rootRoute),
   OtherPosts(rootRoute),
-  UserChatPage(rootRoute),
-  OwnerChatPage(rootRoute),
-  Chat(rootRoute),
+  ChatRoute(rootRoute),
 ]);
 
 const router = createRouter({

@@ -126,16 +126,10 @@ export const OtherPosts = () => {
 
   const handleChatClick = () => {
     console.log("Selected Post", selectedPost._id);
+    const roomId = selectedPost._id;
+    console.log(roomId);
     navigate({
-      to: `/chat/${selectedPost._id}`,
-      search: {
-        otherUserId: selectedPost?.postedBy?._id,
-      },
-    });
-  };
-  const handleUserChatClick = () => {
-    navigate({
-      to: `/userchatpage`,
+      to: `/chat/${roomId}`,
     });
   };
 
@@ -235,7 +229,7 @@ export const OtherPosts = () => {
             Apply Filters
           </button>
           <div className="mt-4 flex justify-center">
-            <Button onClick={handleUserChatClick}>Chat with Owners</Button>
+            {/* <Button onClick={handleUserChatClick}>Chat with Owners</Button> */}
           </div>
         </div>
 
@@ -271,9 +265,9 @@ export const OtherPosts = () => {
                       index === filteredPosts.length - 1 ? lastPostRef : null
                     }
                   >
-                    {post.images[0] && (
+                    {post.imageUrl[0] && (
                       <img
-                        src={post.images[0]}
+                        src={post.imageUrl[0]}
                         alt="Room"
                         className="w-full h-48 object-cover"
                       />

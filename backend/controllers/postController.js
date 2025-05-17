@@ -139,8 +139,33 @@ const getOtherUsersPosts = async (req, res) => {
   }
 };
 
+const getRoom = async (req, res) => {
+  try {
+    const room = await Post.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({
+        messae: "Room not found",
+        error: true,
+        success: false,
+      });
+    }
+    return res.status(200).json({
+      data: room,
+      error: false,
+      success: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+};
+
 module.exports = {
   createPost,
   getMyPosts,
   getOtherUsersPosts,
+  getRoom,
 };

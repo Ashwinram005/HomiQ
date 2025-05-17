@@ -108,11 +108,13 @@ function LoginForm() {
       });
 
       const result = await response.json();
+      console.log(result);
       if (!response.ok) {
         alert(result.message || "Login failed");
         return;
       }
       localStorage.setItem("token", result.token);
+      localStorage.setItem("email", result.email);
       console.log("Login success:", result);
       navigate({ to: "/dashboard" });
     } catch (error) {
