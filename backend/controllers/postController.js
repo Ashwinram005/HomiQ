@@ -57,7 +57,7 @@ const createPost = async (req, res) => {
 // };
 
 // Helper function to build filter conditions
-const buildFilterConditions = (query, currentUserId,isMyPosts) => {
+const buildFilterConditions = (query, currentUserId, isMyPosts) => {
   const {
     searchQuery = "",
     locationQuery = "",
@@ -118,7 +118,11 @@ const getMyPosts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 6;
 
-    const filterConditions = buildFilterConditions(req.query, currentUserId, true);
+    const filterConditions = buildFilterConditions(
+      req.query,
+      currentUserId,
+      true
+    );
 
     const posts = await Post.find(filterConditions)
       .sort({ createdAt: -1 })
@@ -139,7 +143,6 @@ const getMyPosts = async (req, res) => {
   }
 };
 
-
 // Main function to fetch posts
 const getOtherUsersPosts = async (req, res) => {
   try {
@@ -148,7 +151,11 @@ const getOtherUsersPosts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 6;
 
     // Get filter conditions using the helper function
-    const filterConditions = buildFilterConditions(req.query, currentUserId,false);
+    const filterConditions = buildFilterConditions(
+      req.query,
+      currentUserId,
+      false
+    );
 
     const posts = await Post.find(filterConditions)
       .populate("postedBy", "email")
