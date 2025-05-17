@@ -24,6 +24,7 @@ import {
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 import { useMutation } from "@tanstack/react-query";
+import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
 
 // Form schema
 const postSchema = z.object({
@@ -58,7 +59,7 @@ const amenitiesList = [
 
 export const MultiStepPostForm = () => {
   const createPost = async (data: PostFormData) => {
-    const token = localStorage.getItem("token");
+    const token = getUserIdFromToken();
     const response = await fetch("http://localhost:5000/api/posts", {
       method: "POST",
       headers: {

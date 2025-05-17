@@ -7,6 +7,7 @@ const userRoutes = require("./routes/userRoutes"); // Importing the user routes
 const postRoutes = require("./routes/postRoutes");
 const chatRoomRoutes = require("./routes/chatRoomRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const cloudinaryRoutes = require("./routes/cloudinaryRoutes");
 
 const cors = require("cors");
 dotenv.config();
@@ -29,6 +30,7 @@ app.use(express.json());
 connectDB();
 
 app.use("/api/users", userRoutes);
+app.use("/api/cloudinary", cloudinaryRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/chatroom", chatRoomRoutes);
 app.use("/api/messages", messageRoutes);
