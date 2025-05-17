@@ -14,4 +14,4 @@ const getSignature = (req, res) => {
   res.json({ signature, timestamp, api_key: process.env.CLOUDINARY_API_KEY });
 };
 
-module.exports = getSignature;
+module.exports = { getSignature };
