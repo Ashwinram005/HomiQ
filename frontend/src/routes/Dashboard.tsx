@@ -82,33 +82,6 @@ export const Dashboard = () => {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto px-6 py-8 max-w-7xl mx-auto w-full">
-        {/* Overview Stats */}
-        <section className="mb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Stats Card 1 - Number of Rooms Posted */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">Total Rooms Posted</h3>
-            <p className="text-4xl font-bold text-blue-600">
-              {user?.roomsPosted || 0}
-            </p>
-          </div>
-
-          {/* Stats Card 2 - Inquiries Received */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">Inquiries Received</h3>
-            <p className="text-4xl font-bold text-green-600">
-              {user?.inquiriesReceived || 0}
-            </p>
-          </div>
-
-          {/* Stats Card 3 - Active Listings */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">Active Listings</h3>
-            <p className="text-4xl font-bold text-purple-600">
-              {user?.activeListings || 0}
-            </p>
-          </div>
-        </section>
-
         {/* Action Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div
