@@ -1,6 +1,6 @@
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,6 @@ const amenitiesList = [
 ];
 
 export const MultiStepPostForm = () => {
-    
   const createPost = async (data: PostFormData) => {
     const token = localStorage.getItem("token");
     const response = await fetch("http://localhost:5000/api/posts", {
@@ -362,7 +361,8 @@ const Step2 = () => {
 // Step 3
 
 const Step3 = () => {
-  const { setValue, watch, register, formState } = useFormContext<PostFormData>();
+  const { setValue, watch, register, formState } =
+    useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
 
   // Use a local state to keep track of uploaded images as File[]
@@ -429,15 +429,24 @@ const Step3 = () => {
           onChange={handleFileChange}
         />
         {formState.errors.imageFile && (
-          <p className="text-red-500 text-sm">{formState.errors.imageFile.message}</p>
+          <p className="text-red-500 text-sm">
+            {formState.errors.imageFile.message}
+          </p>
         )}
       </div>
 
       {/* Image preview with delete buttons */}
       <div className="mt-4 flex flex-wrap gap-4">
         {imagePreviews.map((src, idx) => (
-          <div key={idx} className="relative w-24 h-24 border rounded overflow-hidden">
-            <img src={src} alt={`Preview ${idx}`} className="object-cover w-full h-full" />
+          <div
+            key={idx}
+            className="relative w-24 h-24 border rounded overflow-hidden"
+          >
+            <img
+              src={src}
+              alt={`Preview ${idx}`}
+              className="object-cover w-full h-full"
+            />
             <button
               type="button"
               onClick={() => handleRemoveImage(idx)}
@@ -451,7 +460,6 @@ const Step3 = () => {
     </div>
   );
 };
-
 
 const Step4 = () => {
   const { watch } = useFormContext<PostFormData>();
