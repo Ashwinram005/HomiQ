@@ -362,7 +362,7 @@ const Step2 = () => {
 // Step 3
 
 const Step3 = () => {
-  const { setValue, watch, register, formState } =
+  const { setValue, watch, formState } =
     useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
 
