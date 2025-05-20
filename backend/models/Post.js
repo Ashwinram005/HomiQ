@@ -42,7 +42,7 @@ const postSchema = new mongoose.Schema(
       type: [String], // Array of strings
       default: [],
     },
-    imageUrl: {
+    images: {
       type: [String], // URLs or filenames
       default: [],
     },

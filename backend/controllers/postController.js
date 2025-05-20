@@ -13,7 +13,7 @@ const createPost = async (req, res) => {
       furnished,
       availableFrom,
       amenities,
-      imageUrl,
+      images,
     } = req.body;
     const { userId } = req.user; // Access the userId set by the middleware
 
@@ -29,7 +29,7 @@ const createPost = async (req, res) => {
       furnished,
       availableFrom,
       amenities,
-      imageUrl,
+      images,
       postedBy: userId, // from auth middleware
     });
 
