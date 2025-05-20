@@ -24,7 +24,6 @@ import {
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 import { useMutation } from "@tanstack/react-query";
-import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
 
 // Form schema
 const postSchema = z.object({
@@ -58,6 +57,8 @@ const amenitiesList = [
 ];
 
 export const MultiStepPostForm = () => {
+  const [showSubmittingModal, setShowSubmittingModal] = useState(false);
+
   // Helper function to upload a single image to Cloudinary with signed upload
   const uploadImageToCloudinary = async (file: File) => {
     try {
@@ -115,10 +116,13 @@ export const MultiStepPostForm = () => {
   const mutation = useMutation({
     mutationFn: createPost,
     onSuccess: () => {
+      setShowSubmittingModal(false);
+
       navigate({ to: "/dashboard" });
     },
     onError: () => {
       alert("Something went wrong.");
+      setShowSubmittingModal(false);
     },
   });
 
@@ -145,6 +149,7 @@ export const MultiStepPostForm = () => {
   ];
 
   const onSubmit = async (data: PostFormData) => {
+    setShowSubmittingModal(true);
     try {
       const files = data.imageFile;
       if (!(files instanceof FileList) || files.length === 0) {
@@ -294,6 +299,29 @@ export const MultiStepPostForm = () => {
             )}
           </div>
         </form>
+        <AnimatePresence>
+          {showSubmittingModal && (
+            <motion.div
+              key="modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                className="bg-white rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg"
+              >
+                <Loader2 size={48} className="animate-spin text-blue-600" />
+                <p className="text-lg font-semibold text-gray-700 text-center">
+                  Submitting your post, please wait...
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </FormProvider>
   );
