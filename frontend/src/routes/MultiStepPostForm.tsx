@@ -58,8 +58,45 @@ const amenitiesList = [
 ];
 
 export const MultiStepPostForm = () => {
+  // Helper function to upload a single image to Cloudinary with signed upload
+  const uploadImageToCloudinary = async (file: File) => {
+    try {
+      const signatureResponse = await fetch(
+        "http://localhost:5000/api/cloudinary/sign"
+      );
+      if (!signatureResponse.ok)
+        throw new Error("Failed to get Cloudinary signature");
+
+      const { timestamp, signature, cloudName, apiKey } =
+        await signatureResponse.json();
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", apiKey);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok)
+        throw new Error("Failed to upload image to Cloudinary");
+
+      const uploadResult = await uploadResponse.json();
+      return uploadResult.secure_url;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      alert("Image upload failed. Please try again.");
+      throw error; // Rethrow to handle in onSubmit
+    }
+  };
+
   const createPost = async (data: PostFormData) => {
-    const token = getUserIdFromToken();
+    const token = localStorage.getItem("token"); // or sessionStorage or from context
+    console.log(token);
     const response = await fetch("http://localhost:5000/api/posts", {
       method: "POST",
       headers: {
@@ -108,8 +145,34 @@ export const MultiStepPostForm = () => {
     "Confirm details",
   ];
 
-  const onSubmit = (data: PostFormData) => {
-    mutation.mutate(data);
+  const onSubmit = async (data: PostFormData) => {
+    try {
+      const files = data.imageFile;
+      if (!(files instanceof FileList) || files.length === 0) {
+        throw new Error("No images selected");
+      }
+
+      // Upload images sequentially (can be parallel with Promise.all if you want)
+      const imageUrls = [];
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadImageToCloudinary(files[i]);
+        imageUrls.push(url);
+      }
+      console.log("Image URLs", imageUrls);
+      // Prepare post payload with image URLs instead of FileList
+      const postPayload = {
+        ...data,
+        images: imageUrls, // add images field with URLs
+      };
+
+      // Remove imageFile field from payload because it's raw files
+      delete postPayload.imageFile;
+
+      // Now send postPayload to your backend
+      mutation.mutate(postPayload);
+    } catch (error) {
+      alert("Error uploading images or submitting form: " + error.message);
+    }
   };
 
   const handleNext = async () => {
@@ -362,8 +425,7 @@ const Step2 = () => {
 // Step 3
 
 const Step3 = () => {
-  const { setValue, watch, formState } =
-    useFormContext<PostFormData>();
+  const { setValue, watch, formState } = useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
 
   // Use a local state to keep track of uploaded images as File[]
