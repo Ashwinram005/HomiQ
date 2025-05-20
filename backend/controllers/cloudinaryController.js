@@ -6,7 +6,6 @@ const getSignature = (req, res) => {
     .createHash("sha1")
     .update(`timestamp=${timestamp}${process.env.CLOUDINARY_API_SECRET}`)
     .digest("hex");
-  console.log(process.env.CLOUDINARY_CLOUD_NAME);
   res.json({
     timestamp,
     signature,
