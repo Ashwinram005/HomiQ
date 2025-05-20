@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const ChatRoom = require("../models/ChatRoom");
 const Post = require("../models/Post"); // Needed for post data
+const User = require("../models/User");
 
 const createChatRoom = async (req, res) => {
   const { userId, otherUserId, roomId } = req.body;
@@ -180,8 +181,52 @@ const getOwnerChatRooms = async (req, res) => {
   }
 };
 
+async function getChats(req, res) {
+  try {
+    const identifier = req.params.userId;
+    let user;
+    if (identifier.length === 24) {
+      user = await User.findById(identifier);
+    } else {
+      user = await User.findOne({ email: identifier });
+    }
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    const chats = await ChatRoom.find({ participants: user._id }) // ✅
+      .populate("participants", "email")
+      .populate({
+        path: "latestMessage",
+        populate: { path: "sender", select: "email" },
+      })
+      .sort({ updatedAt: -1 });
+
+    const formattedChats = chats.map((chat) => ({
+      _id: chat._id,
+      participants: chat.participants,
+      roomId: chat.roomId || null,
+      latestMessage: chat.latestMessage,
+      updatedAt: chat.updatedAt,
+    }));
+
+    return res.json({ chats: formattedChats, error: false, success: true });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+      error: true,
+      success: false,
+    });
+  }
+}
+
 module.exports = {
   createChatRoom,
   getUserChatRooms,
   getOwnerChatRooms,
+  getChats,
 };

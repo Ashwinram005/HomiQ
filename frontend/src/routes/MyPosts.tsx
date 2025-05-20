@@ -100,9 +100,9 @@ export const MyPosts = () => {
               className="flex flex-col justify-between shadow-xl border border-gray-300 hover:shadow-2xl hover:border-blue-500 transition duration-300 rounded-xl overflow-hidden bg-gradient-to-br from-indigo-100 to-blue-50"
             >
               {/* Image or Banner */}
-              {post.imageUrl.length > 0 ? (
+              {post.images.length > 0 ? (
                 <img
-                  src={post.imageUrl[0]} // Assuming the first image is the main image
+                  src={post.images[0]} // Assuming the first image is the main image
                   alt="Property"
                   className="w-full h-48 object-cover"
                 />

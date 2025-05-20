@@ -3,6 +3,7 @@ const Post = require("../models/Post");
 const createPost = async (req, res) => {
   try {
     const {
+      email,
       title,
       description,
       price,
@@ -18,6 +19,7 @@ const createPost = async (req, res) => {
 
     // Create new post
     const post = new Post({
+      email,
       title,
       description,
       price,
@@ -163,9 +165,28 @@ const getRoom = async (req, res) => {
   }
 };
 
+async function getRoomsByUser(req, res) {
+  try {
+    const { id: userId } = req.params;
+    const posts = await Post.find({ postedBy: userId }); // ✅ correct key
+    return res.status(200).json({
+      rooms: posts, // ✅ rename to 'rooms'
+      success: true,
+      error: false,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+}
+
 module.exports = {
   createPost,
   getMyPosts,
   getOtherUsersPosts,
   getRoom,
+  getRoomsByUser,
 };

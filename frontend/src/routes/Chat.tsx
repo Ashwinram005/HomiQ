@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import socket from "@/lib/socket";
 import { isAuthenticated } from "@/lib/auth";
+import { ChatList } from "./ChatList";
 
 interface Message {
   _id?: string;
@@ -65,9 +66,24 @@ async function fetchMessages(
     receiverEmail:
       senderEmail === msg.sender.email ? receiverEmail : senderEmail,
     sender: msg.sender.email === senderEmail ? "user" : "owner",
-    timestamp: msg.createdAt,
+    timestamp: msg.timestamp, // <-- FIX HERE: use timestamp instead of createdAt
   }));
 }
+
+// Helper function to format timestamp safely
+const formatTimestamp = (timestamp: string | Date | undefined) => {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
 
 export function Chat() {
   const params = useParams({ from: "/chat/$roomId" });
@@ -163,7 +179,6 @@ export function Chat() {
         return;
       }
 
-      // Construct the message object to send over socket
       const newMsg: Message = {
         _id: data.message._id,
         chatId: chat._id,
@@ -171,10 +186,9 @@ export function Chat() {
         sender: senderUser._id === chat.userId ? "user" : "owner",
         senderEmail,
         receiverEmail,
-        timestamp: data.message.createdAt,
+        timestamp: data.message.timestamp, // use timestamp from response too
       };
 
-      // Emit message to socket server
       socket.emit("sendMessage", { roomId: chat._id, message: newMsg });
 
       setTimeout(() => {
@@ -190,11 +204,13 @@ export function Chat() {
   };
 
   return (
-    <div className="flex-1 max-w-full">
-      <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden">
+    <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6">
+      <ChatList />
+      <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
         <div className="sticky top-0 z-10 bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
-          <h2 className="text-2xl font-bold">Chat Room</h2>
+          <h2 className="text-2xl font-semibold tracking-wide">Chat Room</h2>
         </div>
+
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-800">
           {messages.length ? (
             messages.map((msg, i) => {
@@ -207,41 +223,50 @@ export function Chat() {
                   }`}
                 >
                   <div
-                    className={`rounded-xl p-3 max-w-[60%] break-words whitespace-pre-wrap ${
+                    className={`rounded-2xl p-4 max-w-[70%] break-words whitespace-pre-wrap shadow-md transition-all duration-200 ${
                       isSender
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-300 dark:bg-gray-600 text-black"
+                        ? "bg-blue-600 text-white rounded-br-none"
+                        : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none"
                     }`}
                   >
-                    <div className="text-xs font-semibold mb-1">
+                    <div
+                      className={`text-xs font-semibold mb-1 ${
+                        isSender
+                          ? "text-gray-100 dark:text-gray-300"
+                          : "text-blue-400" /* Changed receiver email color */
+                      }`}
+                    >
                       {msg.senderEmail}
                     </div>
-                    <div>{msg.text}</div>
-                    <div className="text-xs text-gray-500 mt-1 text-right">
-                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    <div className="text-sm">{msg.text}</div>
+                    <div className="text-[11px] text-right mt-2 text-gray-400 dark:text-gray-500">
+                      {formatTimestamp(msg.timestamp)}
                     </div>
                   </div>
                 </div>
               );
             })
           ) : (
-            <p>No messages yet</p>
+            <p className="text-center text-gray-500 dark:text-gray-400">
+              No messages yet.
+            </p>
           )}
 
           <div ref={messagesEndRef} />
         </div>
-        <div className="bg-white dark:bg-gray-900 px-6 py-4 flex items-center">
+
+        <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center gap-4">
           <input
             type="text"
             placeholder="Type your message..."
-            className="flex-1 rounded-full border px-4 py-2"
+            className="flex-1 rounded-full border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
           />
           <button
             onClick={sendMessage}
-            className="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full"
+            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm px-6 py-2 rounded-full transition-all duration-150"
           >
             Send
           </button>

@@ -265,9 +265,9 @@ export const OtherPosts = () => {
                       index === filteredPosts.length - 1 ? lastPostRef : null
                     }
                   >
-                    {post.imageUrl[0] && (
+                    {post.images[0] && (
                       <img
-                        src={post.imageUrl[0]}
+                        src={post.images[0]}
                         alt="Room"
                         className="w-full h-48 object-cover"
                       />
