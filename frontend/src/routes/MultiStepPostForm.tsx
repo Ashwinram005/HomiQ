@@ -452,15 +452,20 @@ const Step2 = () => {
 // Step 3
 
 const Step3 = () => {
-  const { setValue, watch, formState } = useFormContext<PostFormData>();
+  const { setValue, watch, formState, getValues } =
+    useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
 
   // Use a local state to keep track of uploaded images as File[]
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<File[]>(() => {
+    const files = getValues("imageFile");
+    if (files && files instanceof FileList) {
+      return Array.from(files);
+    }
+    return [];
+  });
 
-  // Sync form value "imageFile" with images state whenever images state changes
   useEffect(() => {
-    // Create a DataTransfer object to convert array to FileList (hacky way)
     const dataTransfer = new DataTransfer();
     images.forEach((file) => dataTransfer.items.add(file));
     setValue("imageFile", dataTransfer.files, { shouldValidate: true });
