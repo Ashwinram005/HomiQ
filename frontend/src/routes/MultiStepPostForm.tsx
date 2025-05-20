@@ -75,7 +75,6 @@ export const MultiStepPostForm = () => {
       formData.append("api_key", apiKey);
       formData.append("timestamp", timestamp);
       formData.append("signature", signature);
-
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
