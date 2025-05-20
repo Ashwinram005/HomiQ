@@ -45,11 +45,11 @@ export const ImageCarousel = ({ images }: ImageCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    if (currentIndex < images.length - 1) setCurrentIndex(currentIndex + 1);
   };
 
   return (
@@ -59,26 +59,34 @@ export const ImageCarousel = ({ images }: ImageCarouselProps) => {
           key={images[currentIndex]}
           src={images[currentIndex]}
           alt={`Image ${currentIndex + 1}`}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           initial={{ opacity: 0.5, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -100 }}
           transition={{ duration: 0.4 }}
         />
       </AnimatePresence>
-      {/* Controls */}
-      <button
-        onClick={handlePrev}
-        className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
-      >
-        <ChevronLeft />
-      </button>
-      <button
-        onClick={handleNext}
-        className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
-      >
-        <ChevronRight />
-      </button>
+
+      {/* Prev Button */}
+      {currentIndex > 0 && (
+        <button
+          onClick={handlePrev}
+          className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
+        >
+          <ChevronLeft />
+        </button>
+      )}
+
+      {/* Next Button */}
+      {currentIndex < images.length - 1 && (
+        <button
+          onClick={handleNext}
+          className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
+        >
+          <ChevronRight />
+        </button>
+      )}
+
       {/* Indicators */}
       <div className="absolute bottom-2 w-full flex justify-center gap-1">
         {images.map((_, idx) => (
