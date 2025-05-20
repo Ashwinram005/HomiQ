@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState } from "react";
 
 const PAGE_LIMIT = 4;
 
@@ -108,9 +108,6 @@ export const MyPosts = () => {
   // Flatten pages of posts into a single array
   const posts = data?.pages.flatMap((page) => page.posts) || [];
 
-  // Intersection observer to trigger fetching next page when scrolling near bottom
-  const observerElem = useRef<HTMLDivElement | null>(null);
-
   const observer = useRef<IntersectionObserver | null>(null);
 
   const lastPostRef = useCallback(
@@ -154,7 +151,7 @@ export const MyPosts = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10 top-0 mt-0 sticky z-10 bg-blue-400 p-5 rounded-2xl mb-5">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10 top-0 mt-0 sticky z-10 bg-blue-400 p-5 rounded-2xl ">
         <div className="mb-6 flex items-center gap-2 sticky top-2">
           <Button
             variant="outline"
