@@ -231,7 +231,7 @@ export function Chat() {
 
   return (
     <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6">
-      <ChatList chatId={chatId} />
+      <ChatList />
       <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
         <div className="sticky top-0 z-10 bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
           <h2 className="text-2xl font-semibold tracking-wide">Chat Room</h2>

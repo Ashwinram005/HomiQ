@@ -4,7 +4,7 @@ import socket from "@/lib/socket";
 import { useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function ChatList({ chatId }: { chatId: string }) {
+export function ChatList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"mine" | "others">("mine");
@@ -86,7 +86,6 @@ export function ChatList({ chatId }: { chatId: string }) {
     socket.on("receiveMessage", onNewMessage);
 
     return () => {
-      socket.emit("leaveRoom", { chatId });
       socket.off("receiveMessage", onNewMessage);
     };
   }, [userId, chats, queryClient]);

@@ -6,6 +6,8 @@ import {
   RootRoute,
   useNavigate,
 } from "@tanstack/react-router";
+import { MessageCircle } from "lucide-react";
+
 import { isAuthenticated, logout } from "@/lib/auth";
 
 export const Dashboard = () => {
@@ -55,29 +57,39 @@ export const Dashboard = () => {
         <h1 className="text-2xl font-bold text-gray-800">
           Welcome, {user?.name || "User"}!
         </h1>
-        <div className="relative">
+        <div className="flex items-center gap-4">
           <Button
-            onClick={toggleDropdown}
-            className="flex items-center gap-2 p-2 bg-blue-600 text-white rounded-lg"
+            onClick={() => navigate({ to: "/chat" })}
+            className="p-2 bg-white text-blue-600 hover:bg-gray-100 border border-gray-300 rounded-full"
+            variant="ghost"
           >
-            {user?.name || "User"} <span>&#9660;</span>
+            <MessageCircle className="w-6 h-6" />
           </Button>
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-2 bg-white border rounded-lg shadow-lg">
-              <button
-                onClick={handleLogout}
-                className="block px-4 py-2 text-gray-800"
-              >
-                Logout
-              </button>
-              <button
-                onClick={() => navigate({ to: "/profile" })}
-                className="block px-4 py-2 text-gray-800"
-              >
-                Profile
-              </button>
-            </div>
-          )}
+
+          <div className="relative">
+            <Button
+              onClick={toggleDropdown}
+              className="flex items-center gap-2 p-2 bg-blue-600 text-white rounded-lg"
+            >
+              {user?.name || "User"} <span>&#9660;</span>
+            </Button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 bg-white border rounded-lg shadow-lg">
+                <button
+                  onClick={handleLogout}
+                  className="block px-4 py-2 text-gray-800"
+                >
+                  Logout
+                </button>
+                <button
+                  onClick={() => navigate({ to: "/profile" })}
+                  className="block px-4 py-2 text-gray-800"
+                >
+                  Profile
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
