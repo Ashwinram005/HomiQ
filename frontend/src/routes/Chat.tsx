@@ -43,7 +43,6 @@ export const Chat = () => {
           `http://localhost:5000/api/messages/${roomData._id}`
         );
         const msgData = await msgRes.json();
-
         setMessages(
           (msgData.messages || []).map((msg) => ({
             text: msg.content,
@@ -60,7 +59,7 @@ export const Chat = () => {
     };
 
     fetchChatRoomAndMessages();
-    socket.emit("joinRoom", roomid);
+    socket.emit("joinRoom", chatRoomId);
 
     return () => {
       socket.off("receiveMessage");
