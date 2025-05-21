@@ -113,10 +113,8 @@ function LoginForm() {
         alert(result.message || "Login failed");
         return;
       }
-      console.log(result);
       localStorage.setItem("token", result.token);
       localStorage.setItem("email", result.email);
-      localStorage.setItem("userId", result._id);
       console.log("Login success:", result);
       navigate({ to: "/dashboard" });
     } catch (error) {

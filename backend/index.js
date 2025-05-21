@@ -30,21 +30,26 @@ app.use("/api/chatroom", chatRoomRoutes);
 app.use("/api/messages", messageRoutes);
 
 io.on("connection", (socket) => {
-  console.log(`🟢 Socket connected: ${socket.id}`);
-
+  //console.log(`🟢 Socket connected: ${socket.id}`);
   socket.on("joinRoom", (chatId) => {
     socket.join(chatId);
-    console.log(`👥 User joined room: ${chatId}`);
+    console.log("joinRoom", chatId);
+    socket.emit("joinRoom", { chatId });
+    //  console.log(`User ${socket.id} joined chat room ${chatId}`);
   });
 
   socket.on("sendMessage", (data) => {
-    const { roomId, message } = data;
-    console.log("📩 Broadcasting message to:", roomId);
-    io.to(roomId).emit("receiveMessage", message);
+    console.log("send message", data.chatId);
+    const { chatId, message } = data;
+    // console.log("📩 Broadcasting message to:", chatId);
+    io.to(chatId).emit("receiveMessage", message);
   });
-
+  socket.on("leaveRoom", (chatId) => {
+    console.log(`User ${socket.id} left chat room ${chatId}`);
+    socket.leave(chatId);
+  });
   socket.on("disconnect", () => {
-    console.log(`🔴 Socket disconnected: ${socket.id}`);
+    //console.log(`🔴 Socket disconnected: ${socket.id}`);
   });
 });
 

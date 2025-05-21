@@ -124,13 +124,35 @@ export const OtherPosts = () => {
     );
   }
 
-  const handleChatClick = () => {
-    console.log("Selected Post", selectedPost._id);
-    const roomId = selectedPost._id;
-    console.log(roomId);
-    navigate({
-      to: `/chat/${roomId}`,
-    });
+  const handleChatClick = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const currentUserId = getUserIdFromToken(); // your existing util
+      const otherUserId = selectedPost.postedBy._id;
+      const roomId = selectedPost._id;
+      console.log("current", currentUserId);
+      console.log("other", otherUserId);
+      console.log("roomid:", roomId);
+      const response = await axios.post(
+        "http://localhost:5000/api/chatroom/create",
+        {
+          userId: currentUserId,
+          otherUserId,
+          roomId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const chatId = response.data._id; // or response.data.chatId based on your backend
+      navigate({ to: `/chat/${chatId}` });
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      alert("Could not start chat. Please try again.");
+    }
   };
 
   return (
@@ -265,13 +287,13 @@ export const OtherPosts = () => {
                       index === filteredPosts.length - 1 ? lastPostRef : null
                     }
                   >
-                    {post.images[0] && (
+                    {/* {post.images[0] && (
                       <img
                         src={post.images[0]}
                         alt="Room"
                         className="w-full h-48 object-cover"
                       />
-                    )}
+                    )} */}
                     <div className="p-4">
                       <h3 className="text-lg font-semibold text-gray-800 truncate">
                         {post.title}

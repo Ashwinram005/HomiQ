@@ -4,7 +4,7 @@ import socket from "@/lib/socket";
 import { useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function ChatList() {
+export function ChatList({ chatId }: { chatId: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"mine" | "others">("mine");
@@ -77,7 +77,7 @@ export function ChatList() {
     if (!userId) return;
     if (!socket.connected) socket.connect();
 
-    chats?.forEach((chat) => socket.emit("joinRoom", chat._id));
+    // chats?.forEach((chat) => socket.emit("joinRoom", chat._id));
 
     const onNewMessage = () => {
       queryClient.invalidateQueries(["chats", userId]);
@@ -85,7 +85,10 @@ export function ChatList() {
 
     socket.on("receiveMessage", onNewMessage);
 
-    return () => socket.off("receiveMessage", onNewMessage);
+    return () => {
+      socket.emit("leaveRoom", { chatId });
+      socket.off("receiveMessage", onNewMessage);
+    };
   }, [userId, chats, queryClient]);
 
   if (userLoading) return <div>Loading user info...</div>;
@@ -129,6 +132,8 @@ export function ChatList() {
         ) : (
           <AnimatePresence mode="popLayout">
             {filteredChats.map((chat) => {
+              console.log("hi", chat);
+
               const otherUser = chat.participants.find(
                 (m) => m._id?.toString() !== userId
               );
@@ -139,7 +144,9 @@ export function ChatList() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   layout
-                  onClick={() => navigate({ to: `/chat/${chat.roomId}` })}
+                  onClick={() => {
+                    navigate({ to: `/chat/${chat._id}` });
+                  }}
                   className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-700 transition-all duration-200 rounded-xl shadow-md border border-gray-100 dark:border-gray-600 cursor-pointer"
                 >
                   <img

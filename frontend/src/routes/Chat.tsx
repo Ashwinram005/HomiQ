@@ -20,6 +20,15 @@ interface Message {
   timestamp: string | Date;
 }
 
+// Fetch chat room by chatId
+async function fetchChatRoom(chatId: string) {
+  const res = await fetch(`http://localhost:5000/api/chatroom/${chatId}`);
+  const data = await res.json();
+  if (!data.success) throw new Error("Failed to fetch chatroom");
+  return data.data; // Should contain participants, roomId, latestMessage, etc
+}
+
+// Fetch post by roomId (post ID)
 async function fetchRoom(roomId: string) {
   const res = await fetch(`http://localhost:5000/api/posts/${roomId}`);
   const data = await res.json();
@@ -27,30 +36,23 @@ async function fetchRoom(roomId: string) {
   return data.data;
 }
 
-async function fetchUserByEmail(email: string) {
-  const res = await fetch(
-    `http://localhost:5000/api/users/by-email?email=${email}`
-  );
+// Fetch user by userId or email
+async function fetchUser(userIdOrEmail: string) {
+  // If it's 24 length string, treat as id else email
+  const url =
+    userIdOrEmail.length === 24
+      ? `http://localhost:5000/api/users/${userIdOrEmail}`
+      : `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
+          userIdOrEmail
+        )}`;
+
+  const res = await fetch(url);
   const data = await res.json();
   if (!data.success) throw new Error("Failed to fetch user");
   return data.data;
 }
 
-async function startOrFetchChat(
-  userId: string,
-  otherUserId: string,
-  roomId: string
-) {
-  const res = await fetch(`http://localhost:5000/api/chatroom/create`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, otherUserId, roomId }),
-  });
-  const data = await res.json();
-  if (!data.success) throw new Error("Failed to create or fetch chatroom");
-  return data.data;
-}
-
+// Fetch messages by chatId
 async function fetchMessages(
   chatId: string,
   senderEmail: string,
@@ -66,11 +68,10 @@ async function fetchMessages(
     receiverEmail:
       senderEmail === msg.sender.email ? receiverEmail : senderEmail,
     sender: msg.sender.email === senderEmail ? "user" : "owner",
-    timestamp: msg.timestamp, // <-- FIX HERE: use timestamp instead of createdAt
+    timestamp: msg.timestamp,
   }));
 }
 
-// Helper function to format timestamp safely
 const formatTimestamp = (timestamp: string | Date | undefined) => {
   if (!timestamp) return "";
   const date = new Date(timestamp);
@@ -86,8 +87,7 @@ const formatTimestamp = (timestamp: string | Date | undefined) => {
 };
 
 export function Chat() {
-  const params = useParams({ from: "/chat/$roomId" });
-  const roomId = params.roomId ?? "";
+  const { chatId } = useParams({ from: "/chat/$chatId" });
 
   const rawEmail = localStorage.getItem("email") ?? "";
   const senderEmail = rawEmail.replace(/^"|"$/g, "").trim();
@@ -98,49 +98,67 @@ export function Chat() {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Fetch chat room by chatId
+  const { data: chatRoom, isLoading: chatRoomLoading } = useQuery({
+    queryKey: ["chatRoom", chatId],
+    queryFn: () => fetchChatRoom(chatId),
+    enabled: !!chatId,
+  });
+
+  // console.log("ChatRoom", chatRoom);
+
+  // Fetch room (post) data by roomId from chatRoom
+  const roomId = chatRoom?.roomId?._id || "";
   const { data: roomData } = useQuery({
     queryKey: ["room", roomId],
     queryFn: () => fetchRoom(roomId),
     enabled: !!roomId,
   });
 
+  // Determine receiverEmail (other participant)
   useEffect(() => {
-    if (roomData?.email) {
-      setReceiverEmail(roomData.email.replace(/^"|"$/g, "").trim());
-    }
-  }, [roomData]);
+    if (!chatRoom) return;
+    const otherParticipant = chatRoom.participants.find(
+      (p: any) => p.email !== senderEmail
+    );
+    if (otherParticipant) setReceiverEmail(otherParticipant.email);
+  }, [chatRoom, senderEmail]);
+  useEffect(() => {
+    socket.on("receiveMessage", (msg) => {
+      // console.log("📥 Received in:", chatId, msg);
+    });
+  }, [chatId]);
 
+  // Fetch sender user info (to get _id)
   const { data: senderUser } = useQuery({
     queryKey: ["user", senderEmail],
-    queryFn: () => fetchUserByEmail(senderEmail),
-    enabled: !!senderEmail && !!roomData,
+    queryFn: () => fetchUser(senderEmail),
+    enabled: !!senderEmail,
   });
 
+  // Fetch receiver user info
   const { data: receiverUser } = useQuery({
     queryKey: ["user", receiverEmail],
-    queryFn: () => fetchUserByEmail(receiverEmail),
+    queryFn: () => fetchUser(receiverEmail),
     enabled: !!receiverEmail,
   });
 
-  const { data: chat } = useQuery({
-    queryKey: ["chat", senderUser?._id, receiverUser?._id, roomId],
-    queryFn: () => startOrFetchChat(senderUser!._id, receiverUser!._id, roomId),
-    enabled: !!senderUser && !!receiverUser && !!roomId,
-  });
-
+  // Fetch messages for this chat
   useEffect(() => {
-    if (!chat?._id) return;
-    fetchMessages(chat._id, senderEmail, receiverEmail)
+    if (!chatId || !senderEmail || !receiverEmail) return;
+
+    fetchMessages(chatId, senderEmail, receiverEmail)
       .then(setMessages)
       .catch(console.error);
-  }, [chat?._id, senderEmail, receiverEmail]);
+  }, [chatId, senderEmail, receiverEmail]);
 
+  // Socket setup for real-time messages
   useEffect(() => {
-    if (!chat?._id) return;
-
+    if (!chatId) return;
     if (!socket.connected) socket.connect();
-    socket.emit("joinRoom", chat._id);
 
+    socket.emit("joinRoom", chatId);
+    console.log(chatId, "Join chatId");
     const handleReceiveMessage = (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
       setTimeout(() => {
@@ -152,11 +170,15 @@ export function Chat() {
 
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
+      socket.emit("leaveRoom", chatId); // Add this to leave previous room
     };
-  }, [chat?._id]);
+  }, [chatId]);
 
+  // Send message handler
   const sendMessage = async () => {
-    if (!input.trim() || !chat?._id || !senderUser) return;
+    console.log("Send chatId", chatId);
+    // console.log("Send", senderUser);
+    if (!input.trim() || !chatId || !senderUser) return;
 
     const content = input.trim();
     setInput("");
@@ -166,7 +188,7 @@ export function Chat() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chatRoomId: chat._id,
+          chatRoomId: chatId,
           senderId: senderUser._id,
           content,
         }),
@@ -178,18 +200,20 @@ export function Chat() {
         console.error("Send failed:", data.message);
         return;
       }
-
+      const senderInRoom = chatRoom?.participants.find(
+        (p) => p.email === senderEmail
+      );
       const newMsg: Message = {
         _id: data.message._id,
-        chatId: chat._id,
+        chatId,
         text: data.message.content,
-        sender: senderUser._id === chat.userId ? "user" : "owner",
+        sender: senderUser._id === senderInRoom?._id ? "user" : "owner",
         senderEmail,
         receiverEmail,
-        timestamp: data.message.timestamp, // use timestamp from response too
+        timestamp: data.message.timestamp,
       };
 
-      socket.emit("sendMessage", { roomId: chat._id, message: newMsg });
+      socket.emit("sendMessage", { chatId, message: newMsg });
 
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -203,12 +227,17 @@ export function Chat() {
     if (e.key === "Enter") sendMessage();
   };
 
+  if (chatRoomLoading) return <div>Loading chat...</div>;
+
   return (
     <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6">
-      <ChatList />
+      <ChatList chatId={chatId} />
       <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
         <div className="sticky top-0 z-10 bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
           <h2 className="text-2xl font-semibold tracking-wide">Chat Room</h2>
+          <div>
+            <small>Post: {roomData?.title || "Untitled"}</small>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-800">
@@ -233,7 +262,7 @@ export function Chat() {
                       className={`text-xs font-semibold mb-1 ${
                         isSender
                           ? "text-gray-100 dark:text-gray-300"
-                          : "text-blue-400" /* Changed receiver email color */
+                          : "text-blue-400"
                       }`}
                     >
                       {msg.senderEmail}
@@ -251,25 +280,18 @@ export function Chat() {
               No messages yet.
             </p>
           )}
-
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center gap-4">
+        <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
           <input
             type="text"
             placeholder="Type your message..."
-            className="flex-1 rounded-full border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button
-            onClick={sendMessage}
-            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm px-6 py-2 rounded-full transition-all duration-150"
-          >
-            Send
-          </button>
         </div>
       </div>
     </div>
@@ -278,7 +300,7 @@ export function Chat() {
 
 export default (parentRoute: RootRoute) =>
   createRoute({
-    path: "/chat/$roomId",
+    path: "/chat/$chatId",
     component: Chat,
     getParentRoute: () => parentRoute,
     beforeLoad: async () => {
