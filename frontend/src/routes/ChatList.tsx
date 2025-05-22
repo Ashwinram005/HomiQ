@@ -10,7 +10,7 @@ export function ChatList() {
   const [activeTab, setActiveTab] = useState<"mine" | "others">("mine");
 
   const email = localStorage.getItem("email") || "";
-
+  console.log("hi");
   // ✅ Correct user fetch query:
   const {
     data: currentUser,
