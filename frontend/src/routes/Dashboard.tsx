@@ -6,6 +6,8 @@ import {
   RootRoute,
   useNavigate,
 } from "@tanstack/react-router";
+import { MessageCircle } from "lucide-react";
+
 import { isAuthenticated, logout } from "@/lib/auth";
 import { Home, PlusCircle, LayoutDashboard, LogOut, User } from "lucide-react";
 
@@ -26,6 +28,11 @@ export const Dashboard = () => {
   const handleLogout = async () => {
     await logout();
     navigate({ to: "/" });
+    localStorage.removeItem("email");
+  };
+
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
   };
 
   const goTo = (path: string) => navigate({ to: path });
@@ -37,45 +44,39 @@ export const Dashboard = () => {
         <h1 className="text-3xl font-extrabold text-indigo-700 tracking-wide select-none">
           🏠 Welcome, {user?.name || "User"}
         </h1>
-        <div className="relative">
+        <div className="flex items-center gap-4">
           <Button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            variant="outline"
-            className="text-indigo-700 font-semibold tracking-wide px-4 py-2 rounded-lg hover:bg-indigo-50 transition"
-            aria-haspopup="true"
-            aria-expanded={dropdownOpen}
+            onClick={() => navigate({ to: "/chat" })}
+            className="p-2 bg-white text-blue-600 hover:bg-gray-100 border border-gray-300 rounded-full"
+            variant="ghost"
           >
-            {user?.name || "User"}
+            <MessageCircle className="w-6 h-6" />
           </Button>
-          {dropdownOpen && (
-            <div
-              className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-200 z-40 animate-fade-in"
-              role="menu"
-              aria-orientation="vertical"
-              aria-labelledby="user-menu-button"
-              tabIndex={-1}
+
+          <div className="relative">
+            <Button
+              onClick={toggleDropdown}
+              className="flex items-center gap-2 p-2 bg-blue-600 text-white rounded-lg"
             >
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  goTo("/profile");
-                }}
-                className="w-full px-5 py-3 text-left flex items-center gap-3 text-indigo-700 hover:bg-indigo-100 rounded-t-xl transition"
-                role="menuitem"
-                tabIndex={0}
-              >
-                <User size={18} /> Profile
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full px-5 py-3 text-left flex items-center gap-3 text-red-600 hover:bg-red-100 rounded-b-xl transition"
-                role="menuitem"
-                tabIndex={0}
-              >
-                <LogOut size={18} /> Logout
-              </button>
-            </div>
-          )}
+              {user?.name || "User"} <span>&#9660;</span>
+            </Button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 bg-white border rounded-lg shadow-lg">
+                <button
+                  onClick={handleLogout}
+                  className="block px-4 py-2 text-gray-800"
+                >
+                  Logout
+                </button>
+                <button
+                  onClick={() => navigate({ to: "/profile" })}
+                  className="block px-4 py-2 text-gray-800"
+                >
+                  Profile
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

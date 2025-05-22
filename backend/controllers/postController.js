@@ -3,6 +3,7 @@ const Post = require("../models/Post");
 const createPost = async (req, res) => {
   try {
     const {
+      email,
       title,
       description,
       price,
@@ -14,11 +15,11 @@ const createPost = async (req, res) => {
       amenities,
       images,
     } = req.body;
-
     const { userId } = req.user; // Access the userId set by the middleware
 
     // Create new post
     const post = new Post({
+      email,
       title,
       description,
       price,
@@ -40,21 +41,6 @@ const createPost = async (req, res) => {
     res.status(500).json({ message: "Server error while creating post" });
   }
 };
-
-// const getMyPosts = async (req, res) => {
-//   try {
-//     console.log("Authenticated User ID:", req.user.userId); // Debug line
-//     const posts = await Post.find({ postedBy: req.user.userId })
-//       .sort({
-//         createdAt: -1,
-//       })
-//       .populate("postedBy", "email");
-//     res.status(200).json(posts);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Failed to fetch posts" });
-//   }
-// };
 
 // Helper function to build filter conditions
 const buildFilterConditions = (query, currentUserId, isMyPosts) => {
@@ -175,8 +161,82 @@ const getOtherUsersPosts = async (req, res) => {
   }
 };
 
+const getRoom = async (req, res) => {
+  try {
+    const room = await Post.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({
+        messae: "Room not found",
+        error: true,
+        success: false,
+      });
+    }
+    return res.status(200).json({
+      data: room,
+      error: false,
+      success: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+};
+
+async function getRoomsByUser(req, res) {
+  try {
+    const { id: userId } = req.params;
+    const posts = await Post.find({ postedBy: userId }); // ✅ correct key
+    return res.status(200).json({
+      rooms: posts, // ✅ rename to 'rooms'
+      success: true,
+      error: false,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+}
+
+async function updatePost(req, res) {
+  const { postId } = req.params;
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    if (!updatePost) {
+      return res.status(404).json({
+        message: "Room not Found",
+        error: true,
+        success: false,
+      });
+    }
+    res.status(200).json({
+      updatedPost,
+      error: false,
+      success: true,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+}
+
 module.exports = {
   createPost,
   getMyPosts,
   getOtherUsersPosts,
+  getRoom,
+  getRoomsByUser,
+  updatePost,
 };

@@ -1,33 +1,29 @@
-// server.js
 const express = require("express");
 const http = require("http");
-const connectDB = require("./db"); // Import the database connection
 const dotenv = require("dotenv");
-const userRoutes = require("./routes/userRoutes"); // Importing the user routes
+const cors = require("cors");
+const connectDB = require("./db");
+
+const userRoutes = require("./routes/userRoutes");
 const postRoutes = require("./routes/postRoutes");
 const chatRoomRoutes = require("./routes/chatRoomRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const cloudinaryRoutes = require("./routes/cloudinaryRoutes");
 
-const cors = require("cors");
 dotenv.config();
+connectDB();
 
 const app = express();
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "*", // Or replace with your frontend URL
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
 app.use(cors());
-
-// Middleware to parse incoming JSON requests
 app.use(express.json());
-
-// Connect to MongoDB
-connectDB();
 
 app.use("/api/users", userRoutes);
 app.use("/api/cloudinary", cloudinaryRoutes);
@@ -36,29 +32,28 @@ app.use("/api/chatroom", chatRoomRoutes);
 app.use("/api/messages", messageRoutes);
 
 io.on("connection", (socket) => {
-  console.log(`🔌 User connected: ${socket.id}`);
-  // Join room
-  socket.on("joinRoom", (roomId) => {
-    socket.join(roomId);
-    console.log(`👥 User joined room: ${roomId}`);
+  //console.log(`🟢 Socket connected: ${socket.id}`);
+  socket.on("joinRoom", (chatId) => {
+    socket.join(chatId);
+    console.log("joinRoom", chatId);
+    socket.emit("joinRoom", { chatId });
+    //  console.log(`User ${socket.id} joined chat room ${chatId}`);
   });
 
-  // Listen for new messages
   socket.on("sendMessage", (data) => {
-    console.log("📨 Received message:", data);
-
-    const { roomId, message } = data;
-    socket.to(roomId).emit("receiveMessage", message); // 👈 This excludes the sender
+    console.log("send message", data.chatId);
+    const { chatId, message } = data;
+    // console.log("📩 Broadcasting message to:", chatId);
+    io.to(chatId).emit("receiveMessage", message);
   });
-
+  socket.on("leaveRoom", (chatId) => {
+    console.log(`User ${socket.id} left chat room ${chatId}`);
+    socket.leave(chatId);
+  });
   socket.on("disconnect", () => {
-    console.log(`❌ User disconnected: ${socket.id}`);
+    //console.log(`🔴 Socket disconnected: ${socket.id}`);
   });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
-
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

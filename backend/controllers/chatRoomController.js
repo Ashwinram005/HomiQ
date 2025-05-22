@@ -1,44 +1,37 @@
 const mongoose = require("mongoose");
 const ChatRoom = require("../models/ChatRoom");
 const Post = require("../models/Post"); // Needed for post data
+const User = require("../models/User");
 
 const createChatRoom = async (req, res) => {
-  const { userId, otherUserId, roomid } = req.body;
+  const { userId, otherUserId, roomId } = req.body;
 
-  // Validate if userId and otherUserId are provided
-  if (!userId || !otherUserId) {
-    return res.status(400).json({
-      message: "Missing User IDs",
-      error: true,
-      success: false,
-    });
+  if (!userId || !otherUserId || !roomId) {
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
-    // Try to find an existing chat room with the same participants and roomId if provided
-    let chatRoom = await ChatRoom.findOne({
-      participants: { $all: [userId, otherUserId], $size: 2 },
-      ...(roomid ? { roomId: roomid } : {}),
+    // Check if chat room already exists
+    let existingChat = await ChatRoom.findOne({
+      participants: { $all: [userId, otherUserId] },
+      roomId: roomId,
     });
 
-    // If no existing chat room is found, create a new one
-    if (!chatRoom) {
-      chatRoom = await ChatRoom.create({
-        participants: [userId, otherUserId],
-        roomId: roomid || null,
-      });
-      console.log(chatRoom, "chatRoom");
+    if (existingChat) {
+      return res.status(200).json(existingChat);
     }
 
-    // Return the found or newly created chat room
-    return res.json(chatRoom);
-  } catch (error) {
-    // Error handling
-    return res.status(500).json({
-      message: error.message || error,
-      error: true,
-      success: false,
+    // Create new chat room
+    const newChatRoom = new ChatRoom({
+      participants: [userId, otherUserId],
+      roomId: roomId,
     });
+
+    await newChatRoom.save();
+    res.status(201).json(newChatRoom);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -86,6 +79,7 @@ const getUserChatRooms = async (req, res) => {
         otherUserEmail: otherUser?.email || "Unknown",
         otherUserId: otherUser?._id, // <== Add this
         latestMessage: room.latestMessage || null,
+        updatedAt: room.updatedAt,
       };
     });
 
@@ -150,8 +144,78 @@ const getOwnerChatRooms = async (req, res) => {
   }
 };
 
+async function getChats(req, res) {
+  try {
+    const identifier = req.params.userId;
+    let user;
+    if (identifier.length === 24) {
+      user = await User.findById(identifier);
+    } else {
+      user = await User.findOne({ email: identifier });
+    }
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        error: true,
+        success: false,
+      });
+    }
+
+    const chats = await ChatRoom.find({ participants: user._id }) // ✅
+      .populate("participants", "email")
+      .populate({
+        path: "latestMessage",
+        populate: { path: "sender", select: "email" },
+      })
+      .sort({ updatedAt: -1 });
+
+    const formattedChats = chats.map((chat) => ({
+      _id: chat._id,
+      participants: chat.participants,
+      roomId: chat.roomId || null,
+      latestMessage: chat.latestMessage,
+      updatedAt: chat.updatedAt,
+    }));
+
+    return res.json({ chats: formattedChats, error: false, success: true });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+      error: true,
+      success: false,
+    });
+  }
+}
+
+// GET /api/chatroom/:chatId
+const getChatRoomById = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(chatId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid chatId" });
+    }
+    const chatRoom = await ChatRoom.findById(chatId)
+      .populate("roomId", "title email postedBy")
+      .populate("participants", "email");
+
+    if (!chatRoom) {
+      return res
+        .status(404)
+        .json({ success: false, message: "ChatRoom not found" });
+    }
+    res.json({ success: true, data: chatRoom });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   createChatRoom,
   getUserChatRooms,
   getOwnerChatRooms,
+  getChats,
+  getChatRoomById,
 };

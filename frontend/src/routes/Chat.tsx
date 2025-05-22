@@ -1,229 +1,310 @@
-import { useState, useEffect, useRef } from "react";
-import socket from "@/lib/socket";
+import React, { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   createRoute,
   redirect,
   RootRoute,
   useParams,
-  useSearch,
 } from "@tanstack/react-router";
-import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
+import socket from "@/lib/socket";
 import { isAuthenticated } from "@/lib/auth";
+import { ChatList } from "./ChatList";
 
-export const Chat = () => {
-  const { roomid } = useParams({ from: "/chat/$roomid" });
-  const userId = getUserIdFromToken();
-  const { otherUserId } = useSearch({ from: "/chat/$roomid" });
+interface Message {
+  _id?: string;
+  chatId: string;
+  text: string;
+  sender: "user" | "owner";
+  senderEmail: string;
+  receiverEmail: string;
+  timestamp: string | Date;
+}
 
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [chatRoomId, setChatRoomId] = useState(null);
-  const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
-  const hasFetchedRef = useRef(false);
+// Fetch chat room by chatId
+async function fetchChatRoom(chatId: string) {
+  const res = await fetch(`http://localhost:5000/api/chatroom/${chatId}`);
+  const data = await res.json();
+  if (!data.success) throw new Error("Failed to fetch chatroom");
+  return data.data; // Should contain participants, roomId, latestMessage, etc
+}
 
+// Fetch post by roomId (post ID)
+async function fetchRoom(roomId: string) {
+  const res = await fetch(`http://localhost:5000/api/posts/${roomId}`);
+  const data = await res.json();
+  if (!data.success) throw new Error("Failed to fetch room");
+  return data.data;
+}
+
+// Fetch user by userId or email
+async function fetchUser(userIdOrEmail: string) {
+  // If it's 24 length string, treat as id else email
+  const url =
+    userIdOrEmail.length === 24
+      ? `http://localhost:5000/api/users/${userIdOrEmail}`
+      : `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
+          userIdOrEmail
+        )}`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.success) throw new Error("Failed to fetch user");
+  return data.data;
+}
+
+// Fetch messages by chatId
+async function fetchMessages(
+  chatId: string,
+  senderEmail: string,
+  receiverEmail: string
+) {
+  const res = await fetch(`http://localhost:5000/api/messages/${chatId}`);
+  const data = await res.json();
+  if (!data.success) throw new Error("Failed to fetch messages");
+  return data.messages.map((msg: any) => ({
+    ...msg,
+    text: msg.content,
+    senderEmail: msg.sender.email,
+    receiverEmail:
+      senderEmail === msg.sender.email ? receiverEmail : senderEmail,
+    sender: msg.sender.email === senderEmail ? "user" : "owner",
+    timestamp: msg.timestamp,
+  }));
+}
+
+const formatTimestamp = (timestamp: string | Date | undefined) => {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+export function Chat() {
+  const { chatId } = useParams({ from: "/chat/$chatId" });
+
+  const rawEmail = localStorage.getItem("email") ?? "";
+  const senderEmail = rawEmail.replace(/^"|"$/g, "").trim();
+
+  const [receiverEmail, setReceiverEmail] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Fetch chat room by chatId
+  const { data: chatRoom, isLoading: chatRoomLoading } = useQuery({
+    queryKey: ["chatRoom", chatId],
+    queryFn: () => fetchChatRoom(chatId),
+    enabled: !!chatId,
+  });
+
+  // console.log("ChatRoom", chatRoom);
+
+  // Fetch room (post) data by roomId from chatRoom
+  const roomId = chatRoom?.roomId?._id || "";
+  const { data: roomData } = useQuery({
+    queryKey: ["room", roomId],
+    queryFn: () => fetchRoom(roomId),
+    enabled: !!roomId,
+  });
+
+  // Determine receiverEmail (other participant)
   useEffect(() => {
+    if (!chatRoom) return;
+    const otherParticipant = chatRoom.participants.find(
+      (p: any) => p.email !== senderEmail
+    );
+    if (otherParticipant) setReceiverEmail(otherParticipant.email);
+  }, [chatRoom, senderEmail]);
+  useEffect(() => {
+    socket.on("receiveMessage", (msg) => {
+      // console.log("📥 Received in:", chatId, msg);
+    });
+  }, [chatId]);
+
+  // Fetch sender user info (to get _id)
+  const { data: senderUser } = useQuery({
+    queryKey: ["user", senderEmail],
+    queryFn: () => fetchUser(senderEmail),
+    enabled: !!senderEmail,
+  });
+
+  // Fetch receiver user info
+  const { data: receiverUser } = useQuery({
+    queryKey: ["user", receiverEmail],
+    queryFn: () => fetchUser(receiverEmail),
+    enabled: !!receiverEmail,
+  });
+
+  // Fetch messages for this chat
+  useEffect(() => {
+    if (!chatId || !senderEmail || !receiverEmail) return;
+
+    fetchMessages(chatId, senderEmail, receiverEmail)
+      .then(setMessages)
+      .catch(console.error);
+  }, [chatId, senderEmail, receiverEmail]);
+
+  // Socket setup for real-time messages
+  useEffect(() => {
+    if (!chatId) return;
     if (!socket.connected) socket.connect();
 
-    const fetchChatRoomAndMessages = async () => {
-      if (hasFetchedRef.current) return;
-      hasFetchedRef.current = true;
-
-      try {
-        const res = await fetch("http://localhost:5000/api/chatroom/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, otherUserId, roomid }),
-        });
-
-        const roomData = await res.json();
-        setChatRoomId(roomData._id);
-
-        const msgRes = await fetch(
-          `http://localhost:5000/api/messages/${roomData._id}`
-        );
-        const msgData = await msgRes.json();
-        setMessages(
-          (msgData.messages || []).map((msg) => ({
-            text: msg.content,
-            sender: msg.sender && msg.sender._id === userId ? "me" : "other",
-            email: msg.sender?.email || "Unknown",
-            timestamp:
-              msg.createdAt || msg.timestamp || new Date().toISOString(),
-          }))
-        );
-      } catch (error) {
-        console.error("Error fetching chat room or messages:", error);
-        setError("Failed to load messages. Please try again.");
-      }
-    };
-
-    fetchChatRoomAndMessages();
-    socket.emit("joinRoom", chatRoomId);
-
-    return () => {
-      socket.off("receiveMessage");
-      socket.disconnect();
-    };
-  }, [roomid, userId, otherUserId]);
-
-  useEffect(() => {
-    const handleReceiveMessage = (message) => {
-      const isSenderMe = message.senderId === userId;
-      const email = isSenderMe ? "You" : message.email;
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: message.content,
-          sender: isSenderMe ? "me" : "other",
-          email,
-          timestamp: message.timestamp || new Date().toISOString(),
-        },
-      ]);
+    socket.emit("joinRoom", chatId);
+    console.log(chatId, "Join chatId");
+    const handleReceiveMessage = (msg: Message) => {
+      setMessages((prev) => [...prev, msg]);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
     };
 
     socket.on("receiveMessage", handleReceiveMessage);
+
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
+      socket.emit("leaveRoom", chatId); // Add this to leave previous room
     };
-  }, [userId]);
+  }, [chatId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
+  // Send message handler
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    console.log("Send chatId", chatId);
+    // console.log("Send", senderUser);
+    if (!input.trim() || !chatId || !senderUser) return;
 
-    const message = {
-      text: newMessage,
-      sender: "me",
-      timestamp: new Date().toISOString(),
-      email: "You",
-    };
-
-    setMessages((prev) => [...prev, message]);
+    const content = input.trim();
+    setInput("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/messages/send", {
+      const res = await fetch("http://localhost:5000/api/messages/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chatRoomId,
-          senderId: userId,
-          content: newMessage,
+          chatRoomId: chatId,
+          senderId: senderUser._id,
+          content,
         }),
       });
-      const data = await response.json();
 
-      socket.emit("sendMessage", {
-        roomId: roomid,
-        message: {
-          content: newMessage,
-          senderId: userId,
-          email: data.sender.email,
-          timestamp: data.timestamp,
-        },
-      });
+      const data = await res.json();
 
-      if (!response.ok) {
-        setError("Failed to save message.");
+      if (!data.success) {
+        console.error("Send failed:", data.message);
+        return;
       }
-    } catch (err) {
-      setError("Error sending message.");
-    }
+      const senderInRoom = chatRoom?.participants.find(
+        (p) => p.email === senderEmail
+      );
+      const newMsg: Message = {
+        _id: data.message._id,
+        chatId,
+        text: data.message.content,
+        sender: senderUser._id === senderInRoom?._id ? "user" : "owner",
+        senderEmail,
+        receiverEmail,
+        timestamp: data.message.timestamp,
+      };
 
-    setNewMessage("");
+      socket.emit("sendMessage", { chatId, message: newMsg });
+
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
+    } catch (err) {
+      console.error("Send error:", err);
+    }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") sendMessage();
+  };
+
+  if (chatRoomLoading) return <div>Loading chat...</div>;
+
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-[#f3e5f5] to-[#e3f2fd] text-slate-800">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-[#7e57c2] to-[#42a5f5] p-4 shadow-md text-white flex justify-between items-center">
-        <h1 className="text-lg font-bold">💬 HomiQ Chat</h1>
-        <span className="text-sm opacity-90 font-medium">
-          Secure • Encrypted
-        </span>
-      </header>
+    <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6">
+      <ChatList />
+      <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
+        <div className="sticky top-0 z-10 bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
+          <h2 className="text-2xl font-semibold tracking-wide">Chat Room</h2>
+          <div>
+            <small>Post: {roomData?.title || "Untitled"}</small>
+          </div>
+        </div>
 
-      {/* Messages */}
-      <main className="flex-1 overflow-y-auto p-5 space-y-4 custom-scroll">
-        {error && <div className="text-red-600 font-semibold">{error}</div>}
-        {messages.map((msg, index) => {
-          const date = new Date(msg.timestamp);
-          const time = date.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-          const dateStr = date.toLocaleDateString();
-
-          const isMe = msg.sender === "me";
-
-          return (
-            <div
-              key={index}
-              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`px-4 py-3 rounded-2xl max-w-[80%] shadow-md text-sm ${
-                  isMe
-                    ? "bg-gradient-to-br from-[#26c6da] to-[#00acc1] text-white rounded-br-none"
-                    : "bg-gradient-to-br from-[#d1c4e9] to-[#ede7f6] text-gray-900 rounded-bl-none"
-                }`}
-              >
-                <div className="font-semibold text-xs opacity-80 mb-1">
-                  {isMe ? "You" : msg.email}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-800">
+          {messages.length ? (
+            messages.map((msg, i) => {
+              const isSender = msg.senderEmail === senderEmail;
+              return (
+                <div
+                  key={msg._id || i}
+                  className={`flex ${
+                    isSender ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`rounded-2xl p-4 max-w-[70%] break-words whitespace-pre-wrap shadow-md transition-all duration-200 ${
+                      isSender
+                        ? "bg-blue-600 text-white rounded-br-none"
+                        : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none"
+                    }`}
+                  >
+                    <div
+                      className={`text-xs font-semibold mb-1 ${
+                        isSender
+                          ? "text-gray-100 dark:text-gray-300"
+                          : "text-blue-400"
+                      }`}
+                    >
+                      {msg.senderEmail}
+                    </div>
+                    <div className="text-sm">{msg.text}</div>
+                    <div className="text-[11px] text-right mt-2 text-gray-400 dark:text-gray-500">
+                      {formatTimestamp(msg.timestamp)}
+                    </div>
+                  </div>
                 </div>
-                <p className="break-words leading-relaxed whitespace-pre-wrap">
-                  {msg.text}
-                </p>
-                <div className="text-[10px] text-right mt-1 opacity-70 italic">
-                  {dateStr} • {time}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </main>
+              );
+            })
+          ) : (
+            <p className="text-center text-gray-500 dark:text-gray-400">
+              No messages yet.
+            </p>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-      {/* Footer */}
-      <footer className="border-t bg-white p-4 flex items-center gap-3 shadow-inner">
-        <textarea
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault(); // Prevent newline
-              sendMessage();
-            }
-            // Shift+Enter will just add a newline naturally
-          }}
-          className="flex-1 rounded-xl border border-gray-300 px-5 py-2 resize-none focus:ring-2 focus:ring-[#7e57c2] text-sm shadow-sm outline-none"
-          placeholder="Type your message..."
-          rows={2}
-        />
-        <button
-          onClick={sendMessage}
-          className="bg-gradient-to-r from-[#7e57c2] to-[#42a5f5] hover:scale-105 transition-transform duration-150 text-white px-5 py-2 rounded-full font-medium shadow-md"
-        >
-          Send
-        </button>
-      </footer>
+        <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+          <input
+            type="text"
+            placeholder="Type your message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
     </div>
   );
-};
+}
 
 export default (parentRoute: RootRoute) =>
   createRoute({
-    path: "/chat/$roomid",
+    path: "/chat/$chatId",
     component: Chat,
     getParentRoute: () => parentRoute,
     beforeLoad: async () => {
       const auth = await isAuthenticated();
-      if (!auth) {
-        return redirect({ to: "/" });
-      }
+      if (!auth) return redirect({ to: "/" });
     },
   });
