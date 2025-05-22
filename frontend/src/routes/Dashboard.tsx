@@ -35,17 +35,7 @@ export const Dashboard = () => {
     setDropdownOpen(!dropdownOpen);
   };
 
-  const handlePostFeature = () => {
-    navigate({ to: "/post" });
-  };
-
-  const handleMyPosts = () => {
-    navigate({ to: "/myposts" });
-  };
-
-  const handleBrowseRooms = () => {
-    navigate({ to: "/otherposts" });
-  };
+  const goTo = (path: string) => navigate({ to: path });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 text-gray-900 font-sans">

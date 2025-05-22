@@ -42,21 +42,6 @@ const createPost = async (req, res) => {
   }
 };
 
-const getMyPosts = async (req, res) => {
-  try {
-    console.log("Authenticated User ID:", req.user.userId); // Debug line
-    const posts = await Post.find({ postedBy: req.user.userId })
-      .sort({
-        createdAt: -1,
-      })
-      .populate("postedBy", "email");
-    res.status(200).json(posts);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to fetch posts" });
-  }
-};
-
 // Helper function to build filter conditions
 const buildFilterConditions = (query, currentUserId, isMyPosts) => {
   const {
@@ -218,34 +203,33 @@ async function getRoomsByUser(req, res) {
   }
 }
 
-
-async function updatePost(req,res) {
-  const{postId}=req.params;
+async function updatePost(req, res) {
+  const { postId } = req.params;
   try {
-    const updatedPost=await Post.findByIdAndUpdate(postId,
-      {$set:req.body},
-      {new:true,runValidators:true}
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $set: req.body },
+      { new: true, runValidators: true }
     );
-    if(!updatePost){
+    if (!updatePost) {
       return res.status(404).json({
-        message:"Room not Found",
-        error:true,
-        success:false
-      })
+        message: "Room not Found",
+        error: true,
+        success: false,
+      });
     }
     res.status(200).json({
       updatedPost,
-      error:false,
-      success:true
-    })
+      error: false,
+      success: true,
+    });
   } catch (error) {
     res.status(500).json({
-      message:error.message||error,
-      error:true,
-      success:false,
-    })
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
   }
-  
 }
 
 module.exports = {

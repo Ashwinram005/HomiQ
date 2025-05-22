@@ -170,6 +170,7 @@ export const MyPosts = () => {
           variant="default"
           size="lg"
           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-300 rounded-xl px-6 py-2"
+          onClick={() => navigate({ to: "/ownerchatpage" })}
         >
           💬 Chat with Tenants
         </Button>
@@ -412,27 +413,59 @@ export const MyPosts = () => {
                       )}
                     </CardContent>
 
-              <CardFooter className="grid grid-cols-2 gap-3 px-5 pb-5">
-                <Button
-                  variant="outline"
-                  className="flex gap-2 hover:cursor-pointer justify-center w-full transition duration-300 ease-in-out transform hover:bg-indigo-600 hover:text-white hover:scale-105"
-                  onClick={() => {
-                    navigate({ to: `/edit-post/${post._id}` });
-                  }}
-                >
-                  <PencilLine className="w-4 h-4" />
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex gap-2 justify-center hover:cursor-pointer w-full transition duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                    <CardFooter className="grid grid-cols-2 gap-3 px-5 pb-5">
+                      <Button
+                        onClick={() =>
+                          navigate({ to: `/edit-post/${post._id}` })
+                        }
+                        variant="outline"
+                        className="flex gap-2 hover:cursor-pointer justify-center w-full transition duration-300 ease-in-out transform hover:bg-indigo-600 hover:text-white hover:scale-105"
+                      >
+                        <PencilLine className="w-4 h-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="flex gap-2 justify-center hover:cursor-pointer w-full transition duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Loading indicator for fetching next page */}
+          {isFetchingNextPage && (
+            <div className="flex flex-col items-center gap-3 mt-8 bg-indigo-50 border border-indigo-400 rounded-lg p-4 shadow-lg">
+              <svg
+                className="animate-spin h-10 w-10 text-indigo-700"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                ></path>
+              </svg>
+              <p className="text-indigo-900 font-semibold text-lg">
+                Loading more posts...
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

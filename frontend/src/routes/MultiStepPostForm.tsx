@@ -27,6 +27,7 @@ import { useMutation } from "@tanstack/react-query";
 
 // Form schema
 const postSchema = z.object({
+  email: z.string(),
   title: z.string().min(3).max(100),
   description: z.string().min(10).max(1000),
   price: z.string().regex(/^\d+$/, "Price must be numeric"),
@@ -46,7 +47,7 @@ const postSchema = z.object({
 });
 
 type PostFormData = z.infer<typeof postSchema>;
-
+const email = localStorage.getItem("email");
 const amenitiesList = [
   "Wi-Fi",
   "AC",
@@ -70,7 +71,7 @@ export const MultiStepPostForm = () => {
 
       const { timestamp, signature, cloudName, apiKey } =
         await signatureResponse.json();
-
+      console.log(cloudName);
       const formData = new FormData();
       formData.append("file", file);
       formData.append("api_key", apiKey);
@@ -103,7 +104,7 @@ export const MultiStepPostForm = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
 
     if (!response.ok) throw new Error("Failed to submit post");
@@ -126,7 +127,7 @@ export const MultiStepPostForm = () => {
 
   const methods = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
-    defaultValues: { amenities: [], furnished: false },
+    defaultValues: { email: email, amenities: [], furnished: false },
     mode: "onBlur",
   });
 
