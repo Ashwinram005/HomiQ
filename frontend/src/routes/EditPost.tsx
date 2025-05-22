@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { isAuthenticated } from "@/lib/auth";
 import {
   createRoute,
   redirect,
@@ -8,10 +7,13 @@ import {
 } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
+import { motion } from "framer-motion";
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { isAuthenticated } from "@/lib/auth";
 
 export function EditPost() {
   const { postId } = useParams({ from: "/edit-post/$postId" });
@@ -42,9 +44,6 @@ export function EditPost() {
     amenities: "",
   });
 
-  const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [newImages, setNewImages] = useState<File[]>([]);
-
   useEffect(() => {
     if (post) {
       let formattedDate = "";
@@ -66,12 +65,12 @@ export function EditPost() {
         availableFrom: formattedDate,
         amenities: post.amenities?.join(", ") || "",
       });
-
-      setExistingImages(post.images || []);
     }
   }, [post]);
 
-  const handleChange = (e) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -79,20 +78,13 @@ export function EditPost() {
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setNewImages(Array.from(e.target.files));
-    }
-  };
-
-  const handleDeleteExistingImage = (index: number) => {
-    setExistingImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("Submitting form:", formData);
 
     try {
+      toast.loading("Updating post...", { id: "updatePost" });
+
       const updatedData = {
         ...formData,
         amenities: formData.amenities
@@ -100,28 +92,6 @@ export function EditPost() {
           .map((a) => a.trim())
           .filter(Boolean),
       };
-
-      let uploadedUrls: string[] = [];
-
-      if (newImages.length > 0) {
-        const formDataImg = new FormData();
-        newImages.forEach((file) => formDataImg.append("images", file));
-
-        const imageUploadRes = await axios.post(
-          "http://localhost:5000/api/upload",
-          formDataImg,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        uploadedUrls = imageUploadRes.data.urls;
-      }
-
-      updatedData.images = [...existingImages, ...uploadedUrls];
 
       await axios.put(
         `http://localhost:5000/api/posts/${postId}`,
@@ -131,10 +101,10 @@ export function EditPost() {
         }
       );
 
-      alert("Post updated successfully!");
+      toast.success("Post updated successfully!", { id: "updatePost" });
     } catch (err) {
       console.error("Update failed", err);
-      alert("Failed to update post.");
+      toast.error("Failed to update post.", { id: "updatePost" });
     }
   };
 
@@ -142,121 +112,90 @@ export function EditPost() {
   if (error) return <div className="p-4 text-red-500">Error loading post.</div>;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="max-w-2xl mx-auto space-y-6 p-6 bg-white shadow-xl rounded-xl"
-    >
-      <h2 className="text-3xl font-bold text-indigo-800 mb-4">Edit Post</h2>
+    <>
+      <Toaster /> {/* Ensure toast notifications are visible */}
+      <motion.form
+        onSubmit={handleSubmit}
+        className="max-w-2xl mx-auto space-y-6 p-6 bg-white shadow-xl rounded-xl"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <h2 className="text-3xl font-bold text-indigo-800 mb-4">Edit Post</h2>
 
-      <Input
-        name="title"
-        value={formData.title}
-        onChange={handleChange}
-        placeholder="Title"
-      />
-      <Textarea
-        name="description"
-        value={formData.description}
-        onChange={handleChange}
-        placeholder="Description"
-      />
-      <Input
-        name="price"
-        type="number"
-        value={formData.price}
-        onChange={handleChange}
-        placeholder="Price"
-      />
-      <Input
-        name="location"
-        value={formData.location}
-        onChange={handleChange}
-        placeholder="Location"
-      />
-      <Input
-        name="type"
-        value={formData.type}
-        onChange={handleChange}
-        placeholder="Type"
-      />
-      <Input
-        name="occupancy"
-        value={formData.occupancy}
-        onChange={handleChange}
-        placeholder="Occupancy"
-      />
+        <Input
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
+          placeholder="Title"
+        />
+        <Textarea
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="Description"
+        />
+        <Input
+          name="price"
+          type="number"
+          value={formData.price}
+          onChange={handleChange}
+          placeholder="Price"
+        />
+        <Input
+          name="location"
+          value={formData.location}
+          onChange={handleChange}
+          placeholder="Location"
+        />
+        <Input
+          name="type"
+          value={formData.type}
+          onChange={handleChange}
+          placeholder="Type"
+        />
+        <Input
+          name="occupancy"
+          value={formData.occupancy}
+          onChange={handleChange}
+          placeholder="Occupancy"
+        />
 
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          name="furnished"
-          checked={formData.furnished}
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="furnished"
+            checked={formData.furnished}
+            onChange={handleChange}
+          />
+          Furnished
+        </label>
+
+        <Input
+          name="availableFrom"
+          type="date"
+          value={formData.availableFrom}
           onChange={handleChange}
         />
-        Furnished
-      </label>
+        <Input
+          name="amenities"
+          value={formData.amenities}
+          onChange={handleChange}
+          placeholder="Amenities (comma separated)"
+        />
 
-      <Input
-        name="availableFrom"
-        type="date"
-        value={formData.availableFrom}
-        onChange={handleChange}
-      />
-
-      <Input
-        name="amenities"
-        value={formData.amenities}
-        onChange={handleChange}
-        placeholder="Amenities (comma separated)"
-      />
-
-      {/* Existing Image Preview + Delete */}
-      <div>
-        <label className="block font-medium mb-1 text-gray-700">
-          Current Images
-        </label>
-        <div className="flex flex-wrap gap-3">
-          {existingImages.length > 0 ? (
-            existingImages.map((img, idx) => (
-              <div key={idx} className="relative w-24 h-24">
-                <img
-                  src={img}
-                  alt={`Room ${idx}`}
-                  className="w-full h-full object-cover rounded-md border"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDeleteExistingImage(idx)}
-                  className="absolute top-0 right-0 bg-red-600 text-white text-xs px-1 rounded-bl hover:bg-red-700"
-                >
-                  ✕
-                </button>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No images</p>
-          )}
-        </div>
-      </div>
-
-      {/* New Image Upload */}
-      <div>
-        <label className="block font-medium mb-1 text-gray-700">
-          Upload New Images
-        </label>
-        <Input type="file" multiple onChange={handleImageChange} />
-      </div>
-
-      <Button
-        type="submit"
-        className="bg-indigo-600 hover:bg-indigo-700 text-white w-full py-2 rounded-lg"
-      >
-        Update Post
-      </Button>
-    </form>
+        <Button
+          type="submit"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white w-full py-2 rounded-lg"
+        >
+          Update Post
+        </Button>
+      </motion.form>
+    </>
   );
 }
 
+// Route definition for TanStack Router
 export default (parentRoute: RootRoute) =>
   createRoute({
     path: "/edit-post/$postId",
