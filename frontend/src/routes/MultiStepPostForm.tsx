@@ -1,6 +1,6 @@
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -38,8 +38,13 @@ const postSchema = z.object({
     .string()
     .min(1, { message: "Available From date is required" }), // required
   amenities: z.array(z.string()).optional(),
-  imageUrl: z.string().url().optional(),
+  imageFile: z
+    .any()
+    .refine((files) => files instanceof FileList && files.length > 0, {
+      message: "Please upload at least one image",
+    }),
 });
+
 type PostFormData = z.infer<typeof postSchema>;
 
 const amenitiesList = [
@@ -52,8 +57,46 @@ const amenitiesList = [
 ];
 
 export const MultiStepPostForm = () => {
+  const [showSubmittingModal, setShowSubmittingModal] = useState(false);
+
+  // Helper function to upload a single image to Cloudinary with signed upload
+  const uploadImageToCloudinary = async (file: File) => {
+    try {
+      const signatureResponse = await fetch(
+        "http://localhost:5000/api/cloudinary/sign"
+      );
+      if (!signatureResponse.ok)
+        throw new Error("Failed to get Cloudinary signature");
+
+      const { timestamp, signature, cloudName, apiKey } =
+        await signatureResponse.json();
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", apiKey);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok)
+        throw new Error("Failed to upload image to Cloudinary");
+
+      const uploadResult = await uploadResponse.json();
+      return uploadResult.secure_url;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      alert("Image upload failed. Please try again.");
+      throw error; // Rethrow to handle in onSubmit
+    }
+  };
+
   const createPost = async (data: PostFormData) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token"); // or sessionStorage or from context
+    console.log(token);
     const response = await fetch("http://localhost:5000/api/posts", {
       method: "POST",
       headers: {
@@ -73,10 +116,13 @@ export const MultiStepPostForm = () => {
   const mutation = useMutation({
     mutationFn: createPost,
     onSuccess: () => {
+      setShowSubmittingModal(false);
+
       navigate({ to: "/dashboard" });
     },
     onError: () => {
       alert("Something went wrong.");
+      setShowSubmittingModal(false);
     },
   });
 
@@ -102,8 +148,35 @@ export const MultiStepPostForm = () => {
     "Confirm details",
   ];
 
-  const onSubmit = (data: PostFormData) => {
-    mutation.mutate(data);
+  const onSubmit = async (data: PostFormData) => {
+    setShowSubmittingModal(true);
+    try {
+      const files = data.imageFile;
+      if (!(files instanceof FileList) || files.length === 0) {
+        throw new Error("No images selected");
+      }
+
+      // Upload images sequentially (can be parallel with Promise.all if you want)
+      const imageUrls = [];
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadImageToCloudinary(files[i]);
+        imageUrls.push(url);
+      }
+      console.log("Image URLs", imageUrls);
+      // Prepare post payload with image URLs instead of FileList
+      const postPayload = {
+        ...data,
+        images: imageUrls, // add images field with URLs
+      };
+
+      // Remove imageFile field from payload because it's raw files
+      delete postPayload.imageFile;
+
+      // Now send postPayload to your backend
+      mutation.mutate(postPayload);
+    } catch (error) {
+      alert("Error uploading images or submitting form: " + error.message);
+    }
   };
 
   const handleNext = async () => {
@@ -121,7 +194,7 @@ export const MultiStepPostForm = () => {
         "availableFrom",
       ]);
     } else if (step === 2) {
-      isValid = await methods.trigger(["imageUrl", "amenities"]);
+      isValid = await methods.trigger(["imageFile", "amenities"]);
     }
 
     if (isValid && step < steps.length - 1) {
@@ -226,6 +299,29 @@ export const MultiStepPostForm = () => {
             )}
           </div>
         </form>
+        <AnimatePresence>
+          {showSubmittingModal && (
+            <motion.div
+              key="modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                className="bg-white rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg"
+              >
+                <Loader2 size={48} className="animate-spin text-blue-600" />
+                <p className="text-lg font-semibold text-gray-700 text-center">
+                  Submitting your post, please wait...
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </FormProvider>
   );
@@ -354,17 +450,52 @@ const Step2 = () => {
 };
 
 // Step 3
+
 const Step3 = () => {
-  const { register, setValue, watch, formState } =
+  const { setValue, watch, formState, getValues } =
     useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
 
+  // Use a local state to keep track of uploaded images as File[]
+  const [images, setImages] = useState<File[]>(() => {
+    const files = getValues("imageFile");
+    if (files && files instanceof FileList) {
+      return Array.from(files);
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    const dataTransfer = new DataTransfer();
+    images.forEach((file) => dataTransfer.items.add(file));
+    setValue("imageFile", dataTransfer.files, { shouldValidate: true });
+  }, [images, setValue]);
+
+  // Handler when new files are uploaded
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+
+    // Append new files to existing images array
+    setImages((prev) => [...prev, ...Array.from(e.target.files)]);
+    // Reset input value so same file can be uploaded again if needed
+    e.target.value = "";
+  };
+
+  // Handler to remove image by index
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Toggle amenities function remains same
   const toggleAmenity = (item: string) => {
     const updated = selected.includes(item)
       ? selected.filter((a) => a !== item)
       : [...selected, item];
     setValue("amenities", updated);
   };
+
+  // Generate preview URLs for images
+  const imagePreviews = images.map((file) => URL.createObjectURL(file));
 
   return (
     <div>
@@ -383,15 +514,43 @@ const Step3 = () => {
           </div>
         ))}
       </div>
+
       <div>
-        <Label>Image URL</Label>
-        <Input
-          {...register("imageUrl")}
-          placeholder="https://example.com/image.jpg"
+        <Label>Upload Images</Label>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFileChange}
         />
-        <p className="text-red-500 text-sm">
-          {formState.errors.imageUrl?.message}
-        </p>
+        {formState.errors.imageFile && (
+          <p className="text-red-500 text-sm">
+            {formState.errors.imageFile.message}
+          </p>
+        )}
+      </div>
+
+      {/* Image preview with delete buttons */}
+      <div className="mt-4 flex flex-wrap gap-4">
+        {imagePreviews.map((src, idx) => (
+          <div
+            key={idx}
+            className="relative w-24 h-24 border rounded overflow-hidden"
+          >
+            <img
+              src={src}
+              alt={`Preview ${idx}`}
+              className="object-cover w-full h-full"
+            />
+            <button
+              type="button"
+              onClick={() => handleRemoveImage(idx)}
+              className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700"
+            >
+              &times;
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -399,6 +558,12 @@ const Step3 = () => {
 
 const Step4 = () => {
   const { watch } = useFormContext<PostFormData>();
+  const imageFiles = watch("imageFile");
+
+  // Create image URLs to preview
+  const imagePreviews = imageFiles
+    ? Array.from(imageFiles).map((file) => URL.createObjectURL(file))
+    : [];
   const data = watch();
 
   return (
@@ -443,12 +608,23 @@ const Step4 = () => {
           <Label>Amenities</Label>
           <p>{data.amenities?.join(", ") || "None"}</p>
         </div>
-        {data.imageUrl && (
-          <div>
-            <Label>Image URL</Label>
-            <p>{data.imageUrl}</p>
+        <div>
+          <Label>Images</Label>
+          <div className="grid grid-cols-3 gap-4 mt-2">
+            {imagePreviews.length > 0 ? (
+              imagePreviews.map((src, idx) => (
+                <img
+                  key={idx}
+                  src={src}
+                  alt={`Uploaded preview ${idx + 1}`}
+                  className="w-full h-40 object-cover rounded-md"
+                />
+              ))
+            ) : (
+              <p>No images uploaded.</p>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

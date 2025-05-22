@@ -38,7 +38,7 @@ export const ChatWindow = ({
           setError("Invalid chat room.");
           return;
         }
-
+        console.log(roomData);
         setChatRoomId(roomData._id);
         socket.emit("joinRoom", roomData._id);
 

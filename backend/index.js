@@ -7,6 +7,7 @@ const userRoutes = require("./routes/userRoutes"); // Importing the user routes
 const postRoutes = require("./routes/postRoutes");
 const chatRoomRoutes = require("./routes/chatRoomRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const cloudinaryRoutes = require("./routes/cloudinaryRoutes");
 
 const cors = require("cors");
 dotenv.config();
@@ -29,6 +30,7 @@ app.use(express.json());
 connectDB();
 
 app.use("/api/users", userRoutes);
+app.use("/api/cloudinary", cloudinaryRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/chatroom", chatRoomRoutes);
 app.use("/api/messages", messageRoutes);
@@ -38,12 +40,12 @@ io.on("connection", (socket) => {
   // Join room
   socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
-  console.log(`👥 User joined room: ${roomId}`);
+    console.log(`👥 User joined room: ${roomId}`);
   });
 
   // Listen for new messages
   socket.on("sendMessage", (data) => {
-      console.log("📨 Received message:", data);
+    console.log("📨 Received message:", data);
 
     const { roomId, message } = data;
     socket.to(roomId).emit("receiveMessage", message); // 👈 This excludes the sender

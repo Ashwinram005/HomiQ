@@ -1,7 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { Wifi, Snowflake, Car, Home, Tv, Refrigerator } from "lucide-react";
+import {
+  Wifi,
+  Snowflake,
+  Car,
+  Home,
+  Tv,
+  Refrigerator,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
 import {
@@ -15,6 +24,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
 
+type ImageCarouselProps = {
+  images: string[];
+};
+
 const amenitiesList = [
   { key: "wi-fi", label: "Wi-Fi", icon: <Wifi size={16} /> },
   { key: "ac", label: "AC", icon: <Snowflake size={16} /> },
@@ -27,6 +40,67 @@ const amenitiesList = [
     icon: <Refrigerator size={16} />,
   },
 ];
+
+export const ImageCarousel = ({ images }: ImageCarouselProps) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handlePrev = () => {
+    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+  };
+
+  const handleNext = () => {
+    if (currentIndex < images.length - 1) setCurrentIndex(currentIndex + 1);
+  };
+
+  return (
+    <div className="relative w-full h-64 rounded-xl overflow-hidden shadow-lg">
+      <AnimatePresence initial={false}>
+        <motion.img
+          key={images[currentIndex]}
+          src={images[currentIndex]}
+          alt={`Image ${currentIndex + 1}`}
+          className="w-full h-full object-contain"
+          initial={{ opacity: 0.5, x: 100 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -100 }}
+          transition={{ duration: 0.4 }}
+        />
+      </AnimatePresence>
+
+      {/* Prev Button */}
+      {currentIndex > 0 && (
+        <button
+          onClick={handlePrev}
+          className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
+        >
+          <ChevronLeft />
+        </button>
+      )}
+
+      {/* Next Button */}
+      {currentIndex < images.length - 1 && (
+        <button
+          onClick={handleNext}
+          className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
+        >
+          <ChevronRight />
+        </button>
+      )}
+
+      {/* Indicators */}
+      <div className="absolute bottom-2 w-full flex justify-center gap-1">
+        {images.map((_, idx) => (
+          <div
+            key={idx}
+            className={`w-2 h-2 rounded-full ${
+              idx === currentIndex ? "bg-white" : "bg-white/50"
+            }`}
+          ></div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const OtherPosts = () => {
   const navigate = useNavigate();
@@ -271,13 +345,6 @@ export const OtherPosts = () => {
                       index === filteredPosts.length - 1 ? lastPostRef : null
                     }
                   >
-                    {post.images[0] && (
-                      <img
-                        src={post.images[0]}
-                        alt="Room"
-                        className="w-full h-48 object-cover"
-                      />
-                    )}
                     <div className="p-4">
                       <h3 className="text-lg font-semibold text-gray-800 truncate">
                         {post.title}
@@ -321,18 +388,13 @@ export const OtherPosts = () => {
             className="bg-white max-w-2xl w-full p-6 rounded-xl relative overflow-y-auto max-h-[90vh]"
           >
             <button
-              className="absolute top-3 right-4 text-gray-400 hover:text-black text-2xl"
+              className="absolute top-3 right-2.5 text-black hover:text-gray-500 text-2xl z-10 hover:cursor-pointer"
               onClick={() => setSelectedPost(null)}
             >
               ×
             </button>
-            {selectedPost.images[0] && (
-              <img
-                src={selectedPost.images[0]}
-                className="w-full h-64 object-cover rounded-lg mb-4"
-                alt="Room"
-              />
-            )}
+            <ImageCarousel images={selectedPost?.images || []} />
+
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
               {selectedPost.title}
             </h2>
