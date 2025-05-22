@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   createRoute,
@@ -9,24 +9,21 @@ import {
 import { MessageCircle } from "lucide-react";
 
 import { isAuthenticated, logout } from "@/lib/auth";
+import { Home, PlusCircle, LayoutDashboard, LogOut, User } from "lucide-react";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Fetch user authentication and details
   useEffect(() => {
     const checkAuthentication = async () => {
       const auth = await isAuthenticated();
-      if (auth) {
-        setUser(auth.user);
-      } else {
-        navigate({ to: "/" });
-      }
+      if (auth) setUser(auth.user);
+      else navigate({ to: "/" });
     };
     checkAuthentication();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = async () => {
     await logout();
@@ -51,11 +48,11 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-gray-100 flex flex-col">
-      {/* Top Nav/Header */}
-      <header className="bg-white shadow-md px-6 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Welcome, {user?.name || "User"}!
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 text-gray-900 font-sans">
+      {/* Header */}
+      <header className="bg-white bg-opacity-90 backdrop-blur-md border-b border-gray-200 px-8 py-5 flex justify-between items-center shadow-md sticky top-0 z-30">
+        <h1 className="text-3xl font-extrabold text-indigo-700 tracking-wide select-none">
+          🏠 Welcome, {user?.name || "User"}
         </h1>
         <div className="flex items-center gap-4">
           <Button
@@ -94,75 +91,86 @@ export const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto px-6 py-8 max-w-7xl mx-auto w-full">
-        {/* Overview Stats */}
-        <section className="mb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Stats Card 1 - Number of Rooms Posted */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">Total Rooms Posted</h3>
-            <p className="text-4xl font-bold text-blue-600">
-              {user?.roomsPosted || 0}
-            </p>
-          </div>
-
-          {/* Stats Card 2 - Inquiries Received */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">Inquiries Received</h3>
-            <p className="text-4xl font-bold text-green-600">
-              {user?.inquiriesReceived || 0}
-            </p>
-          </div>
-
-          {/* Stats Card 3 - Active Listings */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">Active Listings</h3>
-            <p className="text-4xl font-bold text-purple-600">
-              {user?.activeListings || 0}
-            </p>
-          </div>
-        </section>
-
-        {/* Action Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <main className="max-w-7xl mx-auto py-14 px-6 sm:px-10 lg:px-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Card: Post a Room */}
           <div
-            className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
-            onClick={handlePostFeature}
+            onClick={() => goTo("/post")}
+            tabIndex={0}
+            role="button"
+            className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl cursor-pointer transition-transform transform hover:-translate-y-1 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+            aria-label="Post a Room"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") goTo("/post");
+            }}
           >
-            <h3 className="text-xl font-semibold mb-2">Post a Room</h3>
-            <p className="text-gray-500 mb-4">
+            <div className="flex items-center mb-5 text-indigo-600">
+              <PlusCircle size={26} className="mr-3" />
+              <h2 className="text-2xl font-bold text-gray-900">Post a Room</h2>
+            </div>
+            <p className="text-gray-600 mb-6 text-lg">
               Create a new room listing to rent or share.
             </p>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button
+              variant="secondary"
+              className="w-full text-indigo-700 hover:bg-indigo-100 border-indigo-300"
+            >
               Post Now
             </Button>
           </div>
 
+          {/* Card: My Posts */}
           <div
-            className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
-            onClick={handleMyPosts}
+            onClick={() => goTo("/myposts")}
+            tabIndex={0}
+            role="button"
+            className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl cursor-pointer transition-transform transform hover:-translate-y-1 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+            aria-label="My Posts"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") goTo("/myposts");
+            }}
           >
-            <h3 className="text-xl font-semibold mb-2">My Posts</h3>
-            <p className="text-gray-500 mb-4">
-              View and manage the rooms you've posted.
+            <div className="flex items-center mb-5 text-emerald-600">
+              <LayoutDashboard size={26} className="mr-3" />
+              <h2 className="text-2xl font-bold text-gray-900">My Posts</h2>
+            </div>
+            <p className="text-gray-600 mb-6 text-lg">
+              View and manage your listed rooms.
             </p>
-            <Button className="bg-gray-600  hover:cursor-pointer hover:bg-gray-700 text-white">
+            <Button
+              variant="secondary"
+              className="w-full text-emerald-700 hover:bg-emerald-100 border-emerald-300"
+            >
               View Posts
             </Button>
           </div>
 
+          {/* Card: Browse Rooms */}
           <div
-            className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
-            onClick={handleBrowseRooms}
+            onClick={() => goTo("/otherposts")}
+            tabIndex={0}
+            role="button"
+            className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl cursor-pointer transition-transform transform hover:-translate-y-1 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-purple-300"
+            aria-label="Browse Rooms"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") goTo("/otherposts");
+            }}
           >
-            <h3 className="text-xl font-semibold mb-2">Browse Rooms</h3>
-            <p className="text-gray-500 mb-4">
-              Explore available rooms to rent or share.
+            <div className="flex items-center mb-5 text-purple-600">
+              <Home size={26} className="mr-3" />
+              <h2 className="text-2xl font-bold text-gray-900">Browse Rooms</h2>
+            </div>
+            <p className="text-gray-600 mb-6 text-lg">
+              Explore available rooms posted by others.
             </p>
-            <Button className="bg-gray-600 hover:bg-gray-700 text-white">
+            <Button
+              variant="secondary"
+              className="w-full text-purple-700 hover:bg-purple-100 border-purple-300"
+            >
               Browse Now
             </Button>
           </div>
-        </section>
+        </div>
       </main>
     </div>
   );

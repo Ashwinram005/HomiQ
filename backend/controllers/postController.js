@@ -58,7 +58,7 @@ const getMyPosts = async (req, res) => {
 };
 
 // Helper function to build filter conditions
-const buildFilterConditions = (query, currentUserId) => {
+const buildFilterConditions = (query, currentUserId, isMyPosts) => {
   const {
     searchQuery = "",
     locationQuery = "",
@@ -76,7 +76,7 @@ const buildFilterConditions = (query, currentUserId) => {
 
   // console.log("Amenities", amenityFilters);
   const filterConditions = {
-    postedBy: { $ne: currentUserId },
+    postedBy: isMyPosts ? currentUserId : { $ne: currentUserId },
   };
 
   if (searchQuery) {
@@ -113,6 +113,37 @@ const buildFilterConditions = (query, currentUserId) => {
   return filterConditions;
 };
 
+const getMyPosts = async (req, res) => {
+  try {
+    const currentUserId = req.user.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+
+    const filterConditions = buildFilterConditions(
+      req.query,
+      currentUserId,
+      true
+    );
+
+    const posts = await Post.find(filterConditions)
+      .sort({ createdAt: -1 })
+      .populate("postedBy", "email")
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
+
+    const total = await Post.countDocuments(filterConditions);
+
+    res.status(200).json({
+      posts,
+      hasMore: page * limit < total,
+    });
+  } catch (error) {
+    console.error("Error fetching my posts:", error);
+    res.status(500).json({ message: "Failed to fetch your posts" });
+  }
+};
+
 // Main function to fetch posts
 const getOtherUsersPosts = async (req, res) => {
   try {
@@ -121,7 +152,11 @@ const getOtherUsersPosts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 6;
 
     // Get filter conditions using the helper function
-    const filterConditions = buildFilterConditions(req.query, currentUserId);
+    const filterConditions = buildFilterConditions(
+      req.query,
+      currentUserId,
+      false
+    );
 
     const posts = await Post.find(filterConditions)
       .populate("postedBy", "email")

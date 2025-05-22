@@ -8,6 +8,7 @@ const userRoutes = require("./routes/userRoutes");
 const postRoutes = require("./routes/postRoutes");
 const chatRoomRoutes = require("./routes/chatRoomRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const cloudinaryRoutes = require("./routes/cloudinaryRoutes");
 
 dotenv.config();
 connectDB();
@@ -25,6 +26,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/users", userRoutes);
+app.use("/api/cloudinary", cloudinaryRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/chatroom", chatRoomRoutes);
 app.use("/api/messages", messageRoutes);
