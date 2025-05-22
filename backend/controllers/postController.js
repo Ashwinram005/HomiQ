@@ -183,10 +183,41 @@ async function getRoomsByUser(req, res) {
   }
 }
 
+
+async function updatePost(req,res) {
+  const{postId}=req.params;
+  try {
+    const updatedPost=await Post.findByIdAndUpdate(postId,
+      {$set:req.body},
+      {new:true,runValidators:true}
+    );
+    if(!updatePost){
+      return res.status(404).json({
+        message:"Room not Found",
+        error:true,
+        success:false
+      })
+    }
+    res.status(200).json({
+      updatedPost,
+      error:false,
+      success:true
+    })
+  } catch (error) {
+    res.status(500).json({
+      message:error.message||error,
+      error:true,
+      success:false,
+    })
+  }
+  
+}
+
 module.exports = {
   createPost,
   getMyPosts,
   getOtherUsersPosts,
   getRoom,
   getRoomsByUser,
+  updatePost,
 };

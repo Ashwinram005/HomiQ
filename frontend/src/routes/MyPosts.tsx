@@ -203,6 +203,9 @@ export const MyPosts = () => {
                 <Button
                   variant="outline"
                   className="flex gap-2 hover:cursor-pointer justify-center w-full transition duration-300 ease-in-out transform hover:bg-indigo-600 hover:text-white hover:scale-105"
+                  onClick={() => {
+                    navigate({ to: `/edit-post/${post._id}` });
+                  }}
                 >
                   <PencilLine className="w-4 h-4" />
                   Edit
