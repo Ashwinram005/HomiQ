@@ -35,9 +35,6 @@ export function SinglePost() {
       const currentUserId = getUserIdFromToken(); // your existing util
       const otherUserId = post.postedBy;
       const roomId = post._id;
-      console.log("current", currentUserId);
-      console.log("other", otherUserId);
-      console.log("roomid:", roomId);
       const response = await axios.post(
         "http://localhost:5000/api/chatroom/create",
         {
