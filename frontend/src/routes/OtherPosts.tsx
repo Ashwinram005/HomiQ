@@ -377,7 +377,7 @@ export const OtherPosts = () => {
                         ₹{post.price}/month
                       </p>
                       <button
-                        onClick={() => setSelectedPost(post)}
+                        onClick={() => navigate({ to: `/room/${post._id}` })}
                         className="text-sm mt-2 text-indigo-700 hover:underline"
                       >
                         View Details
@@ -401,66 +401,6 @@ export const OtherPosts = () => {
           )}
         </div>
       </div>
-      {/* Selected Post Modal */}
-      {selectedPost && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white max-w-2xl w-full p-6 rounded-xl relative overflow-y-auto max-h-[90vh]"
-          >
-            <button
-              className="absolute top-3 right-2.5 text-black hover:text-gray-500 text-2xl z-10 hover:cursor-pointer"
-              onClick={() => setSelectedPost(null)}
-            >
-              ×
-            </button>
-            <ImageCarousel images={selectedPost?.images || []} />
-
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              {selectedPost.title}
-            </h2>
-            <p className="text-gray-600 mb-3">{selectedPost.description}</p>
-            <div className="space-y-1 text-sm text-gray-700">
-              <p>
-                <strong>Posted By :</strong> {selectedPost.postedBy.email}
-              </p>
-              <p>
-                <strong>Location:</strong> {selectedPost.location}
-              </p>
-              <p>
-                <strong>Price:</strong> ₹{selectedPost.price}
-              </p>
-              <p>
-                <strong>Available From:</strong>{" "}
-                {format(new Date(selectedPost.availableFrom), "dd MMM yyyy")}
-              </p>
-              <p>
-                <strong>Type:</strong> {selectedPost.type}
-              </p>
-              <p>
-                <strong>Occupancy:</strong> {selectedPost.occupancy}
-              </p>
-              <p>
-                <strong>Furnished:</strong>{" "}
-                {selectedPost.furnished ? "Yes" : "No"}
-              </p>
-              <p>
-                <strong>Amenities:</strong>{" "}
-                {selectedPost.amenities.join(", ") || "None"}
-              </p>
-              {selectedPost.postedBy?.email ? (
-                <Button onClick={handleChatClick}>Chat with Owner</Button>
-              ) : (
-                <p className="mt-4 text-red-600">
-                  Email not available for contact.
-                </p>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 };

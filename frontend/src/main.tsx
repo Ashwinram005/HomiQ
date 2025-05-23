@@ -27,6 +27,7 @@ import OtherPosts from "./routes/OtherPosts.tsx";
 import ChatRoute from "./routes/Chat.tsx";
 import EmptyChatRoute from "./routes/EmptyChat.tsx";
 import EditPostRoute from "./routes/EditPost.tsx";
+import SinglePostRoute from "./routes/SinglePost.tsx";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -62,6 +63,7 @@ const routeTree = rootRoute.addChildren([
   OtherPosts(rootRoute),
   EditPostRoute(rootRoute),
   ChatRoute(rootRoute),
+  SinglePostRoute(rootRoute),
 ]);
 
 const router = createRouter({
