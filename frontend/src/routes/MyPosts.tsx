@@ -6,6 +6,7 @@ import {
   useNavigate,
   type RootRoute,
 } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { isAuthenticated } from "@/lib/auth";
 import {
   MapPin,
@@ -21,6 +22,7 @@ import {
   Tv,
   Refrigerator,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Card, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +30,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useRef, useCallback, useState } from "react";
+
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogTrigger,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PAGE_LIMIT = 4;
 
@@ -46,7 +60,14 @@ const amenitiesList = [
   },
 ];
 export const MyPosts = () => {
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const handleDelete = async (post) => {
+    setLoading(true);
+    await handleDeletePostAndImages(post._id, post.images);
+    setLoading(false);
+  };
   const [filters, setFilters] = useState({
     searchQuery: "",
     locationQuery: "",
@@ -104,6 +125,70 @@ export const MyPosts = () => {
     queryFn: fetchPosts,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
+
+  //delete
+  function getPublicIdFromUrl(url: string): string | null {
+    try {
+      const parts = url.split("/");
+      const filename = parts.pop() || "";
+      const folder = parts.pop() || "";
+      return `${folder}/${filename.split(".")[0]}`;
+    } catch {
+      return null;
+    }
+  }
+  async function handleDeletePostAndImages(postId: string, images: string[]) {
+    const token = localStorage.getItem("token") || "";
+    try {
+      toast.loading("Deleting images and post...", { id: "delete" });
+
+      for (const imageUrl of images) {
+        const publicId = getPublicIdFromUrl(imageUrl);
+        if (publicId) {
+          const res = await fetch(
+            "http://localhost:5000/api/cloudinary/delete",
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ publicId }),
+            }
+          );
+
+          if (!res.ok)
+            throw new Error("Failed to delete image from Cloudinary");
+        }
+      }
+
+      const res = await fetch(`http://localhost:5000/api/posts/${postId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete post");
+
+      // ✅ Update cached posts
+      queryClient.setQueryData(["myPosts", filters], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            posts: page.posts.filter((post: any) => post._id !== postId),
+          })),
+        };
+      });
+
+      toast.success("Post and images deleted successfully", { id: "delete" });
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete post or images", { id: "delete" });
+    }
+  }
 
   // Flatten pages of posts into a single array
   const posts = data?.pages.flatMap((page) => page.posts) || [];
@@ -424,13 +509,37 @@ export const MyPosts = () => {
                         <PencilLine className="w-4 h-4" />
                         Edit
                       </Button>
-                      <Button
-                        variant="destructive"
-                        className="flex gap-2 justify-center hover:cursor-pointer w-full transition duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            className="flex gap-2 justify-center hover:cursor-pointer w-full transition duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action will permanently delete this post and
+                              all associated images from Cloudinary.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel disabled={loading}>
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              disabled={loading}
+                              onClick={() => handleDelete(post)}
+                            >
+                              {loading ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </CardFooter>
                   </Card>
                 );
