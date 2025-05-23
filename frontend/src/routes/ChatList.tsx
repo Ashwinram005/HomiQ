@@ -107,7 +107,7 @@ export function ChatList() {
                 : "text-gray-500 dark:text-gray-400 hover:text-blue-500"
             }`}
           >
-            {tab === "mine" ? "Chat With Tenants" : "Chat With Oswners"}
+            {tab === "mine" ? "Chat With Tenants" : "Chat With Owners"}
             {activeTab === tab && (
               <motion.div
                 layoutId="underline"
