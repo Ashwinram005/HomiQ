@@ -71,12 +71,12 @@ export const MultiStepPostForm = () => {
 
       const { timestamp, signature, cloudName, apiKey } =
         await signatureResponse.json();
-      console.log(cloudName);
       const formData = new FormData();
       formData.append("file", file);
       formData.append("api_key", apiKey);
       formData.append("timestamp", timestamp);
       formData.append("signature", signature);
+      formData.append("folder", "HomiQ");
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
@@ -97,7 +97,7 @@ export const MultiStepPostForm = () => {
 
   const createPost = async (data: PostFormData) => {
     const token = localStorage.getItem("token"); // or sessionStorage or from context
-    console.log(token);
+
     const response = await fetch("http://localhost:5000/api/posts", {
       method: "POST",
       headers: {
@@ -161,7 +161,7 @@ export const MultiStepPostForm = () => {
         const url = await uploadImageToCloudinary(files[i]);
         imageUrls.push(url);
       }
-      console.log("Image URLs", imageUrls);
+
       // Prepare post payload with image URLs instead of FileList
       const postPayload = {
         ...data,
