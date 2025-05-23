@@ -1,6 +1,6 @@
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -359,15 +359,59 @@ const Step1 = () => {
 };
 
 // Step 2
+
 const Step2 = () => {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const { register, setValue, watch, formState } =
     useFormContext<PostFormData>();
+
+  // Debounced fetch using useCallback
+  const fetchPlaces = useCallback(async (search) => {
+    if (!search) {
+      setSuggestions([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          search
+        )}&format=json&addressdetails=1&limit=10`
+      );
+      const data = await res.json();
+      setSuggestions(data);
+    } catch (err) {
+      console.error("Error fetching places:", err);
+      setSuggestions([]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    // debounce with cleanup
+    const handler = setTimeout(() => {
+      fetchPlaces(query);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [query, fetchPlaces]);
+
+  function handleSelect(place) {
+    setValue("location", place.display_name, { shouldValidate: true });
+    setQuery(place.display_name);
+    setSuggestions([]);
+  }
+
   return (
-    <div>
+    <div className="relative max-w-md">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">
         Property Details
       </h3>
       <div className="space-y-4">
+        {/* Price input */}
         <div>
           <Label>Price (₹)</Label>
           <Input type="number" {...register("price")} />
@@ -375,13 +419,42 @@ const Step2 = () => {
             {formState.errors.price?.message}
           </p>
         </div>
-        <div>
+
+        {/* Location input + dropdown */}
+        <div className="relative">
           <Label>Location</Label>
-          <Input {...register("location")} />
+          <Input
+            {...register("location")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+            className="z-20 relative"
+            placeholder="Search for city, school, popular place..."
+          />
+          {loading && (
+            <p className="absolute right-3 top-9 text-sm text-gray-500">
+              Loading...
+            </p>
+          )}
+          {suggestions.length > 0 && (
+            <ul className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+              {suggestions.map((place) => (
+                <li
+                  key={place.place_id}
+                  onClick={() => handleSelect(place)}
+                  className="cursor-pointer px-3 py-2 hover:bg-gray-200"
+                >
+                  {place.display_name}
+                </li>
+              ))}
+            </ul>
+          )}
           <p className="text-red-500 text-sm">
             {formState.errors.location?.message}
           </p>
         </div>
+
+        {/* Type */}
         <div>
           <Label>Type</Label>
           <Select
@@ -403,6 +476,8 @@ const Step2 = () => {
             {formState.errors.type?.message}
           </p>
         </div>
+
+        {/* Occupancy */}
         <div>
           <Label>Occupancy</Label>
           <Select
@@ -421,9 +496,11 @@ const Step2 = () => {
             </SelectContent>
           </Select>
           <p className="text-red-500 text-sm">
-            {formState.errors.type?.message}
+            {formState.errors.occupancy?.message}
           </p>
         </div>
+
+        {/* Furnished checkbox */}
         <div className="flex items-center space-x-2">
           <Checkbox
             id="furnished"
@@ -432,13 +509,15 @@ const Step2 = () => {
           />
           <Label htmlFor="furnished">Furnished</Label>
         </div>
+
+        {/* Available From */}
         <div>
           <Label>Available From</Label>
           <Input
             type="date"
             min={new Date().toISOString().split("T")[0]}
             {...register("availableFrom")}
-          />{" "}
+          />
           <p className="text-red-500 text-sm">
             {formState.errors.availableFrom?.message}
           </p>
