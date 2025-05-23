@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import PostCard from "./PostCard";
 import { format } from "date-fns";
 import {
   Wifi,
@@ -198,37 +199,6 @@ export const OtherPosts = () => {
     );
   }
 
-  const handleChatClick = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const currentUserId = getUserIdFromToken(); // your existing util
-      const otherUserId = selectedPost.postedBy._id;
-      const roomId = selectedPost._id;
-      console.log("current", currentUserId);
-      console.log("other", otherUserId);
-      console.log("roomid:", roomId);
-      const response = await axios.post(
-        "http://localhost:5000/api/chatroom/create",
-        {
-          userId: currentUserId,
-          otherUserId,
-          roomId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const chatId = response.data._id; // or response.data.chatId based on your backend
-      navigate({ to: `/chat/${chatId}` });
-    } catch (error) {
-      console.error("Failed to start chat:", error);
-      alert("Could not start chat. Please try again.");
-    }
-  };
-
   return (
     <div className="bg-gradient-to-tr from-sky-50 to-indigo-100 min-h-screen p-6 lg:p-8">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-4 gap-8">
@@ -350,40 +320,13 @@ export const OtherPosts = () => {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <AnimatePresence>
                 {filteredPosts.map((post, index) => (
-                  <motion.div
+                  <PostCard
                     key={post._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    whileHover={{ scale: 1.03 }}
-                    className="bg-white rounded-2xl shadow-md border hover:shadow-lg transition-all overflow-hidden"
-                    ref={
+                    post={post}
+                    lastPostRef={
                       index === filteredPosts.length - 1 ? lastPostRef : null
                     }
-                  >
-                    {post.images[0] && (
-                      <img
-                        src={post.images[0]}
-                        alt="Room"
-                        className="w-full h-48 object-cover"
-                      />
-                    )}
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-800 truncate">
-                        {post.title}
-                      </h3>
-                      <p className="text-sm text-gray-500">{post.location}</p>
-                      <p className="text-indigo-600 font-semibold mt-1">
-                        ₹{post.price}/month
-                      </p>
-                      <button
-                        onClick={() => navigate({ to: `/room/${post._id}` })}
-                        className="text-sm mt-2 text-indigo-700 hover:underline"
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </motion.div>
+                  />
                 ))}
               </AnimatePresence>
             </div>
