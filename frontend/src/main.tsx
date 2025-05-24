@@ -17,6 +17,7 @@ import * as TanstackQuery from "./integrations/tanstack-query/root-provider";
 
 import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
+import "leaflet/dist/leaflet.css";
 
 import App from "./App.tsx";
 import Wildcard from "./routes/Wildcard.tsx";

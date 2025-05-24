@@ -1,5 +1,6 @@
 import { AuthForm } from "./components/AuthForm";
 import { Toaster } from "react-hot-toast";
+
 function App() {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
