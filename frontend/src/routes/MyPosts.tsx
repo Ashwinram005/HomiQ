@@ -6,6 +6,8 @@ import {
   useNavigate,
   type RootRoute,
 } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react"; // Spinner icon
+
 import toast from "react-hot-toast";
 import { isAuthenticated } from "@/lib/auth";
 import {
@@ -23,7 +25,7 @@ import {
   Refrigerator,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,11 +65,21 @@ export const MyPosts = () => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [showDeletingModal, setShowDeletingModal] = useState(false);
   const handleDelete = async (post) => {
-    setLoading(true);
-    await handleDeletePostAndImages(post._id, post.images);
-    setLoading(false);
+    try {
+      setShowDeletingModal(true);
+      await handleDeletePostAndImages(post._id, post.images);
+
+      // Optionally show success toast or refresh post list here
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      // Optionally show error toast here
+    } finally {
+      setShowDeletingModal(false);
+    }
   };
+
   const [filters, setFilters] = useState({
     searchQuery: "",
     locationQuery: "",
@@ -509,6 +521,7 @@ export const MyPosts = () => {
                         <PencilLine className="w-4 h-4" />
                         Edit
                       </Button>
+
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -535,7 +548,14 @@ export const MyPosts = () => {
                               disabled={loading}
                               onClick={() => handleDelete(post)}
                             >
-                              {loading ? "Deleting..." : "Delete"}
+                              {loading ? (
+                                <span className="flex items-center gap-2">
+                                  <Loader2 className="animate-spin w-4 h-4" />
+                                  Deleting your post...
+                                </span>
+                              ) : (
+                                "Delete"
+                              )}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -574,6 +594,28 @@ export const MyPosts = () => {
                 Loading more posts...
               </p>
             </div>
+          )}
+
+          {showDeletingModal && (
+            <motion.div
+              key="delete-modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                className="bg-white rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg"
+              >
+                <Loader2 size={48} className="animate-spin text-red-600" />
+                <p className="text-lg font-semibold text-gray-700 text-center">
+                  Deleting your post, please wait...
+                </p>
+              </motion.div>
+            </motion.div>
           )}
         </div>
       </div>

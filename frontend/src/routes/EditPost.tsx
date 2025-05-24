@@ -6,15 +6,22 @@ import {
   useParams,
   type RootRoute,
 } from "@tanstack/react-router";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import { motion } from "framer-motion";
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { isAuthenticated } from "@/lib/auth";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -217,21 +224,24 @@ export function EditPost() {
     }
   };
 
+  const [isUpdating, setIsUpdating] = useState(false);
   const onSubmit = async (data: FormData) => {
     try {
-      toast.loading("Updating post...", { id: "updatePost" });
+      setIsUpdating(true); // show modal
 
-      // convert price to number before sending, if backend expects number
       const payload = { ...data, price: Number(data.price) };
-
       await axios.put(`http://localhost:5000/api/posts/${postId}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      toast.success("Post updated!", { id: "updatePost" });
+      // Delay for 1 second so user can see the modal spinner
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setIsUpdating(false);
       navigate({ to: "/myposts" });
     } catch (err) {
-      toast.error("Failed to update post", { id: "updatePost" });
+      setIsUpdating(false);
+      // show error toast or modal here if you want
     }
   };
 
@@ -410,6 +420,22 @@ export function EditPost() {
           Update Post
         </Button>
       </motion.form>
+      {isUpdating && (
+        <AlertDialog open={isUpdating} onOpenChange={setIsUpdating}>
+          <AlertDialogContent className="w-96 max-w-full p-8 rounded-2xl bg-white shadow-xl flex flex-col items-center justify-center gap-6">
+            {/* Spinner */}
+            <div className="h-14 w-14 rounded-full border-4 border-indigo-300 border-t-indigo-600 animate-spin" />
+
+            <AlertDialogTitle className="text-xl font-semibold text-gray-800">
+              Updating your post
+            </AlertDialogTitle>
+
+            <AlertDialogDescription className="text-base text-gray-500 text-center">
+              Please wait a moment while we save your changes.
+            </AlertDialogDescription>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </>
   );
 }
