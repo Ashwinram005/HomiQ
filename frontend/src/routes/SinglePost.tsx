@@ -180,13 +180,6 @@ export function SinglePost() {
   if (isError || !post)
     return <div className="p-6 text-center text-red-500">Post not found</div>;
 
-  if (geoError)
-    return (
-      <div className="text-center p-4 text-red-600">
-        Geolocation error: {geoError}
-      </div>
-    );
-
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16">
       {/* Back button */}
