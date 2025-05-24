@@ -12,8 +12,8 @@ export function ChatList() {
 
   const email = localStorage.getItem("email") || "";
 
-  // Get chatId param from URL (selected chat)
-  const { chatId } = useParams({ from: "/chat/$chatId" });
+  // Get chatId param from URL — no `{ from: ... }` here!
+  const { chatId } = useParams({});
 
   // Local state to track selected chat, sync with chatId param
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -21,8 +21,9 @@ export function ChatList() {
   // Sync URL chatId param into local selectedChatId state on change
   useEffect(() => {
     if (chatId) {
-      console.log("[useEffect] URL chatId param:", chatId);
       setSelectedChatId(chatId);
+    } else {
+      setSelectedChatId(null);
     }
   }, [chatId]);
 
@@ -75,10 +76,6 @@ export function ChatList() {
 
   const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
 
-  // Uncomment this to test full chats without filtering:
-  // const filteredChats = chats || [];
-
-  // Original filtering based on activeTab
   const filteredChats =
     chats?.filter((chat) => {
       const roomId = chat.roomId?.toString() || "";
@@ -86,7 +83,6 @@ export function ChatList() {
       return activeTab === "mine" ? isMine : !isMine;
     }) || [];
 
-  // Debug logs for chat ids and filtering
   useEffect(() => {
     console.log("All chats IDs:", chats?.map((c) => c._id.toString()) || []);
     console.log(
@@ -160,9 +156,6 @@ export function ChatList() {
               );
 
               const isSelected = chat._id === selectedChatId;
-              console.log(
-                `Rendering chat id: ${chat._id} selectedChatId: ${selectedChatId} isSelected: ${isSelected}`
-              );
 
               return (
                 <motion.div
