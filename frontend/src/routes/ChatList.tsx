@@ -1,17 +1,31 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function ChatList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"mine" | "others">("mine");
+
+  const [activeTab, setActiveTab] = useState<"mine" | "others">("others");
 
   const email = localStorage.getItem("email") || "";
-  console.log("hi");
-  // ✅ Correct user fetch query:
+
+  // Get chatId param from URL (selected chat)
+  const { chatId } = useParams({ from: "/chat/$chatId" });
+
+  // Local state to track selected chat, sync with chatId param
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+
+  // Sync URL chatId param into local selectedChatId state on change
+  useEffect(() => {
+    if (chatId) {
+      console.log("[useEffect] URL chatId param:", chatId);
+      setSelectedChatId(chatId);
+    }
+  }, [chatId]);
+
   const {
     data: currentUser,
     isLoading: userLoading,
@@ -24,18 +38,15 @@ export function ChatList() {
         `http://localhost:5000/api/users/by-email?email=${email}`
       );
       const result = await res.json();
-      console.log("User API response:", result);
       if (!result.success) throw new Error("Failed to fetch user data");
       if (!result.data?._id) throw new Error("User ID missing in response");
-      return result.data; // <--- return the actual user object inside 'data'
+      return result.data;
     },
     enabled: !!email,
   });
 
   const userId = currentUser?._id;
-  console.log("userId:", userId);
 
-  // ✅ Fetch chats for this user
   const { data: chats, isLoading: chatsLoading } = useQuery({
     queryKey: ["chats", userId],
     queryFn: async () => {
@@ -50,7 +61,6 @@ export function ChatList() {
     enabled: !!userId,
   });
 
-  // ✅ Fetch rooms created by this user
   const { data: myRooms } = useQuery({
     queryKey: ["myRooms", userId],
     queryFn: async () => {
@@ -62,10 +72,13 @@ export function ChatList() {
     },
     enabled: !!userId,
   });
-  console.log("Rooms", myRooms);
-  console.log("chat", chats);
+
   const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
 
+  // Uncomment this to test full chats without filtering:
+  // const filteredChats = chats || [];
+
+  // Original filtering based on activeTab
   const filteredChats =
     chats?.filter((chat) => {
       const roomId = chat.roomId?.toString() || "";
@@ -73,11 +86,20 @@ export function ChatList() {
       return activeTab === "mine" ? isMine : !isMine;
     }) || [];
 
+  // Debug logs for chat ids and filtering
+  useEffect(() => {
+    console.log("All chats IDs:", chats?.map((c) => c._id.toString()) || []);
+    console.log(
+      "Filtered chats IDs:",
+      filteredChats.map((c) => c._id.toString())
+    );
+    console.log("Selected Chat ID:", selectedChatId);
+  }, [chats, filteredChats, selectedChatId]);
+
+  // Socket listener for new messages - invalidate chats on receive
   useEffect(() => {
     if (!userId) return;
     if (!socket.connected) socket.connect();
-
-    // chats?.forEach((chat) => socket.emit("joinRoom", chat._id));
 
     const onNewMessage = () => {
       queryClient.invalidateQueries(["chats", userId]);
@@ -88,10 +110,12 @@ export function ChatList() {
     return () => {
       socket.off("receiveMessage", onNewMessage);
     };
-  }, [userId, chats, queryClient]);
+  }, [userId, queryClient]);
 
-  if (userLoading) return <div>Loading user info...</div>;
-  if (userError) return <div>Error loading user info.</div>;
+  if (userLoading)
+    return <div className="p-4 text-gray-500">Loading user info...</div>;
+  if (userError)
+    return <div className="p-4 text-red-500">Error loading user info.</div>;
 
   return (
     <div className="w-80 h-[90vh] bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
@@ -101,7 +125,7 @@ export function ChatList() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab as "mine" | "others")}
-            className={`relative flex-1 py-3 text-sm font-medium transition-colors duration-300 ${
+            className={`relative flex-1 py-3 text-sm font-semibold uppercase tracking-wide transition-colors duration-300 ${
               activeTab === tab
                 ? "text-blue-600"
                 : "text-gray-500 dark:text-gray-400 hover:text-blue-500"
@@ -111,7 +135,7 @@ export function ChatList() {
             {activeTab === tab && (
               <motion.div
                 layoutId="underline"
-                className="absolute bottom-0 left-3 right-3 h-[3px] bg-blue-600 rounded-full"
+                className="absolute bottom-0 left-4 right-4 h-[3px] bg-blue-600 rounded-full"
               />
             )}
           </button>
@@ -131,11 +155,15 @@ export function ChatList() {
         ) : (
           <AnimatePresence mode="popLayout">
             {filteredChats.map((chat) => {
-              console.log("hi", chat);
-
               const otherUser = chat.participants.find(
                 (m) => m._id?.toString() !== userId
               );
+
+              const isSelected = chat._id === selectedChatId;
+              console.log(
+                `Rendering chat id: ${chat._id} selectedChatId: ${selectedChatId} isSelected: ${isSelected}`
+              );
+
               return (
                 <motion.div
                   key={chat._id}
@@ -144,20 +172,25 @@ export function ChatList() {
                   exit={{ opacity: 0 }}
                   layout
                   onClick={() => {
+                    setSelectedChatId(chat._id);
                     navigate({ to: `/chat/${chat._id}` });
                   }}
-                  className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-700 transition-all duration-200 rounded-xl shadow-md border border-gray-100 dark:border-gray-600 cursor-pointer"
+                  className={`flex items-center gap-4 p-4 rounded-xl shadow-sm border cursor-pointer transition-all duration-200 ${
+                    isSelected
+                      ? "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-700"
+                      : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-700"
+                  }`}
                 >
                   <img
                     src="/user.png"
                     alt="User Avatar"
-                    className="w-12 h-12 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm"
+                    className="w-12 h-12 rounded-full border border-gray-300 dark:border-gray-600 object-cover"
                   />
                   <div className="flex flex-col overflow-hidden">
-                    <p className="font-semibold text-gray-900 dark:text-white truncate max-w-[200px]">
+                    <p className="font-semibold text-gray-900 dark:text-white truncate max-w-[180px]">
                       {otherUser?.email || "Unknown User"}
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[200px]">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[180px]">
                       {chat.latestMessage?.content || "No messages yet"}
                     </p>
                   </div>
