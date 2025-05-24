@@ -1,16 +1,30 @@
-// ChatList.tsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function ChatList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"mine" | "others">("mine");
+
+  const [activeTab, setActiveTab] = useState<"mine" | "others">("others");
 
   const email = localStorage.getItem("email") || "";
+
+  // Get chatId param from URL (selected chat)
+  const { chatId } = useParams({ from: "/chat/$chatId" });
+
+  // Local state to track selected chat, sync with chatId param
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+
+  // Sync URL chatId param into local selectedChatId state on change
+  useEffect(() => {
+    if (chatId) {
+      console.log("[useEffect] URL chatId param:", chatId);
+      setSelectedChatId(chatId);
+    }
+  }, [chatId]);
 
   const {
     data: currentUser,
@@ -61,6 +75,10 @@ export function ChatList() {
 
   const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
 
+  // Uncomment this to test full chats without filtering:
+  // const filteredChats = chats || [];
+
+  // Original filtering based on activeTab
   const filteredChats =
     chats?.filter((chat) => {
       const roomId = chat.roomId?.toString() || "";
@@ -68,6 +86,17 @@ export function ChatList() {
       return activeTab === "mine" ? isMine : !isMine;
     }) || [];
 
+  // Debug logs for chat ids and filtering
+  useEffect(() => {
+    console.log("All chats IDs:", chats?.map((c) => c._id.toString()) || []);
+    console.log(
+      "Filtered chats IDs:",
+      filteredChats.map((c) => c._id.toString())
+    );
+    console.log("Selected Chat ID:", selectedChatId);
+  }, [chats, filteredChats, selectedChatId]);
+
+  // Socket listener for new messages - invalidate chats on receive
   useEffect(() => {
     if (!userId) return;
     if (!socket.connected) socket.connect();
@@ -81,7 +110,7 @@ export function ChatList() {
     return () => {
       socket.off("receiveMessage", onNewMessage);
     };
-  }, [userId, chats, queryClient]);
+  }, [userId, queryClient]);
 
   if (userLoading)
     return <div className="p-4 text-gray-500">Loading user info...</div>;
@@ -129,6 +158,12 @@ export function ChatList() {
               const otherUser = chat.participants.find(
                 (m) => m._id?.toString() !== userId
               );
+
+              const isSelected = chat._id === selectedChatId;
+              console.log(
+                `Rendering chat id: ${chat._id} selectedChatId: ${selectedChatId} isSelected: ${isSelected}`
+              );
+
               return (
                 <motion.div
                   key={chat._id}
@@ -137,9 +172,14 @@ export function ChatList() {
                   exit={{ opacity: 0 }}
                   layout
                   onClick={() => {
+                    setSelectedChatId(chat._id);
                     navigate({ to: `/chat/${chat._id}` });
                   }}
-                  className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-700 transition-all duration-200 rounded-xl shadow-sm border border-gray-100 dark:border-gray-600 cursor-pointer"
+                  className={`flex items-center gap-4 p-4 rounded-xl shadow-sm border cursor-pointer transition-all duration-200 ${
+                    isSelected
+                      ? "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-700"
+                      : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-700"
+                  }`}
                 >
                   <img
                     src="/user.png"
