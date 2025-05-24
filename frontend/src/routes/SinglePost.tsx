@@ -20,6 +20,8 @@ import "leaflet/dist/leaflet.css";
 import { isAuthenticated } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
+("");
 
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -51,6 +53,37 @@ function getDistanceFromLatLonInKm(
 export function SinglePost() {
   const { id } = useParams({ from: "/room/$id" });
   const navigate = useNavigate();
+
+  const handleChatClick = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const currentUserId = getUserIdFromToken(); // your existing util
+      const otherUserId = post.postedBy;
+      const roomId = post._id;
+      console.log("current", currentUserId);
+      console.log("other", otherUserId);
+      console.log("roomid:", roomId);
+      const response = await axios.post(
+        "http://localhost:5000/api/chatroom/create",
+        {
+          userId: currentUserId,
+          otherUserId,
+          roomId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const chatId = response.data._id; // or response.data.chatId based on your backend
+      navigate({ to: `/chat/${chatId}` });
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      alert("Could not start chat. Please try again.");
+    }
+  };
 
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -312,36 +345,12 @@ export function SinglePost() {
 
           {/* Contact Owner Button */}
           <button
-            onClick={() => setShowContact((prev) => !prev)}
+            onClick={handleChatClick}
             className="w-max px-6 py-3 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            aria-expanded={showContact}
             aria-controls="contact-owner"
           >
-            {showContact ? "Hide" : "Contact"} Owner
+            Contact Owner
           </button>
-
-          <AnimatePresence>
-            {showContact && (
-              <motion.div
-                id="contact-owner"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden bg-gray-50 p-5 rounded-md border border-gray-300 text-gray-800"
-              >
-                <p>
-                  <strong>Owner Email:</strong>{" "}
-                  <a
-                    href={`mailto:${post.email}`}
-                    className="text-blue-600 underline hover:text-blue-800"
-                  >
-                    {post.email}
-                  </a>
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Map */}
           {postCoords ? (
