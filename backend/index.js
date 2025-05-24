@@ -36,16 +36,24 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", (chatId) => {
     socket.join(chatId);
     console.log("joinRoom", chatId);
-    socket.emit("joinRoom", { chatId });
-    //  console.log(`User ${socket.id} joined chat room ${chatId}`);
+
+    // Notify everyone in the room (except the sender) to refresh chat list
+    socket.to(chatId).emit("roomUpdated", { chatId });
+
+    // Optionally: also send it back to the one who joined
+    socket.emit("roomUpdated", { chatId });
   });
 
   socket.on("sendMessage", (data) => {
-    console.log("send message", data.chatId);
-    const { chatId, message } = data;
-    // console.log("📩 Broadcasting message to:", chatId);
+    const { chatId, message, senderEmail, receiverEmail } = data;
+
+    // Send message to current chat room
     io.to(chatId).emit("receiveMessage", message);
+
+    // Broadcast ChatList update to sender & receiver (not chat-specific)
+    io.emit("chatListUpdated", { chatId, senderEmail, receiverEmail });
   });
+
   socket.on("leaveRoom", (chatId) => {
     console.log(`User ${socket.id} left chat room ${chatId}`);
     socket.leave(chatId);

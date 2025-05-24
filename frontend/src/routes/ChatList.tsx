@@ -1,31 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useParams, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function ChatList() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"mine" | "others">("others");
 
   const email = localStorage.getItem("email") || "";
 
-  // Get chatId param from URL — no `{ from: ... }` here!
-  const { chatId } = useParams({});
+  const { chatId: urlChatId } = useParams({});
 
-  // Local state to track selected chat, sync with chatId param
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
-  // Sync URL chatId param into local selectedChatId state on change
   useEffect(() => {
-    if (chatId) {
-      setSelectedChatId(chatId);
+    if (urlChatId) {
+      setSelectedChatId(urlChatId);
     } else {
       setSelectedChatId(null);
     }
-  }, [chatId]);
+  }, [urlChatId]);
 
   const {
     data: currentUser,
@@ -36,7 +32,9 @@ export function ChatList() {
     queryFn: async () => {
       if (!email) throw new Error("No email in localStorage");
       const res = await fetch(
-        `http://localhost:5000/api/users/by-email?email=${email}`
+        `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
+          email
+        )}`
       );
       const result = await res.json();
       if (!result.success) throw new Error("Failed to fetch user data");
@@ -48,9 +46,14 @@ export function ChatList() {
 
   const userId = currentUser?._id;
 
-  const { data: chats, isLoading: chatsLoading } = useQuery({
+  const {
+    data: chats,
+    isLoading: chatsLoading,
+    error: chatsError,
+  } = useQuery({
     queryKey: ["chats", userId],
     queryFn: async () => {
+      if (!userId) return [];
       const res = await fetch(
         `http://localhost:5000/api/chatroom/user/${userId}`
       );
@@ -65,6 +68,7 @@ export function ChatList() {
   const { data: myRooms } = useQuery({
     queryKey: ["myRooms", userId],
     queryFn: async () => {
+      if (!userId) return [];
       const res = await fetch(`http://localhost:5000/api/posts/user/${userId}`);
       const data = await res.json();
       if (!data.success)
@@ -84,114 +88,109 @@ export function ChatList() {
     }) || [];
 
   useEffect(() => {
-    console.log("All chats IDs:", chats?.map((c) => c._id.toString()) || []);
-    console.log(
-      "Filtered chats IDs:",
-      filteredChats.map((c) => c._id.toString())
-    );
-    console.log("Selected Chat ID:", selectedChatId);
-  }, [chats, filteredChats, selectedChatId]);
-
-  // Socket listener for new messages - invalidate chats on receive
-  useEffect(() => {
     if (!userId) return;
     if (!socket.connected) socket.connect();
 
-    const onNewMessage = () => {
+    const handleInvalidate = () => {
       queryClient.invalidateQueries(["chats", userId]);
     };
 
-    socket.on("receiveMessage", onNewMessage);
+    const handleRoomUpdated = (payload: { chatId: string }) => {
+      console.log("Room updated:", payload.chatId);
+      queryClient.invalidateQueries(["chats", userId]);
+    };
+
+    socket.on("receiveMessage", handleInvalidate);
+    socket.on("roomUpdated", handleRoomUpdated);
 
     return () => {
-      socket.off("receiveMessage", onNewMessage);
+      socket.off("receiveMessage", handleInvalidate);
+      socket.off("roomUpdated", handleRoomUpdated);
     };
   }, [userId, queryClient]);
 
-  if (userLoading)
-    return <div className="p-4 text-gray-500">Loading user info...</div>;
-  if (userError)
-    return <div className="p-4 text-red-500">Error loading user info.</div>;
-
   return (
-    <div className="w-80 h-[90vh] bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
-      {/* Tabs */}
-      <div className="flex bg-white/70 dark:bg-gray-800/70 border-b border-gray-200 dark:border-gray-700">
-        {["mine", "others"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab as "mine" | "others")}
-            className={`relative flex-1 py-3 text-sm font-semibold uppercase tracking-wide transition-colors duration-300 ${
-              activeTab === tab
-                ? "text-blue-600"
-                : "text-gray-500 dark:text-gray-400 hover:text-blue-500"
-            }`}
-          >
-            {tab === "mine" ? "Chat With Tenants" : "Chat With Owners"}
-            {activeTab === tab && (
-              <motion.div
-                layoutId="underline"
-                className="absolute bottom-0 left-4 right-4 h-[3px] bg-blue-600 rounded-full"
-              />
-            )}
-          </button>
-        ))}
+    <div className="w-80 border-r border-gray-300 dark:border-gray-700 flex flex-col">
+      <div className="flex border-b border-gray-300 dark:border-gray-700">
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${
+            activeTab === "mine"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 dark:text-gray-400"
+          }`}
+          onClick={() => setActiveTab("mine")}
+        >
+          My Room Chats
+        </button>
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${
+            activeTab === "others"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 dark:text-gray-400"
+          }`}
+          onClick={() => setActiveTab("others")}
+        >
+          Other Room Chats
+        </button>
       </div>
 
-      {/* Chat List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-blue-200 dark:scrollbar-thumb-blue-500 scrollbar-track-transparent">
-        {chatsLoading ? (
-          <div className="text-gray-500 dark:text-gray-400 text-center py-12 animate-pulse">
-            Loading chats...
-          </div>
-        ) : filteredChats.length === 0 ? (
-          <div className="text-gray-400 dark:text-gray-500 text-center py-12 italic">
-            No chats found.
-          </div>
-        ) : (
-          <AnimatePresence mode="popLayout">
-            {filteredChats.map((chat) => {
-              const otherUser = chat.participants.find(
-                (m) => m._id?.toString() !== userId
-              );
+      <div className="flex-1 overflow-y-auto">
+        <AnimatePresence>
+          {filteredChats.length === 0 && (
+            <motion.div
+              key="no-chats"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="p-4 text-gray-500 text-center"
+            >
+              No chats in this category.
+            </motion.div>
+          )}
 
-              const isSelected = chat._id === selectedChatId;
+          {filteredChats.map((chat) => {
+            const isSelected = selectedChatId === chat._id.toString();
+            const otherParticipant = chat.participants.find(
+              (p: any) => p.email !== email
+            );
+            const lastMessage = chat.latestMessage || {};
 
-              return (
-                <motion.div
-                  key={chat._id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  layout
-                  onClick={() => {
-                    setSelectedChatId(chat._id);
-                    navigate({ to: `/chat/${chat._id}` });
-                  }}
-                  className={`flex items-center gap-4 p-4 rounded-xl shadow-sm border cursor-pointer transition-all duration-200 ${
-                    isSelected
-                      ? "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-700"
-                      : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-700"
-                  }`}
-                >
-                  <img
-                    src="/user.png"
-                    alt="User Avatar"
-                    className="w-12 h-12 rounded-full border border-gray-300 dark:border-gray-600 object-cover"
-                  />
-                  <div className="flex flex-col overflow-hidden">
-                    <p className="font-semibold text-gray-900 dark:text-white truncate max-w-[180px]">
-                      {otherUser?.email || "Unknown User"}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[180px]">
-                      {chat.latestMessage?.content || "No messages yet"}
-                    </p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        )}
+            return (
+              <motion.div
+                key={chat._id}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                onClick={() =>
+                  navigate({
+                    to: "/chat/$chatId",
+                    params: { chatId: chat._id.toString() },
+                  })
+                }
+                className={`cursor-pointer px-4 py-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                  isSelected ? "bg-blue-100 dark:bg-blue-900" : ""
+                }`}
+              >
+                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                  {otherParticipant?.email || "Unknown"}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                  {lastMessage.content
+                    ? lastMessage.content.length > 50
+                      ? lastMessage.content.slice(0, 47) + "..."
+                      : lastMessage.content
+                    : "No messages yet"}
+                </div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">
+                  {lastMessage.timestamp
+                    ? new Date(lastMessage.timestamp).toLocaleString()
+                    : ""}
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );

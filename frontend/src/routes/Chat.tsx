@@ -123,11 +123,6 @@ export function Chat() {
     );
     if (otherParticipant) setReceiverEmail(otherParticipant.email);
   }, [chatRoom, senderEmail]);
-  useEffect(() => {
-    socket.on("receiveMessage", (msg) => {
-      // console.log("📥 Received in:", chatId, msg);
-    });
-  }, [chatId]);
 
   // Fetch sender user info (to get _id)
   const { data: senderUser } = useQuery({
@@ -213,7 +208,12 @@ export function Chat() {
         timestamp: data.message.timestamp,
       };
 
-      socket.emit("sendMessage", { chatId, message: newMsg });
+      socket.emit("sendMessage", {
+        chatId,
+        message: newMsg,
+        senderEmail,
+        receiverEmail,
+      });
 
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -222,12 +222,13 @@ export function Chat() {
       console.error("Send error:", err);
     }
   };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") sendMessage();
   };
-
-  if (chatRoomLoading) return <div>Loading chat...</div>;
 
   return (
     <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6">
