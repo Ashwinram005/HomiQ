@@ -18,10 +18,9 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { isAuthenticated } from "@/lib/auth";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
-("");
 
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -57,12 +56,9 @@ export function SinglePost() {
   const handleChatClick = async () => {
     try {
       const token = localStorage.getItem("token");
-      const currentUserId = getUserIdFromToken(); // your existing util
+      const currentUserId = getUserIdFromToken();
       const otherUserId = post.postedBy;
       const roomId = post._id;
-      console.log("current", currentUserId);
-      console.log("other", otherUserId);
-      console.log("roomid:", roomId);
       const response = await axios.post(
         "http://localhost:5000/api/chatroom/create",
         {
@@ -77,7 +73,7 @@ export function SinglePost() {
         }
       );
 
-      const chatId = response.data._id; // or response.data.chatId based on your backend
+      const chatId = response.data._id;
       navigate({ to: `/chat/${chatId}` });
     } catch (error) {
       console.error("Failed to start chat:", error);
@@ -96,8 +92,8 @@ export function SinglePost() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [distanceInKm, setDistanceInKm] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showContact, setShowContact] = useState(false);
 
+  // Fetch post data
   const {
     data: post,
     isLoading,
@@ -136,23 +132,23 @@ export function SinglePost() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // Geocode post location string
+  // Geocode post location using LocationIQ
   useEffect(() => {
     if (!post?.location) return;
 
     const fetchCoords = async () => {
       try {
-        const res = await axios.get(
-          "https://nominatim.openstreetmap.org/search",
-          {
-            params: { q: post.location, format: "json", limit: 1 },
-          }
+        const response = await fetch(
+          `https://us1.locationiq.com/v1/search?key=pk.156347b797adf47f459dbb3d2c9ffabd&q=${encodeURIComponent(
+            post.location
+          )}&format=json&limit=1`
         );
+        const data = await response.json();
 
-        if (res.data.length > 0) {
+        if (data && data.length > 0) {
           setPostCoords({
-            lat: parseFloat(res.data[0].lat),
-            lng: parseFloat(res.data[0].lon),
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon),
           });
           setGeoError(null);
         } else {
@@ -167,7 +163,7 @@ export function SinglePost() {
     fetchCoords();
   }, [post?.location]);
 
-  // Calculate distance
+  // Calculate distance between user and post
   useEffect(() => {
     if (userLocation && postCoords) {
       const dist = getDistanceFromLatLonInKm(
@@ -197,27 +193,27 @@ export function SinglePost() {
       <Button
         onClick={() => navigate({ to: "/otherposts" })}
         className="
-    mb-8
-    inline-flex
-    items-center
-    px-4
-    py-2
-    text-blue-600
-    bg-blue-100
-    hover:bg-blue-200
-    hover:text-blue-900
-    focus:outline-none
-    focus:ring-2
-    focus:ring-blue-500
-    focus:ring-offset-2
-    rounded-md
-    font-semibold
-    transition
-    duration-300
-    ease-in-out
-    select-none
-    shadow-sm
-  "
+          mb-8
+          inline-flex
+          items-center
+          px-4
+          py-2
+          text-blue-600
+          bg-blue-100
+          hover:bg-blue-200
+          hover:text-blue-900
+          focus:outline-none
+          focus:ring-2
+          focus:ring-blue-500
+          focus:ring-offset-2
+          rounded-md
+          font-semibold
+          transition
+          duration-300
+          ease-in-out
+          select-none
+          shadow-sm
+        "
         aria-label="Go back to listings"
       >
         <svg
@@ -331,74 +327,66 @@ export function SinglePost() {
             </div>
             <div>
               <strong className="font-semibold">Price:</strong>{" "}
-              <span className="text-gray-900">${post.price.toFixed(2)}</span>
+              <span className="text-gray-900">₹{post.price}</span>
             </div>
-            {post.amenities.length > 0 && (
-              <div className="col-span-full">
-                <strong className="font-semibold">Amenities:</strong>{" "}
-                <span className="text-gray-900">
-                  {post.amenities.join(", ")}
-                </span>
-              </div>
-            )}
+            <div>
+              <strong className="font-semibold">Posted By:</strong>{" "}
+              <span className="text-gray-900">
+                {post.postedByName || "N/A"}
+              </span>
+            </div>
+            <div>
+              <strong className="font-semibold">Distance:</strong>{" "}
+              <span className="text-gray-900">
+                {distanceInKm ? `${distanceInKm} km` : "Calculating..."}
+              </span>
+            </div>
           </motion.div>
 
-          {/* Contact Owner Button */}
-          <button
-            onClick={handleChatClick}
-            className="w-max px-6 py-3 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            aria-controls="contact-owner"
-          >
-            Contact Owner
-          </button>
-
-          {/* Map */}
-          {postCoords ? (
-            <MapContainer
-              center={[postCoords.lat, postCoords.lng]}
-              zoom={13}
-              scrollWheelZoom={false}
-              style={{
-                height: "320px",
-                width: "100%",
-                borderRadius: "1rem",
-                boxShadow:
-                  "0 4px 8px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.1)",
-              }}
+          {postCoords && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="h-96 rounded-lg overflow-hidden border border-gray-300 shadow-md"
             >
-              <TileLayer
-                attribution="&copy; OpenStreetMap contributors"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <Marker position={[postCoords.lat, postCoords.lng]}>
-                <Popup>Post Location</Popup>
-              </Marker>
+              <MapContainer
+                center={[postCoords.lat, postCoords.lng]}
+                zoom={13}
+                scrollWheelZoom={false}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={[postCoords.lat, postCoords.lng]}>
+                  <Popup>{post.location}</Popup>
+                </Marker>
 
-              {userLocation && (
-                <>
-                  <Marker position={[userLocation.lat, userLocation.lng]}>
-                    <Popup>Your Location</Popup>
-                  </Marker>
-                  <Polyline
-                    positions={[
-                      [userLocation.lat, userLocation.lng],
-                      [postCoords.lat, postCoords.lng],
-                    ]}
-                    pathOptions={{ color: "blue" }}
-                  />
-                </>
-              )}
-            </MapContainer>
-          ) : (
-            <p className="text-center text-gray-500 mt-4">Loading map...</p>
+                {userLocation && (
+                  <>
+                    <Marker position={[userLocation.lat, userLocation.lng]}>
+                      <Popup>Your Location</Popup>
+                    </Marker>
+                    <Polyline
+                      positions={[
+                        [userLocation.lat, userLocation.lng],
+                        [postCoords.lat, postCoords.lng],
+                      ]}
+                      color="blue"
+                    />
+                  </>
+                )}
+              </MapContainer>
+            </motion.div>
           )}
 
-          {distanceInKm && (
-            <p className="mt-6 text-gray-700 text-center text-lg font-semibold">
-              📍 Distance from your location:{" "}
-              <span className="text-blue-600">{distanceInKm} km</span>
-            </p>
-          )}
+          <Button
+            onClick={handleChatClick}
+            className="self-start px-6 py-3 font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            Start Chat
+          </Button>
         </div>
       </div>
     </div>
