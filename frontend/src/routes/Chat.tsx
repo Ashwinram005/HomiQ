@@ -154,7 +154,6 @@ export function Chat() {
     console.log(chatId, "Join chatId");
 
     const handleReceiveMessage = (msg: any) => {
-      // unwrap the content object from backend message
       const newMsg: Message = {
         _id: msg.content._id,
         chatId: msg.content.chatId,
@@ -165,10 +164,14 @@ export function Chat() {
         timestamp: msg.content.timestamp,
       };
 
-      setMessages((prev) => [...prev, newMsg]);
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
+      // Only add message if it's for the current chatId
+      if (newMsg.chatId === chatId) {
+        setMessages((prev) => [...prev, newMsg]);
+
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      }
     };
 
     socket.on("receiveMessage", handleReceiveMessage);
