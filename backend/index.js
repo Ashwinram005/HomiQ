@@ -9,6 +9,7 @@ const postRoutes = require("./routes/postRoutes");
 const chatRoomRoutes = require("./routes/chatRoomRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const cloudinaryRoutes = require("./routes/cloudinaryRoutes");
+const User = require("./models/User");
 
 dotenv.config();
 connectDB();
@@ -36,22 +37,22 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", (chatId) => {
     socket.join(chatId);
     console.log("joinRoom", chatId);
-
-    // Notify everyone in the room (except the sender) to refresh chat list
-    socket.to(chatId).emit("roomUpdated", { chatId });
-
-    // Optionally: also send it back to the one who joined
-    socket.emit("roomUpdated", { chatId });
   });
 
-  socket.on("sendMessage", (data) => {
-    const { chatId, message, senderEmail, receiverEmail } = data;
+  socket.on("sendMessage", async ({ chatId, message, sender }) => {
+    const user = await User.findById(sender).select("email");
+    const senderEmail = user?.email || "Unknown";
+    const msg = {
+      content: message, // ✅ message is just a string now
+      sender,
+      timestamp: new Date().toISOString(),
+      chatRoom: chatId,
+    };
 
     // Send message to current chat room
-    io.to(chatId).emit("receiveMessage", message);
-
+    socket.to(chatId).emit("receiveMessage", msg);
+    io.to(chatId).emit("updateMessage", msg);
     // Broadcast ChatList update to sender & receiver (not chat-specific)
-    io.emit("chatListUpdated", { chatId, senderEmail, receiverEmail });
   });
 
   socket.on("leaveRoom", (chatId) => {
