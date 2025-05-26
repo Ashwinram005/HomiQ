@@ -69,15 +69,15 @@ export function ChatList() {
     enabled: !!userId,
     staleTime: 0,
   });
-  const myRoomIds = myRooms.map((r) => r._id.toString());
+   const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
 
-  // 4️⃣ Filter chats by tab
-  const filteredChats = chats.filter((chat) => {
-    const rid = chat.roomId?._id?.toString() || "";
-    return activeTab === "mine"
-      ? myRoomIds.includes(rid)
-      : !myRoomIds.includes(rid);
-  });
+  const filteredChats =
+    chats?.filter((chat) => {
+      const roomId = chat.roomId?.toString() || "";
+      const isMine = myRoomIds.includes(roomId);
+      return activeTab === "mine" ? isMine : !isMine;
+    }) || [];
+
 
   // 5️⃣ Join all rooms on socket so you’ll get events for them
   useEffect(() => {
