@@ -28,7 +28,7 @@ export const Dashboard = () => {
   const handleLogout = async () => {
     await logout();
     navigate({ to: "/" });
-    localStorage.removeItem("email");
+    localStorage.clear();
   };
 
   const toggleDropdown = () => {
