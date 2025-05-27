@@ -17,7 +17,6 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { isAuthenticated } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
@@ -393,8 +392,4 @@ export default (parentRoute: RootRoute) =>
     path: "/room/$id",
     component: SinglePost,
     getParentRoute: () => parentRoute,
-    // beforeLoad: async () => {
-    //   const auth = await isAuthenticated();
-    //   if (!auth) return redirect({ to: "/" });
-    // },
   });
