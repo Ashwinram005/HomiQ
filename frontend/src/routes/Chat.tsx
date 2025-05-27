@@ -20,15 +20,13 @@ interface Message {
   timestamp: string | Date;
 }
 
-// Fetch chat room by chatId
 async function fetchChatRoom(chatId: string) {
   const res = await fetch(`http://localhost:5000/api/chatroom/${chatId}`);
   const data = await res.json();
   if (!data.success) throw new Error("Failed to fetch chatroom");
-  return data.data; // Should contain participants, roomId, latestMessage, etc
+  return data.data;
 }
 
-// Fetch post by roomId (post ID)
 async function fetchRoom(roomId: string) {
   const res = await fetch(`http://localhost:5000/api/posts/${roomId}`);
   const data = await res.json();
@@ -36,23 +34,19 @@ async function fetchRoom(roomId: string) {
   return data.data;
 }
 
-// Fetch user by userId or email
 async function fetchUser(userIdOrEmail: string) {
-  // If it's 24 length string, treat as id else email
   const url =
     userIdOrEmail.length === 24
       ? `http://localhost:5000/api/users/${userIdOrEmail}`
       : `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
           userIdOrEmail
         )}`;
-
   const res = await fetch(url);
   const data = await res.json();
   if (!data.success) throw new Error("Failed to fetch user");
   return data.data;
 }
 
-// Fetch messages by chatId
 async function fetchMessages(
   chatId: string,
   senderEmail: string,
@@ -98,14 +92,12 @@ export function Chat() {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Fetch chat room by chatId
-  const { data: chatRoom, isLoading: chatRoomLoading } = useQuery({
+  const { data: chatRoom } = useQuery({
     queryKey: ["chatRoom", chatId],
     queryFn: () => fetchChatRoom(chatId),
     enabled: !!chatId,
   });
 
-  // Fetch room (post) data by roomId from chatRoom
   const roomId = chatRoom?.roomId?._id || "";
   const { data: roomData } = useQuery({
     queryKey: ["room", roomId],
@@ -113,7 +105,6 @@ export function Chat() {
     enabled: !!roomId,
   });
 
-  // Determine receiverEmail (other participant)
   useEffect(() => {
     if (!chatRoom) return;
     const otherParticipant = chatRoom.participants.find(
@@ -122,21 +113,18 @@ export function Chat() {
     if (otherParticipant) setReceiverEmail(otherParticipant.email);
   }, [chatRoom, senderEmail]);
 
-  // Fetch sender user info (to get _id)
   const { data: senderUser } = useQuery({
     queryKey: ["user", senderEmail],
     queryFn: () => fetchUser(senderEmail),
     enabled: !!senderEmail,
   });
 
-  // Fetch receiver user info
   const { data: receiverUser } = useQuery({
     queryKey: ["user", receiverEmail],
     queryFn: () => fetchUser(receiverEmail),
     enabled: !!receiverEmail,
   });
 
-  // Fetch messages for this chat
   useEffect(() => {
     if (!chatId || !senderEmail || !receiverEmail) return;
 
@@ -145,13 +133,11 @@ export function Chat() {
       .catch(console.error);
   }, [chatId, senderEmail, receiverEmail]);
 
-  // Socket setup for real-time messages
   useEffect(() => {
     if (!chatId) return;
     if (!socket.connected) socket.connect();
 
     socket.emit("joinRoom", chatId);
-    console.log(chatId, "Join chatId");
 
     const handleReceiveMessage = (msg: any) => {
       const newMsg: Message = {
@@ -164,10 +150,8 @@ export function Chat() {
         timestamp: msg.content.timestamp,
       };
 
-      // Only add message if it's for the current chatId
       if (newMsg.chatId === chatId) {
         setMessages((prev) => [...prev, newMsg]);
-
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 50);
@@ -178,13 +162,10 @@ export function Chat() {
 
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
-      socket.emit("leaveRoom", chatId); // leave previous room
+      socket.emit("leaveRoom", chatId);
     };
   }, [chatId, senderEmail]);
 
-  // Listen for chatListUpdated event to refresh ChatList
-
-  // Send message handler
   const sendMessage = async () => {
     if (!input.trim() || !chatId || !senderUser) return;
 
@@ -203,23 +184,18 @@ export function Chat() {
       });
 
       const data = await res.json();
-
-      if (!data.success) {
-        console.error("Send failed:", data.message);
-        return;
-      }
+      if (!data.success) return;
 
       const newMsg: Message = {
         _id: data.message._id,
         chatId,
         text: data.message.content,
-        sender: "user", // sender is current user
+        sender: "user",
         senderEmail,
         receiverEmail,
         timestamp: data.message.timestamp,
       };
 
-      // **Add the new message locally for sender side**
       setMessages((prev) => [...prev, newMsg]);
 
       socket.emit("sendMessage", {
@@ -246,17 +222,17 @@ export function Chat() {
   };
 
   return (
-    <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6">
+    <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6 bg-gray-100 dark:bg-gray-950">
       <ChatList />
-      <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800">
-        <div className="sticky top-0 z-10 bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
-          <h2 className="text-2xl font-semibold tracking-wide">Chat Room</h2>
-          <div>
-            <small>Post: {roomData?.title || "Untitled"}</small>
-          </div>
+      <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 shadow-xl overflow-hidden border border-gray-300 dark:border-gray-700">
+        <div className="bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow">
+          <h2 className="text-xl font-semibold">Chat Room</h2>
+          <small className="text-sm">
+            Post: {roomData?.title || "Untitled"}
+          </small>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-800">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length ? (
             messages.map((msg, i) => {
               const isSender = msg.senderEmail === senderEmail;
@@ -268,17 +244,13 @@ export function Chat() {
                   }`}
                 >
                   <div
-                    className={`rounded-2xl p-4 max-w-[70%] break-words whitespace-pre-wrap shadow-md transition-all duration-200 ${
+                    className={`px-4 py-3 max-w-[70%] break-words whitespace-pre-wrap shadow-sm ${
                       isSender
-                        ? "bg-blue-600 text-white rounded-br-none"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 dark:bg-gray-700 text-black dark:text-white"
                     }`}
                   >
-                    <div
-                      className={`text-xs font-semibold mb-1 ${
-                        isSender ? "text-blue-200" : "text-gray-500"
-                      }`}
-                    >
+                    <div className="text-xs font-medium mb-1 text-gray-300 dark:text-gray-400">
                       {isSender ? "You" : msg.senderEmail}
                     </div>
                     <div>{msg.text}</div>
@@ -291,17 +263,17 @@ export function Chat() {
             })
           ) : (
             <div className="text-center text-gray-400 mt-12">
-              No messages yet, start the conversation!
+              No messages yet. Start the conversation!
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-300 dark:border-gray-700 px-6 py-3 flex items-center gap-3">
+        <div className="bg-white dark:bg-gray-900 border-t border-gray-300 dark:border-gray-700 px-6 py-3 flex items-center gap-3">
           <input
             type="text"
             placeholder="Type your message..."
-            className="flex-1 rounded-full border border-gray-300 dark:border-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-900 dark:text-white"
+            className="flex-1 border border-gray-400 dark:border-gray-600 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-900 dark:text-white"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -309,7 +281,7 @@ export function Chat() {
           <button
             onClick={sendMessage}
             disabled={!input.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 disabled:opacity-50"
           >
             Send
           </button>

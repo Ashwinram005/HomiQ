@@ -177,7 +177,7 @@ export function ChatList() {
           }`}
           onClick={() => setActiveTab("mine")}
         >
-          My Room Chats
+          Tenants
         </button>
         <button
           className={`flex-1 py-2 text-center font-semibold ${
@@ -187,7 +187,7 @@ export function ChatList() {
           }`}
           onClick={() => setActiveTab("others")}
         >
-          Other Room Chats
+          Owners
         </button>
       </div>
 

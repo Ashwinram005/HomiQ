@@ -59,6 +59,10 @@ export function SinglePost() {
       const currentUserId = getUserIdFromToken();
       const otherUserId = post.postedBy;
       const roomId = post._id;
+      if (!token || !currentUserId || !otherUserId || !roomId) {
+        navigate({ to: "/?tab=login" });
+        return;
+      }
       const response = await axios.post(
         "http://localhost:5000/api/chatroom/create",
         {
@@ -324,9 +328,7 @@ export function SinglePost() {
             </div>
             <div>
               <strong className="font-semibold">Posted By:</strong>{" "}
-              <span className="text-gray-900">
-                {post.postedByName || "N/A"}
-              </span>
+              <span className="text-gray-900">{post.email || "N/A"}</span>
             </div>
             <div>
               <strong className="font-semibold">Distance:</strong>{" "}
@@ -391,8 +393,8 @@ export default (parentRoute: RootRoute) =>
     path: "/room/$id",
     component: SinglePost,
     getParentRoute: () => parentRoute,
-    beforeLoad: async () => {
-      const auth = await isAuthenticated();
-      if (!auth) return redirect({ to: "/" });
-    },
+    // beforeLoad: async () => {
+    //   const auth = await isAuthenticated();
+    //   if (!auth) return redirect({ to: "/" });
+    // },
   });

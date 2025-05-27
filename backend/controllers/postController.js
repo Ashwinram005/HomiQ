@@ -250,7 +250,64 @@ const deletePost = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+async function getallPosts(req, res) {
+  try {
+    const {
+      page = 1,
+      limit = 6,
+      searchQuery = "",
+      locationQuery = "",
+      priceFilter = "all",
+      roomTypeFilter = "all",
+    } = req.query;
 
+    const query = {};
+
+    // 🔍 Search by title
+    if (searchQuery) {
+      query.title = { $regex: searchQuery, $options: "i" };
+    }
+
+    // 📍 Filter by location
+    if (locationQuery) {
+      query.location = { $regex: locationQuery, $options: "i" };
+    }
+
+    // 💰 Filter by price
+    if (priceFilter !== "all") {
+      query.price = { $lte: parseInt(priceFilter) };
+    }
+
+    // 🏠 Filter by room type
+    if (roomTypeFilter !== "all") {
+      query.type = roomTypeFilter;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const posts = await Post.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalCount = await Post.countDocuments(query);
+    const hasMore = skip + posts.length < totalCount;
+
+    return res.status(200).json({
+      posts,
+      hasMore,
+      totalCount,
+      error: false,
+      success: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+      error: true,
+      success: false,
+    });
+  }
+}
 module.exports = {
   createPost,
   getMyPosts,
@@ -259,4 +316,5 @@ module.exports = {
   getRoomsByUser,
   updatePost,
   deletePost,
+  getallPosts,
 };
