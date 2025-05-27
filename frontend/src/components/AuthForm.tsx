@@ -42,12 +42,24 @@ export const signupSchema = z
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
 
-export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
-  const [tab, setTab] = useState("login");
+type AuthFormProps = {
+  className?: string;
+  defaultTab?: "login" | "signup";
+};
+
+export function AuthForm({
+  className,
+  defaultTab = "login",
+  ...props
+}: AuthFormProps) {
+  const [tab, setTab] = useState(defaultTab);
+
+  useEffect(() => {
+    setTab(defaultTab);
+  }, [defaultTab]);
 
   return (
     <Tabs
-      defaultValue="login"
       value={tab}
       onValueChange={setTab}
       className={cn("w-full max-w-md mx-auto", className)}
@@ -58,12 +70,10 @@ export function AuthForm({ className, ...props }: React.ComponentProps<"div">) {
         <TabsTrigger value="signup">Sign Up</TabsTrigger>
       </TabsList>
 
-      {/* Login Tab */}
       <TabsContent value="login">
         <LoginForm />
       </TabsContent>
 
-      {/* Signup Tab */}
       <TabsContent value="signup">
         <SignupForm onSuccess={() => setTab("login")} />
       </TabsContent>
@@ -75,11 +85,10 @@ function LoginForm() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Use async function inside useEffect to await the promise
     const checkAuthentication = async () => {
       const auth = await isAuthenticated();
       if (auth) {
-        navigate({ to: "/dashboard" }); // Redirect to the dashboard if the user is already logged in
+        navigate({ to: "/dashboard" });
       }
     };
 
@@ -108,14 +117,12 @@ function LoginForm() {
       });
 
       const result = await response.json();
-      console.log(result);
       if (!response.ok) {
         alert(result.message || "Login failed");
         return;
       }
       localStorage.setItem("token", result.token);
       localStorage.setItem("email", result.email);
-      console.log("Login success:", result);
       navigate({ to: "/dashboard" });
     } catch (error) {
       console.error("Error:", error);
@@ -164,6 +171,7 @@ function LoginForm() {
     </form>
   );
 }
+
 interface SignupFormProps {
   onSuccess: () => void;
 }
@@ -193,7 +201,6 @@ function SignupForm({ onSuccess }: SignupFormProps) {
 
       if (response.ok) {
         onSuccess();
-        console.log("Signup successful");
         reset();
       } else {
         const error = await response.json();

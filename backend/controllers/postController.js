@@ -250,6 +250,95 @@ const deletePost = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+async function getallPosts(req, res) {
+  try {
+    const {
+      page = 1,
+      limit = 6,
+      searchQuery,
+      locationQuery,
+      priceFilter,
+      roomTypeFilter,
+      occupancyFilter,
+      furnishedFilter,
+      availableFromFilter,
+      amenitiesFilter, // expects comma separated string e.g. "wifi,parking"
+      postedByFilter,
+    } = req.query;
+
+    // Build dynamic filters object
+    const filters = {};
+
+    if (searchQuery) {
+      filters.$or = [
+        { title: { $regex: searchQuery, $options: "i" } },
+        { description: { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+
+    if (locationQuery) {
+      filters.location = { $regex: locationQuery, $options: "i" };
+    }
+
+    if (priceFilter && priceFilter !== "all") {
+      filters.price = { $lte: Number(priceFilter) };
+    }
+
+    if (roomTypeFilter && roomTypeFilter !== "all") {
+      filters.type = roomTypeFilter;
+    }
+
+    if (occupancyFilter && occupancyFilter !== "all") {
+      filters.occupancy = occupancyFilter;
+    }
+
+    if (furnishedFilter === "true") {
+      filters.furnished = true;
+    } else if (furnishedFilter === "false") {
+      filters.furnished = false;
+    }
+
+    if (availableFromFilter) {
+      const date = new Date(availableFromFilter);
+      if (!isNaN(date.getTime())) {
+        filters.availableFrom = { $gte: date };
+      }
+    }
+
+    if (amenitiesFilter) {
+      const amenitiesArray = amenitiesFilter.split(",").map((a) => a.trim());
+      // Posts that have all the selected amenities
+      filters.amenities = { $all: amenitiesArray };
+    }
+
+    if (postedByFilter) {
+      // if you want to filter by email, you may need to populate or join
+      // assuming postedByFilter is a user id for simplicity
+      filters.postedBy = postedByFilter;
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    const posts = await Post.find(filters)
+      .populate("postedBy", "email") // populate email of user
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    // Total count for pagination
+    const total = await Post.countDocuments(filters);
+
+    res.json({
+      posts,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+}
 
 module.exports = {
   createPost,
@@ -259,4 +348,5 @@ module.exports = {
   getRoomsByUser,
   updatePost,
   deletePost,
+  getallPosts,
 };
