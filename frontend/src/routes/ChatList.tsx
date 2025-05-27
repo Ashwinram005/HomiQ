@@ -69,7 +69,7 @@ export function ChatList() {
     enabled: !!userId,
     staleTime: 0,
   });
-   const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
+  const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
 
   const filteredChats =
     chats?.filter((chat) => {
@@ -77,7 +77,6 @@ export function ChatList() {
       const isMine = myRoomIds.includes(roomId);
       return activeTab === "mine" ? isMine : !isMine;
     }) || [];
-
 
   // 5️⃣ Join all rooms on socket so you’ll get events for them
   useEffect(() => {
@@ -105,15 +104,21 @@ export function ChatList() {
 
       queryClient.setQueryData<any[]>(["chats", userId], (old = []) => {
         const idx = old.findIndex((c) => c._id === roomId);
+        let updatedChats = [...old];
+
         if (idx !== -1) {
+          const existing = old[idx];
           const updated = {
-            ...old[idx],
-            latestMessage: { content: msg.text, timestamp: msg.timestamp },
+            ...existing,
+            latestMessage: {
+              content: msg.text,
+              timestamp: msg.timestamp,
+            },
           };
-          return [updated, ...old.slice(0, idx), ...old.slice(idx + 1)];
+          updatedChats = [updated, ...old.slice(0, idx), ...old.slice(idx + 1)];
         } else {
-          // new chat — insert placeholder at top
-          return [
+          // Insert new chat
+          updatedChats = [
             {
               _id: roomId,
               participants: [],
@@ -123,6 +128,25 @@ export function ChatList() {
             ...old,
           ];
         }
+
+        // 🔁 Determine if this is the most recent message
+        const latest = updatedChats.reduce(
+          (latest, chat) => {
+            const t = new Date(chat.latestMessage?.timestamp || 0).getTime();
+            return t > latest.time ? { time: t, chat } : latest;
+          },
+          { time: 0, chat: null }
+        );
+
+        if (latest.chat) {
+          const belongsToMyRoom = myRoomIds.includes(
+            latest.chat.roomId?._id || latest.chat.roomId
+          );
+          const correctTab = belongsToMyRoom ? "mine" : "others";
+          setActiveTab((prev) => (prev !== correctTab ? correctTab : prev));
+        }
+
+        return updatedChats;
       });
     };
 
@@ -133,7 +157,7 @@ export function ChatList() {
       socket.off("receiveMessage", handleMessage);
       socket.off("updateMessage", handleMessage);
     };
-  }, [userId, queryClient]);
+  }, [userId, queryClient, myRoomIds]);
 
   if (userLoading || chatsLoading) {
     return <div className="w-80 p-4 text-center">Loading...</div>;
