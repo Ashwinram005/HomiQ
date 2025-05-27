@@ -273,11 +273,11 @@ const LandingPage: React.FC = () => {
           {/* Amenities Icons */}
           <div className="flex flex-wrap gap-4 mb-8">
             {[
-              { name: "wifi", Icon: Wifi },
-              { name: "parking", Icon: Car },
-              { name: "ac", Icon: Snowflake },
-              { name: "laundry", Icon: Home },
-              { name: "Tv", Icon: Tv },
+              { name: "Wi-Fi", Icon: Wifi },
+              { name: "Parking", Icon: Car },
+              { name: "AC", Icon: Snowflake },
+              { name: "Laundry", Icon: Home },
+              { name: "TV", Icon: Tv },
               { name: "Refrigerator", Icon: Refrigerator },
             ].map(({ name, Icon }) => {
               const selected = amenitiesFilter.includes(name);
