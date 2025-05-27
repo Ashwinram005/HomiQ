@@ -29,6 +29,7 @@ import ChatRoute from "./routes/Chat.tsx";
 import EmptyChatRoute from "./routes/EmptyChat.tsx";
 import EditPostRoute from "./routes/EditPost.tsx";
 import SinglePostRoute from "./routes/SinglePost.tsx";
+import ProfilePageRoute from "./routes/ProfilePage.tsx";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -56,6 +57,7 @@ const indexRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  ProfilePageRoute(rootRoute),
   EmptyChatRoute(rootRoute),
   Dashboard(rootRoute),
   Wildcard(rootRoute),

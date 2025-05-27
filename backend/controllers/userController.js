@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken"); // Import JWT for token generation
 
 const registerUser = async (req, res) => {
-  const { name,email, password, confirmPassword } = req.body;
+  const { name, email, password, confirmPassword } = req.body;
 
   if (password !== confirmPassword) {
     return res.status(400).json({ message: "Passwords do not match" });
@@ -11,18 +11,18 @@ const registerUser = async (req, res) => {
 
   try {
     const existingUser = await User.findOne({ email });
-    const existingName= await User.findOne({name});
+    const existingName = await User.findOne({ name });
 
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
-    if(existingName){
+    if (existingName) {
       return res.status(400).json({
-        message:"Username already exists"
-      })
+        message: "Username already exists",
+      });
     }
 
-    const newUser = new User({ name,email, password });
+    const newUser = new User({ name, email, password });
     await newUser.save();
 
     res.status(201).json({ message: "User registered successfully" });
@@ -93,4 +93,53 @@ async function getUserByEmail(req, res) {
   }
 }
 
-module.exports = { registerUser, loginUser, getUserByEmail };
+const verifyPassword = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ valid: false });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    return res.status(200).json({ valid: isMatch });
+  } catch (err) {
+    res.status(500).json({ valid: false });
+  }
+};
+
+async function changePassword(req, res) {
+  const { email, currentPassword, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Current password is incorrect" });
+
+    if (newPassword.length < 10) {
+      return res
+        .status(400)
+        .json({ message: "New password must be at least 10 characters" });
+    }
+
+    // Assign the plain new password — the middleware will hash it
+    user.password = newPassword;
+
+    // Save user - pre('save') middleware will hash the password automatically
+    await user.save();
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error("Error in changePassword:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getUserByEmail,
+  verifyPassword,
+  changePassword,
+};
