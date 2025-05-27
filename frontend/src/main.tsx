@@ -17,6 +17,7 @@ import * as TanstackQuery from "./integrations/tanstack-query/root-provider";
 
 import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
+import "leaflet/dist/leaflet.css";
 
 import App from "./App.tsx";
 import Wildcard from "./routes/Wildcard.tsx";
@@ -27,6 +28,7 @@ import OtherPosts from "./routes/OtherPosts.tsx";
 import ChatRoute from "./routes/Chat.tsx";
 import EmptyChatRoute from "./routes/EmptyChat.tsx";
 import EditPostRoute from "./routes/EditPost.tsx";
+import SinglePostRoute from "./routes/SinglePost.tsx";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -62,6 +64,7 @@ const routeTree = rootRoute.addChildren([
   OtherPosts(rootRoute),
   EditPostRoute(rootRoute),
   ChatRoute(rootRoute),
+  SinglePostRoute(rootRoute),
 ]);
 
 const router = createRouter({

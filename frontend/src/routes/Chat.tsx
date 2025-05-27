@@ -105,8 +105,6 @@ export function Chat() {
     enabled: !!chatId,
   });
 
-  // console.log("ChatRoom", chatRoom);
-
   // Fetch room (post) data by roomId from chatRoom
   const roomId = chatRoom?.roomId?._id || "";
   const { data: roomData } = useQuery({
@@ -123,11 +121,6 @@ export function Chat() {
     );
     if (otherParticipant) setReceiverEmail(otherParticipant.email);
   }, [chatRoom, senderEmail]);
-  useEffect(() => {
-    socket.on("receiveMessage", (msg) => {
-      // console.log("📥 Received in:", chatId, msg);
-    });
-  }, [chatId]);
 
   // Fetch sender user info (to get _id)
   const { data: senderUser } = useQuery({
@@ -159,25 +152,40 @@ export function Chat() {
 
     socket.emit("joinRoom", chatId);
     console.log(chatId, "Join chatId");
-    const handleReceiveMessage = (msg: Message) => {
-      setMessages((prev) => [...prev, msg]);
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
+
+    const handleReceiveMessage = (msg: any) => {
+      const newMsg: Message = {
+        _id: msg.content._id,
+        chatId: msg.content.chatId,
+        text: msg.content.text,
+        sender: msg.content.senderEmail === senderEmail ? "user" : "owner",
+        senderEmail: msg.content.senderEmail,
+        receiverEmail: msg.content.receiverEmail,
+        timestamp: msg.content.timestamp,
+      };
+
+      // Only add message if it's for the current chatId
+      if (newMsg.chatId === chatId) {
+        setMessages((prev) => [...prev, newMsg]);
+
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      }
     };
 
     socket.on("receiveMessage", handleReceiveMessage);
 
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
-      socket.emit("leaveRoom", chatId); // Add this to leave previous room
+      socket.emit("leaveRoom", chatId); // leave previous room
     };
-  }, [chatId]);
+  }, [chatId, senderEmail]);
+
+  // Listen for chatListUpdated event to refresh ChatList
 
   // Send message handler
   const sendMessage = async () => {
-    console.log("Send chatId", chatId);
-    // console.log("Send", senderUser);
     if (!input.trim() || !chatId || !senderUser) return;
 
     const content = input.trim();
@@ -200,20 +208,26 @@ export function Chat() {
         console.error("Send failed:", data.message);
         return;
       }
-      const senderInRoom = chatRoom?.participants.find(
-        (p) => p.email === senderEmail
-      );
+
       const newMsg: Message = {
         _id: data.message._id,
         chatId,
         text: data.message.content,
-        sender: senderUser._id === senderInRoom?._id ? "user" : "owner",
+        sender: "user", // sender is current user
         senderEmail,
         receiverEmail,
         timestamp: data.message.timestamp,
       };
 
-      socket.emit("sendMessage", { chatId, message: newMsg });
+      // **Add the new message locally for sender side**
+      setMessages((prev) => [...prev, newMsg]);
+
+      socket.emit("sendMessage", {
+        chatId,
+        message: newMsg,
+        senderEmail,
+        receiverEmail,
+      });
 
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -223,11 +237,13 @@ export function Chat() {
     }
   };
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") sendMessage();
   };
-
-  if (chatRoomLoading) return <div>Loading chat...</div>;
 
   return (
     <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6">
@@ -260,15 +276,13 @@ export function Chat() {
                   >
                     <div
                       className={`text-xs font-semibold mb-1 ${
-                        isSender
-                          ? "text-gray-100 dark:text-gray-300"
-                          : "text-blue-400"
+                        isSender ? "text-blue-200" : "text-gray-500"
                       }`}
                     >
-                      {msg.senderEmail}
+                      {isSender ? "You" : msg.senderEmail}
                     </div>
-                    <div className="text-sm">{msg.text}</div>
-                    <div className="text-[11px] text-right mt-2 text-gray-400 dark:text-gray-500">
+                    <div>{msg.text}</div>
+                    <div className="text-right text-xs text-gray-400 mt-1">
                       {formatTimestamp(msg.timestamp)}
                     </div>
                   </div>
@@ -276,22 +290,29 @@ export function Chat() {
               );
             })
           ) : (
-            <p className="text-center text-gray-500 dark:text-gray-400">
-              No messages yet.
-            </p>
+            <div className="text-center text-gray-400 mt-12">
+              No messages yet, start the conversation!
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-300 dark:border-gray-700 px-6 py-3 flex items-center gap-3">
           <input
             type="text"
             placeholder="Type your message..."
+            className="flex-1 rounded-full border border-gray-300 dark:border-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-900 dark:text-white"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full disabled:opacity-50"
+          >
+            Send
+          </button>
         </div>
       </div>
     </div>
