@@ -335,6 +335,16 @@ export function SinglePost() {
                 {distanceInKm ? `${distanceInKm} km` : "Calculating..."}
               </span>
             </div>
+            {post.amenities && post.amenities.length > 0 && (
+              <div className="sm:col-span-2">
+                <strong className="font-semibold block mb-1">Amenities:</strong>
+                <ul className="list-disc list-inside text-gray-900 space-y-1">
+                  {post.amenities.map((amenity: string, index: number) => (
+                    <li key={index}>{amenity}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </motion.div>
 
           {postCoords && (
