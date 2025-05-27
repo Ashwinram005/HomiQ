@@ -7,7 +7,7 @@ import { AuthForm } from "@/components/AuthForm";
 import { Modal } from "@/components/Modal";
 import { useNavigate } from "@tanstack/react-router";
 import { useLocation } from "@tanstack/react-router";
-
+import { Wifi, Snowflake, Car, Tv, Refrigerator, Home } from "lucide-react";
 interface Post {
   _id: string;
   title: string;
@@ -29,10 +29,15 @@ const fetchPosts = async ({ pageParam = 1, queryKey }: any) => {
       locationQuery: filters.locationQuery,
       priceFilter: filters.priceFilter,
       roomTypeFilter: filters.roomTypeFilter,
+      occupancyFilter: filters.occupancyFilter,
+      furnishedFilter: filters.furnishedFilter,
+      availableFromFilter: filters.availableFromFilter,
+      amenitiesFilter: filters.amenitiesFilter,
     },
   });
   return res.data;
 };
+
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -119,6 +124,12 @@ const LandingPage: React.FC = () => {
   const [locationQuery, setLocationQuery] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
   const [roomTypeFilter, setRoomTypeFilter] = useState("all");
+  const [occupancyFilter, setOccupancyFilter] = useState("all");
+  const [furnishedFilter, setFurnishedFilter] = useState("all");
+  const [availableFromFilter, setAvailableFromFilter] = useState("");
+  const [amenitiesFilter, setAmenitiesFilter] = useState<string[]>([]);
+
+  // Debounce search
   const debouncedFilter = useCallback(
     debounce((value) => setDebouncedSearch(value), 600),
     []
@@ -126,6 +137,9 @@ const LandingPage: React.FC = () => {
   useEffect(() => {
     debouncedFilter(searchQuery);
   }, [searchQuery, debouncedFilter]);
+
+  // Convert amenitiesFilter array to comma separated string for query params
+  const amenitiesFilterStr = amenitiesFilter.join(",");
 
   const {
     data,
@@ -144,6 +158,10 @@ const LandingPage: React.FC = () => {
         locationQuery,
         priceFilter,
         roomTypeFilter,
+        occupancyFilter,
+        furnishedFilter,
+        availableFromFilter,
+        amenitiesFilter: amenitiesFilterStr,
       },
     ],
     queryFn: fetchPosts,
@@ -151,7 +169,13 @@ const LandingPage: React.FC = () => {
       lastPage.hasMore ? allPages.length + 1 : undefined,
   });
 
-  const handleFilter = () => refetch();
+  const handleAmenityChange = (amenity: string) => {
+    setAmenitiesFilter((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((a) => a !== amenity)
+        : [...prev, amenity]
+    );
+  };
 
   return (
     <div
@@ -172,49 +196,115 @@ const LandingPage: React.FC = () => {
           </h1>
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {/* Title Search */}
             <input
               type="text"
-              placeholder="Search title"
+              placeholder="🔍 Search title or description"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="px-4 py-2 border rounded-lg"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 transition"
             />
+
+            {/* Location */}
             <input
               type="text"
-              placeholder="Filter by location"
+              placeholder="📍 Location"
               value={locationQuery}
               onChange={(e) => setLocationQuery(e.target.value)}
-              className="px-4 py-2 border rounded-lg"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 transition"
             />
+
+            {/* Price */}
             <select
               value={priceFilter}
               onChange={(e) => setPriceFilter(e.target.value)}
-              className="px-4 py-2 border rounded-lg"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 transition"
             >
-              <option value="all">All Prices</option>
+              <option value="all">💰 All Prices</option>
               <option value="3000">Below ₹3,000</option>
               <option value="5000">Below ₹5,000</option>
               <option value="8000">Below ₹8,000</option>
             </select>
+
+            {/* Type */}
             <select
               value={roomTypeFilter}
               onChange={(e) => setRoomTypeFilter(e.target.value)}
-              className="px-4 py-2 border rounded-lg"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 transition"
             >
-              <option value="all">All Types</option>
-              <option value="single">Single</option>
-              <option value="shared">Shared</option>
-              <option value="apartment">Apartment</option>
+              <option value="all">🏠 All Types</option>
+              <option value="Room">Room</option>
+              <option value="House">House</option>
+              <option value="PG">PG</option>
             </select>
-            <button
-              onClick={handleFilter}
-              className="md:col-span-2 lg:col-span-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+
+            {/* Occupancy */}
+            <select
+              value={occupancyFilter}
+              onChange={(e) => setOccupancyFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 transition"
             >
-              Apply Filters
-            </button>
+              <option value="all">👥 Occupancy</option>
+              <option value="Single">Single</option>
+              <option value="Shared">Shared</option>
+            </select>
+
+            {/* Furnished */}
+            <select
+              value={furnishedFilter}
+              onChange={(e) => setFurnishedFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 transition"
+            >
+              <option value="all">🛋 Furnishing</option>
+              <option value="true">Furnished</option>
+              <option value="false">Unfurnished</option>
+            </select>
+
+            {/* Available From */}
+            <input
+              type="date"
+              value={availableFromFilter}
+              onChange={(e) => setAvailableFromFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 transition"
+            />
           </div>
 
+          {/* Amenities Icons */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            {[
+              { name: "wifi", Icon: Wifi },
+              { name: "parking", Icon: Car },
+              { name: "ac", Icon: Snowflake },
+              { name: "laundry", Icon: Home },
+              { name: "Tv", Icon: Tv },
+              { name: "Refrigerator", Icon: Refrigerator },
+            ].map(({ name, Icon }) => {
+              const selected = amenitiesFilter.includes(name);
+              return (
+                <button
+                  key={name}
+                  onClick={() => handleAmenityChange(name)}
+                  className={`
+          flex items-center gap-2 px-3 py-2 border rounded-xl transition
+          ${
+            selected
+              ? "bg-blue-600 text-white border-blue-600 shadow"
+              : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50"
+          }
+        `}
+                  aria-pressed={selected}
+                >
+                  <Icon
+                    className={`h-5 w-5 ${
+                      selected ? "text-white" : "text-blue-500"
+                    }`}
+                  />
+                  <span className="capitalize">{name}</span>
+                </button>
+              );
+            })}
+          </div>
           {/* Posts */}
           {isLoading ? (
             <p className="text-center">Loading...</p>

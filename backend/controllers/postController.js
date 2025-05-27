@@ -255,59 +255,91 @@ async function getallPosts(req, res) {
     const {
       page = 1,
       limit = 6,
-      searchQuery = "",
-      locationQuery = "",
-      priceFilter = "all",
-      roomTypeFilter = "all",
+      searchQuery,
+      locationQuery,
+      priceFilter,
+      roomTypeFilter,
+      occupancyFilter,
+      furnishedFilter,
+      availableFromFilter,
+      amenitiesFilter, // expects comma separated string e.g. "wifi,parking"
+      postedByFilter,
     } = req.query;
 
-    const query = {};
+    // Build dynamic filters object
+    const filters = {};
 
-    // 🔍 Search by title
     if (searchQuery) {
-      query.title = { $regex: searchQuery, $options: "i" };
+      filters.$or = [
+        { title: { $regex: searchQuery, $options: "i" } },
+        { description: { $regex: searchQuery, $options: "i" } },
+      ];
     }
 
-    // 📍 Filter by location
     if (locationQuery) {
-      query.location = { $regex: locationQuery, $options: "i" };
+      filters.location = { $regex: locationQuery, $options: "i" };
     }
 
-    // 💰 Filter by price
-    if (priceFilter !== "all") {
-      query.price = { $lte: parseInt(priceFilter) };
+    if (priceFilter && priceFilter !== "all") {
+      filters.price = { $lte: Number(priceFilter) };
     }
 
-    // 🏠 Filter by room type
-    if (roomTypeFilter !== "all") {
-      query.type = roomTypeFilter;
+    if (roomTypeFilter && roomTypeFilter !== "all") {
+      filters.type = roomTypeFilter;
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    if (occupancyFilter && occupancyFilter !== "all") {
+      filters.occupancy = occupancyFilter;
+    }
 
-    const posts = await Post.find(query)
+    if (furnishedFilter === "true") {
+      filters.furnished = true;
+    } else if (furnishedFilter === "false") {
+      filters.furnished = false;
+    }
+
+    if (availableFromFilter) {
+      const date = new Date(availableFromFilter);
+      if (!isNaN(date.getTime())) {
+        filters.availableFrom = { $gte: date };
+      }
+    }
+
+    if (amenitiesFilter) {
+      const amenitiesArray = amenitiesFilter.split(",").map((a) => a.trim());
+      // Posts that have all the selected amenities
+      filters.amenities = { $all: amenitiesArray };
+    }
+
+    if (postedByFilter) {
+      // if you want to filter by email, you may need to populate or join
+      // assuming postedByFilter is a user id for simplicity
+      filters.postedBy = postedByFilter;
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    const posts = await Post.find(filters)
+      .populate("postedBy", "email") // populate email of user
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(Number(limit));
 
-    const totalCount = await Post.countDocuments(query);
-    const hasMore = skip + posts.length < totalCount;
+    // Total count for pagination
+    const total = await Post.countDocuments(filters);
 
-    return res.status(200).json({
+    res.json({
       posts,
-      hasMore,
-      totalCount,
-      error: false,
-      success: true,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
     });
   } catch (error) {
-    return res.status(500).json({
-      message: error.message,
-      error: true,
-      success: false,
-    });
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 }
+
 module.exports = {
   createPost,
   getMyPosts,
