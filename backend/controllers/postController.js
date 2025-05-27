@@ -232,6 +232,25 @@ async function updatePost(req, res) {
   }
 }
 
+const deletePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // You can also check if the user owns the post here
+
+    const deletedPost = await Post.findByIdAndDelete(postId);
+
+    if (!deletedPost) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    res.json({ message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Delete post error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 module.exports = {
   createPost,
   getMyPosts,
@@ -239,4 +258,5 @@ module.exports = {
   getRoom,
   getRoomsByUser,
   updatePost,
+  deletePost,
 };

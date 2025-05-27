@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import PostCard from "./PostCard";
 import { format } from "date-fns";
 import {
   Wifi,
@@ -198,37 +199,6 @@ export const OtherPosts = () => {
     );
   }
 
-  const handleChatClick = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const currentUserId = getUserIdFromToken(); // your existing util
-      const otherUserId = selectedPost.postedBy._id;
-      const roomId = selectedPost._id;
-      console.log("current", currentUserId);
-      console.log("other", otherUserId);
-      console.log("roomid:", roomId);
-      const response = await axios.post(
-        "http://localhost:5000/api/chatroom/create",
-        {
-          userId: currentUserId,
-          otherUserId,
-          roomId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const chatId = response.data._id; // or response.data.chatId based on your backend
-      navigate({ to: `/chat/${chatId}` });
-    } catch (error) {
-      console.error("Failed to start chat:", error);
-      alert("Could not start chat. Please try again.");
-    }
-  };
-
   return (
     <div className="bg-gradient-to-tr from-sky-50 to-indigo-100 min-h-screen p-6 lg:p-8">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-4 gap-8">
@@ -350,40 +320,13 @@ export const OtherPosts = () => {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <AnimatePresence>
                 {filteredPosts.map((post, index) => (
-                  <motion.div
+                  <PostCard
                     key={post._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    whileHover={{ scale: 1.03 }}
-                    className="bg-white rounded-2xl shadow-md border hover:shadow-lg transition-all overflow-hidden"
-                    ref={
+                    post={post}
+                    lastPostRef={
                       index === filteredPosts.length - 1 ? lastPostRef : null
                     }
-                  >
-                    {post.images[0] && (
-                      <img
-                        src={post.images[0]}
-                        alt="Room"
-                        className="w-full h-48 object-cover"
-                      />
-                    )}
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-800 truncate">
-                        {post.title}
-                      </h3>
-                      <p className="text-sm text-gray-500">{post.location}</p>
-                      <p className="text-indigo-600 font-semibold mt-1">
-                        ₹{post.price}/month
-                      </p>
-                      <button
-                        onClick={() => setSelectedPost(post)}
-                        className="text-sm mt-2 text-indigo-700 hover:underline"
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </motion.div>
+                  />
                 ))}
               </AnimatePresence>
             </div>
@@ -401,66 +344,6 @@ export const OtherPosts = () => {
           )}
         </div>
       </div>
-      {/* Selected Post Modal */}
-      {selectedPost && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white max-w-2xl w-full p-6 rounded-xl relative overflow-y-auto max-h-[90vh]"
-          >
-            <button
-              className="absolute top-3 right-2.5 text-black hover:text-gray-500 text-2xl z-10 hover:cursor-pointer"
-              onClick={() => setSelectedPost(null)}
-            >
-              ×
-            </button>
-            <ImageCarousel images={selectedPost?.images || []} />
-
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              {selectedPost.title}
-            </h2>
-            <p className="text-gray-600 mb-3">{selectedPost.description}</p>
-            <div className="space-y-1 text-sm text-gray-700">
-              <p>
-                <strong>Posted By :</strong> {selectedPost.postedBy.email}
-              </p>
-              <p>
-                <strong>Location:</strong> {selectedPost.location}
-              </p>
-              <p>
-                <strong>Price:</strong> ₹{selectedPost.price}
-              </p>
-              <p>
-                <strong>Available From:</strong>{" "}
-                {format(new Date(selectedPost.availableFrom), "dd MMM yyyy")}
-              </p>
-              <p>
-                <strong>Type:</strong> {selectedPost.type}
-              </p>
-              <p>
-                <strong>Occupancy:</strong> {selectedPost.occupancy}
-              </p>
-              <p>
-                <strong>Furnished:</strong>{" "}
-                {selectedPost.furnished ? "Yes" : "No"}
-              </p>
-              <p>
-                <strong>Amenities:</strong>{" "}
-                {selectedPost.amenities.join(", ") || "None"}
-              </p>
-              {selectedPost.postedBy?.email ? (
-                <Button onClick={handleChatClick}>Chat with Owner</Button>
-              ) : (
-                <p className="mt-4 text-red-600">
-                  Email not available for contact.
-                </p>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 };

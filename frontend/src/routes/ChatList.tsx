@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
-import { useNavigate } from "@tanstack/react-router";
+import { useParams, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function ChatList() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"mine" | "others">("mine");
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"mine" | "others">("others");
 
   const email = localStorage.getItem("email") || "";
-  console.log("hi");
-  // ✅ Correct user fetch query:
+  const { chatId: urlChatId } = useParams({});
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  useEffect(() => setSelectedChatId(urlChatId || null), [urlChatId]);
+
+  // 1️⃣ Fetch current user
   const {
     data: currentUser,
     isLoading: userLoading,
@@ -19,51 +22,53 @@ export function ChatList() {
   } = useQuery({
     queryKey: ["userByEmail", email],
     queryFn: async () => {
-      if (!email) throw new Error("No email in localStorage");
+      if (!email) throw new Error("No email");
       const res = await fetch(
-        `http://localhost:5000/api/users/by-email?email=${email}`
+        `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
+          email
+        )}`
       );
-      const result = await res.json();
-      console.log("User API response:", result);
-      if (!result.success) throw new Error("Failed to fetch user data");
-      if (!result.data?._id) throw new Error("User ID missing in response");
-      return result.data; // <--- return the actual user object inside 'data'
+      const json = await res.json();
+      if (!json.success) throw new Error("Failed to fetch user");
+      return json.data;
     },
     enabled: !!email,
   });
-
   const userId = currentUser?._id;
-  console.log("userId:", userId);
 
-  // ✅ Fetch chats for this user
-  const { data: chats, isLoading: chatsLoading } = useQuery({
+  // 2️⃣ Fetch chats
+  const {
+    data: chats = [],
+    isLoading: chatsLoading,
+    error: chatsError,
+  } = useQuery({
     queryKey: ["chats", userId],
     queryFn: async () => {
+      if (!userId) return [];
       const res = await fetch(
         `http://localhost:5000/api/chatroom/user/${userId}`
       );
-      const data = await res.json();
-      if (!data.success)
-        throw new Error(data.message || "Failed to fetch chats");
-      return data.chats;
+      const json = await res.json();
+      if (!json.success) throw new Error("Failed to fetch chats");
+      return json.chats;
     },
     enabled: !!userId,
+    staleTime: 0,
   });
 
-  // ✅ Fetch rooms created by this user
-  const { data: myRooms } = useQuery({
+  // 3️⃣ Fetch rooms owned by user
+  const { data: myRooms = [] } = useQuery({
     queryKey: ["myRooms", userId],
     queryFn: async () => {
+      if (!userId) return [];
       const res = await fetch(`http://localhost:5000/api/posts/user/${userId}`);
-      const data = await res.json();
-      if (!data.success)
-        throw new Error(data.message || "Failed to fetch rooms");
-      return data.rooms;
+      const json = await res.json();
+      if (!json.success) throw new Error("Failed to fetch rooms");
+      return json.rooms;
     },
     enabled: !!userId,
+    staleTime: 0,
   });
-  console.log("Rooms", myRooms);
-  console.log("chat", chats);
   const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
 
   const filteredChats =
@@ -73,99 +78,163 @@ export function ChatList() {
       return activeTab === "mine" ? isMine : !isMine;
     }) || [];
 
+  // 5️⃣ Join all rooms on socket so you’ll get events for them
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !chats.length) return;
     if (!socket.connected) socket.connect();
 
-    // chats?.forEach((chat) => socket.emit("joinRoom", chat._id));
-
-    const onNewMessage = () => {
-      queryClient.invalidateQueries(["chats", userId]);
-    };
-
-    socket.on("receiveMessage", onNewMessage);
+    chats.forEach((chat) => {
+      socket.emit("joinRoom", chat._id);
+    });
 
     return () => {
-      socket.off("receiveMessage", onNewMessage);
+      chats.forEach((chat) => {
+        socket.emit("leaveRoom", chat._id);
+      });
     };
-  }, [userId, chats, queryClient]);
+  }, [userId, chats]);
 
-  if (userLoading) return <div>Loading user info...</div>;
-  if (userError) return <div>Error loading user info.</div>;
+  // 6️⃣ Optimistic cache patch on incoming messages for any room
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleMessage = (payload: any) => {
+      const roomId = payload.chatRoom;
+      const msg = payload.content; // { text, timestamp, ... }
+
+      queryClient.setQueryData<any[]>(["chats", userId], (old = []) => {
+        const idx = old.findIndex((c) => c._id === roomId);
+        let updatedChats = [...old];
+
+        if (idx !== -1) {
+          const existing = old[idx];
+          const updated = {
+            ...existing,
+            latestMessage: {
+              content: msg.text,
+              timestamp: msg.timestamp,
+            },
+          };
+          updatedChats = [updated, ...old.slice(0, idx), ...old.slice(idx + 1)];
+        } else {
+          // Insert new chat
+          updatedChats = [
+            {
+              _id: roomId,
+              participants: [],
+              roomId: { _id: roomId },
+              latestMessage: { content: msg.text, timestamp: msg.timestamp },
+            },
+            ...old,
+          ];
+        }
+
+        // 🔁 Determine if this is the most recent message
+        const latest = updatedChats.reduce(
+          (latest, chat) => {
+            const t = new Date(chat.latestMessage?.timestamp || 0).getTime();
+            return t > latest.time ? { time: t, chat } : latest;
+          },
+          { time: 0, chat: null }
+        );
+
+        if (latest.chat) {
+          const belongsToMyRoom = myRoomIds.includes(
+            latest.chat.roomId?._id || latest.chat.roomId
+          );
+          const correctTab = belongsToMyRoom ? "mine" : "others";
+          setActiveTab((prev) => (prev !== correctTab ? correctTab : prev));
+        }
+
+        return updatedChats;
+      });
+    };
+
+    socket.on("receiveMessage", handleMessage);
+    socket.on("updateMessage", handleMessage);
+
+    return () => {
+      socket.off("receiveMessage", handleMessage);
+      socket.off("updateMessage", handleMessage);
+    };
+  }, [userId, queryClient, myRoomIds]);
+
+  if (userLoading || chatsLoading) {
+    return <div className="w-80 p-4 text-center">Loading...</div>;
+  }
+  if (userError || chatsError) {
+    return (
+      <div className="w-80 p-4 text-center text-red-600">Error loading</div>
+    );
+  }
 
   return (
-    <div className="w-80 h-[90vh] bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
-      {/* Tabs */}
-      <div className="flex bg-white/70 dark:bg-gray-800/70 border-b border-gray-200 dark:border-gray-700">
-        {["mine", "others"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab as "mine" | "others")}
-            className={`relative flex-1 py-3 text-sm font-medium transition-colors duration-300 ${
-              activeTab === tab
-                ? "text-blue-600"
-                : "text-gray-500 dark:text-gray-400 hover:text-blue-500"
-            }`}
-          >
-            {tab === "mine" ? "Chat With Tenants" : "Chat With Oswners"}
-            {activeTab === tab && (
-              <motion.div
-                layoutId="underline"
-                className="absolute bottom-0 left-3 right-3 h-[3px] bg-blue-600 rounded-full"
-              />
-            )}
-          </button>
-        ))}
+    <div className="w-80 border-r flex flex-col">
+      <div className="flex border-b">
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${
+            activeTab === "mine" ? "border-b-2 text-blue-600" : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("mine")}
+        >
+          My Room Chats
+        </button>
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${
+            activeTab === "others"
+              ? "border-b-2 text-blue-600"
+              : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("others")}
+        >
+          Other Room Chats
+        </button>
       </div>
 
-      {/* Chat List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-thin scrollbar-thumb-blue-200 dark:scrollbar-thumb-blue-500 scrollbar-track-transparent">
-        {chatsLoading ? (
-          <div className="text-gray-500 dark:text-gray-400 text-center py-12 animate-pulse">
-            Loading chats...
-          </div>
-        ) : filteredChats.length === 0 ? (
-          <div className="text-gray-400 dark:text-gray-500 text-center py-12 italic">
-            No chats found.
-          </div>
-        ) : (
-          <AnimatePresence mode="popLayout">
-            {filteredChats.map((chat) => {
-              console.log("hi", chat);
+      <div className="flex-1 overflow-y-auto">
+        <AnimatePresence>
+          {filteredChats.length === 0 && (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <p className="p-4 text-center text-gray-500">No chats</p>
+            </motion.div>
+          )}
 
-              const otherUser = chat.participants.find(
-                (m) => m._id?.toString() !== userId
-              );
-              return (
-                <motion.div
-                  key={chat._id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  layout
-                  onClick={() => {
-                    navigate({ to: `/chat/${chat._id}` });
-                  }}
-                  className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-700 transition-all duration-200 rounded-xl shadow-md border border-gray-100 dark:border-gray-600 cursor-pointer"
-                >
-                  <img
-                    src="/user.png"
-                    alt="User Avatar"
-                    className="w-12 h-12 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm"
-                  />
-                  <div className="flex flex-col overflow-hidden">
-                    <p className="font-semibold text-gray-900 dark:text-white truncate max-w-[200px]">
-                      {otherUser?.email || "Unknown User"}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[200px]">
-                      {chat.latestMessage?.content || "No messages yet"}
-                    </p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        )}
+          {filteredChats.map((chat) => {
+            const isSelected = selectedChatId === chat._id;
+            const other = chat.participants.find((p: any) => p.email !== email);
+            const lm = chat.latestMessage || {};
+            return (
+              <motion.div
+                key={chat._id}
+                layout
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className={`cursor-pointer p-3 border-b ${
+                  isSelected ? "bg-blue-100" : ""
+                }`}
+                onClick={() =>
+                  navigate({
+                    to: "/chat/$chatId",
+                    params: { chatId: chat._id },
+                  })
+                }
+              >
+                <div className="font-semibold">{other?.email || "Unknown"}</div>
+                <div className="text-sm text-gray-600 truncate">
+                  {lm.content || "No messages yet"}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {lm.timestamp ? new Date(lm.timestamp).toLocaleString() : ""}
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );

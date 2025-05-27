@@ -9,6 +9,7 @@ const postRoutes = require("./routes/postRoutes");
 const chatRoomRoutes = require("./routes/chatRoomRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const cloudinaryRoutes = require("./routes/cloudinaryRoutes");
+const User = require("./models/User");
 
 dotenv.config();
 connectDB();
@@ -36,16 +37,24 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", (chatId) => {
     socket.join(chatId);
     console.log("joinRoom", chatId);
-    socket.emit("joinRoom", { chatId });
-    //  console.log(`User ${socket.id} joined chat room ${chatId}`);
   });
 
-  socket.on("sendMessage", (data) => {
-    console.log("send message", data.chatId);
-    const { chatId, message } = data;
-    // console.log("📩 Broadcasting message to:", chatId);
-    io.to(chatId).emit("receiveMessage", message);
+  socket.on("sendMessage", async ({ chatId, message, sender }) => {
+    const user = await User.findById(sender).select("email");
+    const senderEmail = user?.email || "Unknown";
+    const msg = {
+      content: message, // ✅ message is just a string now
+      sender,
+      timestamp: new Date().toISOString(),
+      chatRoom: chatId,
+    };
+
+    // Send message to current chat room
+    socket.to(chatId).emit("receiveMessage", msg);
+    io.to(chatId).emit("updateMessage", msg);
+    // Broadcast ChatList update to sender & receiver (not chat-specific)
   });
+
   socket.on("leaveRoom", (chatId) => {
     console.log(`User ${socket.id} left chat room ${chatId}`);
     socket.leave(chatId);
