@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema({
     required: true, // Email is required when creating a user
     unique: true, // Ensure no two users have the same email
   },
+  name:{
+    type:String,
+    unique:true,
+    required:true,
+  },
   password: {
     type: String, // Password will be a string
     required: true, // Password is required when creating a user
