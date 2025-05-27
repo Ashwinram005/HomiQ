@@ -263,15 +263,15 @@ export const MyPosts = () => {
             🏡 Your Property Listings
           </h1>
         </div>
-        <Button
-          variant="default"
-          size="lg"
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-300 rounded-xl px-6 py-2"
-          onClick={() => navigate({ to: "/ownerchatpage" })}
+      <Button
+        variant="default"
+        size="lg"
+        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md transition-all duration-300 rounded-xl px-6 py-2"
+        onClick={() => navigate({ to: "/ownerchatpage" })}
         >
-          💬 Chat with Tenants
-        </Button>
-      </div>
+        💬 Chat with Tenants
+      </Button>
+        </div>
       <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-6">
         <aside className="bg-white shadow-xl rounded-2xl p-6 h-fit sticky top-20">
           <h2 className="text-2xl font-bold text-indigo-700 mb-4">Filters</h2>

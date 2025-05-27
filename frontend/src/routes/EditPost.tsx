@@ -26,6 +26,7 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft } from "lucide-react";
 
 const amenitiesList = [
   "Wi-Fi",
@@ -258,6 +259,14 @@ export function EditPost() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
+        <Button
+          type="button"
+          onClick={() => navigate({ to: "/myposts" })}
+          className="flex items-center gap-2 bg-gray-800 text-white hover:bg-gray-700 transition px-4 py-2 rounded-md text-sm mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
         <h2 className="text-4xl font-extrabold text-indigo-700">Edit Post</h2>
 
         {/* Title */}

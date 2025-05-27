@@ -237,6 +237,7 @@ const LandingPage: React.FC = () => {
               <option value="Room">Room</option>
               <option value="House">House</option>
               <option value="PG">PG</option>
+              <option value="Shared">Shared</option>
             </select>
 
             {/* Occupancy */}
@@ -247,7 +248,9 @@ const LandingPage: React.FC = () => {
             >
               <option value="all">👥 Occupancy</option>
               <option value="Single">Single</option>
-              <option value="Shared">Shared</option>
+              <option value="Double">Double</option>
+              <option value="Triple">Triple</option>
+              <option value="Any">Any</option>
             </select>
 
             {/* Furnished */}

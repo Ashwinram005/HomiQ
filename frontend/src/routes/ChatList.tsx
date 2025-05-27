@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 
 export function ChatList() {
   const queryClient = useQueryClient();
@@ -170,6 +171,16 @@ export function ChatList() {
 
   return (
     <div className="w-80 border-r flex flex-col">
+      <div className="p-3 border-b">
+        <button
+          onClick={() => navigate({ to: "/dashboard" })}
+          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-md transition-colors duration-200"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
+      </div>
+
       <div className="flex border-b">
         <button
           className={`flex-1 py-2 text-center font-semibold ${
