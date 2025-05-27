@@ -24,6 +24,7 @@ export const loginSchema = z.object({
 
 export const signupSchema = z
   .object({
+    name: z.string().nonempty("Username is required"),
     email: z
       .string()
       .nonempty("Email is required")
@@ -193,6 +194,7 @@ function SignupForm({ onSuccess }: SignupFormProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          name: data.name,
           email: data.email,
           password: data.password,
           confirmPassword: data.confirmPassword,
@@ -219,6 +221,18 @@ function SignupForm({ onSuccess }: SignupFormProps) {
         <p className="text-sm text-muted-foreground">
           Enter your details to sign up for a new account
         </p>
+      </div>
+      <div className="grid gap-3">
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          type="name"
+          placeholder="E.g. John Doe"
+          {...register("name")}
+        />
+        {errors.name && (
+          <p className="text-red-500 text-sm">{errors.name.message}</p>
+        )}
       </div>
 
       <div className="grid gap-3">

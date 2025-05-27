@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken"); // Import JWT for token generation
 
 const registerUser = async (req, res) => {
-  const { email, password, confirmPassword } = req.body;
+  const { name,email, password, confirmPassword } = req.body;
 
   if (password !== confirmPassword) {
     return res.status(400).json({ message: "Passwords do not match" });
@@ -11,12 +11,18 @@ const registerUser = async (req, res) => {
 
   try {
     const existingUser = await User.findOne({ email });
+    const existingName= await User.findOne({name});
 
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
+    if(existingName){
+      return res.status(400).json({
+        message:"Username already exists"
+      })
+    }
 
-    const newUser = new User({ email, password });
+    const newUser = new User({ name,email, password });
     await newUser.save();
 
     res.status(201).json({ message: "User registered successfully" });

@@ -12,6 +12,7 @@ const signupSchema = z
       .string()
       .nonempty("Email is required")
       .email("Enter a valid email address"),
+    name: z.string().nonempty("Username is required"),
     password: z
       .string()
       .nonempty("Password is required")
@@ -65,6 +66,18 @@ export function SignupForm({
           />
           {errors.email && (
             <p className="text-red-500 text-sm">{errors.email.message}</p>
+          )}
+        </div>
+        <div className="grid gap-3">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            type="name"
+            placeholder="E.g. John Doe"
+            {...register("name")}
+          />
+          {errors.name && (
+            <p className="text-red-500 text-sm">{errors.name.message}</p>
           )}
         </div>
 
