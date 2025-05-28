@@ -1,6 +1,16 @@
 const User = require("../models/User"); // Import User model
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken"); // Import JWT for token generation
+const Otp = require("../models/Otp");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "santhoshkannan525@gmail.com",
+    pass: "cwsk vnmz djcw rakg",
+  },
+});
 
 const registerUser = async (req, res) => {
   const { name, email, password, confirmPassword } = req.body;
@@ -12,7 +22,6 @@ const registerUser = async (req, res) => {
   try {
     const existingUser = await User.findOne({ email });
     const existingName = await User.findOne({ name });
-
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -21,13 +30,24 @@ const registerUser = async (req, res) => {
         message: "Username already exists",
       });
     }
-
-    const newUser = new User({ name, email, password });
-    await newUser.save();
-
-    res.status(201).json({ message: "User registered successfully" });
+    console.log("hi");
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await Otp.deleteMany({ email });
+    await Otp.create({ email, name, otp, expiresAt, password });
+    await transporter.sendMail({
+      from: "santhoshkannan525@gmail.com",
+      to: email,
+      subject: "OTP verification",
+      text: `Your OTP is ${otp}. It will expire in 5 minutes`,
+    });
+    return res.json({
+      message: "OTP sent successfully",
+      error: false,
+      success: true,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    return res.status(500).json({ message: "Server error", error });
   }
 };
 
