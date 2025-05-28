@@ -136,10 +136,49 @@ async function changePassword(req, res) {
   }
 }
 
+async function changeName(req, res) {
+  const { newName, email } = req.body;
+
+  try {
+    const user = await User.findOne({ name: newName });
+    if (user) {
+      return res.status(400).json({
+        message: "Name already exists",
+        error: true,
+        success: false,
+      });
+    }
+
+    const updateUser = await User.findOneAndUpdate(
+      { email },
+      { name: newName }
+    );
+    if (updateUser)
+      return res.status(200).json({
+        message: "Name Changed Successfully",
+        error: false,
+        success: true,
+      });
+    else
+      return res.status(404).json({
+        message: "User not found",
+        error: true,
+        success: false,
+      });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      error: true,
+      success: false,
+    });
+  }
+}
+
 module.exports = {
   registerUser,
   loginUser,
   getUserByEmail,
   verifyPassword,
   changePassword,
+  changeName,
 };
