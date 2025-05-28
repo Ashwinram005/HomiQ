@@ -5,7 +5,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -112,13 +112,13 @@ export function ProfilePage() {
         toast.success("Password verified successfully!");
       } else {
         setIsCurrentPasswordValid(false);
-        setVerifyMessage("❌ Invalid password");
+        setVerifyMessage("Invalid password");
         toast.error("Invalid current password");
       }
     } catch (err) {
       setIsCurrentPasswordValid(false);
-      setVerifyMessage("❌ Error verifying password");
-      toast.error("Error verifying password");
+      setVerifyMessage(" Error verifying password");
+      toast.error(err || "Error verifying password");
     } finally {
       setVerifying(false);
     }
@@ -180,64 +180,80 @@ export function ProfilePage() {
     );
 
   return (
-    <div className="w-full min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-lg flex flex-col md:flex-row overflow-hidden ring-1 ring-gray-200">
-        <Toaster />
-        <div className="md:w-1/3 bg-gradient-to-b from-indigo-700 to-indigo-900 text-white p-12 flex flex-col justify-center space-y-8">
-          <h2 className="text-4xl font-extrabold border-b border-indigo-400 pb-4 mb-8 tracking-wide select-none">
+    <div className="w-full min-h-screen bg-gray-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row ring-1 ring-gray-300">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            classNames: {
+              toast:
+                "bg-white shadow-md border border-gray-200 text-gray-900 rounded-xl",
+              description: "text-sm text-gray-600",
+              actionButton:
+                "bg-indigo-600 text-white px-3 py-1 rounded-md text-sm",
+              cancelButton: "text-gray-500 text-sm",
+            },
+          }}
+        />
+        {/* Left Profile Info Panel */}
+        <div className="md:w-1/3 bg-gradient-to-b from-indigo-700 to-indigo-900 text-white p-10 space-y-8 flex flex-col">
+          <h2 className="text-4xl font-extrabold border-b border-indigo-400 pb-4">
             Profile Info
           </h2>
-          <div className="space-y-5 text-lg leading-relaxed">
-            <div>
-              <label className="font-semibold block mb-1 select-none text-indigo-100">
-                Name
-              </label>
-              {editingName ? (
-                <div className="flex items-center space-x-4 w-full">
-                  <input
-                    type="text"
-                    className="flex-grow text-lg px-4 py-3 rounded-md text-gray-900 focus:outline-none focus:ring-4 focus:ring-sky-400"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    autoFocus
-                    spellCheck={false}
-                  />
-                  <button
-                    onClick={handleNameSave}
-                    className="bg-white text-sky-700 px-6 py-3 rounded-md font-semibold hover:bg-sky-100 transition select-none"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingName(false);
-                      setNewName(user.name);
-                    }}
-                    className="bg-transparent border border-white px-6 py-3 rounded-md font-semibold hover:bg-white hover:text-sky-700 transition select-none"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-sky-200 text-lg font-medium">
-                    {user.name}
-                  </span>
-                  <button
-                    onClick={() => setEditingName(true)}
-                    className="text-sm bg-white text-sky-700 px-4 py-2 rounded-md font-semibold hover:bg-sky-100 transition select-none"
-                  >
-                    Edit
-                  </button>
-                </div>
-              )}
-            </div>
 
-            <p>
-              <span className="font-semibold">Email:</span>{" "}
-              <span className="text-indigo-100">{user.email}</span>
-            </p>
+          {/* Name Field */}
+          <div>
+            <label className="text-indigo-100 font-semibold block mb-2">
+              Name
+            </label>
+            {editingName ? (
+              <div className="flex items-center gap-4">
+                <input
+                  type="text"
+                  className="flex-grow px-4 py-2 rounded-md text-gray-800 focus:outline-none focus:ring-4 focus:ring-sky-400"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  autoFocus
+                  spellCheck={false}
+                />
+                <button
+                  onClick={handleNameSave}
+                  className="bg-white text-sky-700 px-4 py-2 rounded-md font-semibold hover:bg-sky-100 transition"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingName(false);
+                    setNewName(user.name);
+                  }}
+                  className="bg-transparent border border-white px-4 py-2 rounded-md font-semibold hover:bg-white hover:text-sky-700 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-sky-200 text-lg font-medium">
+                  {user.name}
+                </span>
+                <button
+                  onClick={() => setEditingName(true)}
+                  className="text-sm bg-white text-sky-700 px-3 py-2 rounded-md font-semibold hover:bg-sky-100 transition"
+                >
+                  Edit
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Email Display */}
+          <div className="text-indigo-100">
+            <span className="font-semibold">Email:</span>{" "}
+            <span>{user.email}</span>
+          </div>
+
+          {/* Change Password Toggle */}
           <button
             onClick={() => {
               setShowChangePassword(!showChangePassword);
@@ -245,14 +261,14 @@ export function ProfilePage() {
               setVerifyMessage("");
               reset();
             }}
-            className="mt-auto bg-white text-indigo-900 font-semibold py-3 rounded-xl shadow-md hover:bg-indigo-100 transition duration-300 active:scale-[0.98] select-none"
+            className="mt-auto bg-white text-indigo-900 font-semibold py-3 rounded-xl shadow-md hover:bg-indigo-100 transition"
           >
             {showChangePassword ? "Cancel" : "Change Password"}
           </button>
         </div>
 
-        {/* Right panel: Change Password Form */}
-        <div className="md:w-2/3 p-12">
+        {/* Right Password Change Panel */}
+        <div className="md:w-2/3 p-10 bg-white">
           <AnimatePresence>
             {showChangePassword ? (
               <motion.form
@@ -268,7 +284,7 @@ export function ProfilePage() {
                 <div className="relative">
                   <label
                     htmlFor="currentPassword"
-                    className="block text-gray-800 font-semibold mb-2 select-none"
+                    className="block text-gray-700 font-semibold mb-2"
                   >
                     Current Password
                   </label>
@@ -278,22 +294,22 @@ export function ProfilePage() {
                     placeholder="Enter current password"
                     disabled={isCurrentPasswordValid}
                     {...register("currentPassword")}
-                    className={`w-full px-5 py-3 pr-12 border rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400 transition disabled:opacity-60 placeholder-gray-400 ${
+                    className={`w-full px-4 py-3 pr-12 rounded-lg border shadow-sm focus:outline-none transition ${
                       errors.currentPassword
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300"
+                        ? "border-red-500 focus:ring-2 focus:ring-red-400"
+                        : "border-gray-300 focus:ring-2 focus:ring-indigo-400"
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrent((prev) => !prev)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
+                    className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600"
                     tabIndex={-1}
                   >
                     {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                   {errors.currentPassword && (
-                    <p className="text-red-500 text-sm mt-1">
+                    <p className="text-sm text-red-500 mt-1">
                       {errors.currentPassword.message}
                     </p>
                   )}
@@ -301,7 +317,7 @@ export function ProfilePage() {
                     <button
                       type="button"
                       onClick={handleVerifyCurrentPassword}
-                      className="mt-3 bg-indigo-600 text-white font-semibold py-2 px-5 rounded-xl shadow hover:bg-indigo-700 transition"
+                      className="mt-3 bg-indigo-600 text-white py-2 px-5 rounded-lg font-semibold hover:bg-indigo-700 transition"
                       disabled={verifying}
                     >
                       {verifying ? "Verifying..." : "Verify"}
@@ -326,7 +342,7 @@ export function ProfilePage() {
                     <div className="relative">
                       <label
                         htmlFor="newPassword"
-                        className="block text-gray-800 font-semibold mb-2 select-none"
+                        className="block text-gray-700 font-semibold mb-2"
                       >
                         New Password
                       </label>
@@ -335,28 +351,28 @@ export function ProfilePage() {
                         type={showNew ? "text" : "password"}
                         placeholder="Enter new password"
                         {...register("newPassword")}
-                        className={`w-full px-5 py-3 pr-12 border rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400 transition placeholder-gray-400 ${
+                        className={`w-full px-4 py-3 pr-12 rounded-lg border shadow-sm focus:outline-none transition ${
                           errors.newPassword
-                            ? "border-red-500 focus:ring-red-400"
-                            : "border-gray-300"
+                            ? "border-red-500 focus:ring-2 focus:ring-red-400"
+                            : "border-gray-300 focus:ring-2 focus:ring-indigo-400"
                         }`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowNew((prev) => !prev)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
+                        className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600"
                         tabIndex={-1}
                       >
                         {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                       {errors.newPassword && (
-                        <p className="text-red-500 text-sm mt-1">
+                        <p className="text-sm text-red-500 mt-1">
                           {errors.newPassword.message}
                         </p>
                       )}
                       {newPassword && (
                         <div className="mt-3">
-                          <div className="flex space-x-1">
+                          <div className="flex gap-1">
                             {Array(4)
                               .fill(0)
                               .map((_, i) => (
@@ -377,11 +393,11 @@ export function ProfilePage() {
                       )}
                     </div>
 
-                    {/* Confirm Password */}
+                    {/* Confirm New Password */}
                     <div className="relative">
                       <label
                         htmlFor="confirmNewPassword"
-                        className="block text-gray-800 font-semibold mb-2 select-none"
+                        className="block text-gray-700 font-semibold mb-2"
                       >
                         Confirm New Password
                       </label>
@@ -390,31 +406,32 @@ export function ProfilePage() {
                         type={showConfirm ? "text" : "password"}
                         placeholder="Re-enter new password"
                         {...register("confirmNewPassword")}
-                        className={`w-full px-5 py-3 pr-12 border rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400 transition placeholder-gray-400 ${
+                        className={`w-full px-4 py-3 pr-12 rounded-lg border shadow-sm focus:outline-none transition ${
                           errors.confirmNewPassword
-                            ? "border-red-500 focus:ring-red-400"
-                            : "border-gray-300"
+                            ? "border-red-500 focus:ring-2 focus:ring-red-400"
+                            : "border-gray-300 focus:ring-2 focus:ring-indigo-400"
                         }`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirm((prev) => !prev)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
+                        className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600"
                         tabIndex={-1}
                       >
                         {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                       {errors.confirmNewPassword && (
-                        <p className="text-red-500 text-sm mt-1">
+                        <p className="text-sm text-red-500 mt-1">
                           {errors.confirmNewPassword.message}
                         </p>
                       )}
                     </div>
 
+                    {/* Submit */}
                     <div className="pt-4">
                       <button
                         type="submit"
-                        className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow hover:bg-indigo-700 transition"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition"
                       >
                         Update Password
                       </button>
@@ -428,7 +445,7 @@ export function ProfilePage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ duration: 0.35 }}
-                className="text-center text-gray-600 text-lg p-8"
+                className="text-center text-gray-600 text-lg"
               >
                 <p className="mb-2 font-medium">
                   Click on <strong>Change Password</strong> to get started.
