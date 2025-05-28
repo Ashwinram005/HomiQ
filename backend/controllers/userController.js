@@ -30,7 +30,6 @@ const registerUser = async (req, res) => {
         message: "Username already exists",
       });
     }
-    console.log("hi");
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     await Otp.deleteMany({ email });
