@@ -1,6 +1,3 @@
-import React, { StrictMode } from "react";
-import ReactDOM from "react-dom/client";
-
 import {
   Outlet,
   RouterProvider,
@@ -9,44 +6,47 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
-
-import { Toaster } from "react-hot-toast";
-
-import LandingPage from "./routes/LandingPage";
-import Dashboard from "./routes/Dashboard";
-import MultiStepPostForm from "./routes/MultiStepPostForm";
-import MyPosts from "./routes/MyPosts";
-import OtherPosts from "./routes/OtherPosts";
-import ChatRoute from "./routes/Chat";
-import EmptyChatRoute from "./routes/EmptyChat";
-import EditPostRoute from "./routes/EditPost";
-import SinglePostRoute from "./routes/SinglePost";
-import ProfilePageRoute from "./routes/ProfilePage";
-import Wildcard from "./routes/Wildcard";
-
-import { isAuthenticated } from "./lib/auth";
+// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { StrictMode } from "react";
+import ReactDOM from "react-dom/client";
+import Dashboard from "./routes/Dashboard.tsx";
 
 import TanstackQueryLayout from "./integrations/tanstack-query/layout";
+
 import * as TanstackQuery from "./integrations/tanstack-query/root-provider";
 
 import "./styles.css";
+import reportWebVitals from "./reportWebVitals.ts";
 import "leaflet/dist/leaflet.css";
 
-import reportWebVitals from "./reportWebVitals";
-import App from "./App";
+import App from "./App.tsx";
+import Wildcard from "./routes/Wildcard.tsx";
+import { isAuthenticated } from "./lib/auth.ts";
+import MultiStepPostForm from "./routes/MultiStepPostForm.tsx";
+import MyPosts from "./routes/MyPosts.tsx";
+import OtherPosts from "./routes/OtherPosts.tsx";
+import ChatRoute from "./routes/Chat.tsx";
+import EmptyChatRoute from "./routes/EmptyChat.tsx";
+import EditPostRoute from "./routes/EditPost.tsx";
+import SinglePostRoute from "./routes/SinglePost.tsx";
+import ProfilePageRoute from "./routes/ProfilePage.tsx";
 
-// 1. Root layout component - renders Toaster and child routes
-
-// 2. Define root route with layout = App
 const rootRoute = createRootRoute({
-  component: App,
+  component: () => (
+    <>
+      {/* <Header /> */}
+      <Outlet />
+      {/* <TanStackRouterDevtools /> */}
+
+      <TanstackQueryLayout />
+    </>
+  ),
 });
 
-// 3. Define index route "/" renders LandingPage, redirect to dashboard if authenticated
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: LandingPage,
+  component: App,
   beforeLoad: async () => {
     const auth = await isAuthenticated();
     if (auth) {
@@ -55,35 +55,20 @@ const indexRoute = createRoute({
   },
 });
 
-// 4. Dashboard route, protected, redirect to "/" if not authenticated
-const dashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/dashboard",
-  component: Dashboard,
-  beforeLoad: async () => {
-    const auth = await isAuthenticated();
-    if (!auth) {
-      return redirect({ to: "/" });
-    }
-  },
-});
-
-// 5. Other routes — add with the rootRoute as parent
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  dashboardRoute,
   ProfilePageRoute(rootRoute),
   EmptyChatRoute(rootRoute),
+  Dashboard(rootRoute),
+  Wildcard(rootRoute),
   MultiStepPostForm(rootRoute),
   MyPosts(rootRoute),
   OtherPosts(rootRoute),
   EditPostRoute(rootRoute),
   ChatRoute(rootRoute),
   SinglePostRoute(rootRoute),
-  Wildcard(rootRoute),
 ]);
 
-// 6. Create router with Tanstack Query context and options
 const router = createRouter({
   routeTree,
   context: {
@@ -95,14 +80,12 @@ const router = createRouter({
   defaultPreloadStaleTime: 0,
 });
 
-// 7. Register router type for TypeScript
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }
 }
 
-// 8. Render root app with RouterProvider and Query provider
 const rootElement = document.getElementById("app");
 if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
@@ -115,5 +98,7 @@ if (rootElement && !rootElement.innerHTML) {
   );
 }
 
-// 9. Optional: measure performance
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
