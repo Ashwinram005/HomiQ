@@ -317,7 +317,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           </div>
 
           <Button type="submit" className="w-full">
-            Sign Up
+            Send Otp
           </Button>
         </>
       ) : (
