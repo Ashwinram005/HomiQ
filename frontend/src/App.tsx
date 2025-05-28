@@ -1,9 +1,12 @@
-import { AuthForm } from "./components/AuthForm";
+import { Outlet } from "@tanstack/react-router";
 import { Toaster } from "react-hot-toast";
-import LandingPage from "./routes/LandingPage";
 
-function App() {
-  return <LandingPage />;
+export default function App() {
+  return (
+    <>
+      <Toaster position="top-right" />
+      {/* Possibly add header/nav here */}
+      <Outlet />
+    </>
+  );
 }
-
-export default App;

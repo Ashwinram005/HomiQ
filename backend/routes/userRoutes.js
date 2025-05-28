@@ -5,6 +5,7 @@ const {
   getUserByEmail,
   verifyPassword,
   changePassword,
+  changeName,
 } = require("../controllers/userController");
 const verifyToken = require("../middleware/authMiddleware"); // Import token verification middleware
 const router = express.Router();
@@ -17,6 +18,7 @@ router.post("/login", loginUser);
 router.get("/by-email", getUserByEmail);
 router.post("/verify-password", verifyPassword);
 router.post("/change-password", changePassword);
+router.put("/update-name", changeName);
 router.get("/validate-token", verifyToken, (req, res) => {
   res.status(200).json({ message: "Token is valid" });
 });
