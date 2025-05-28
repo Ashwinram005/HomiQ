@@ -5,7 +5,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -72,16 +72,24 @@ export function ProfilePage() {
 
   // Save edited name API call
   const handleNameSave = async () => {
-    if (!newName.trim()) {
+    const trimmed = newName.trim();
+    if (!trimmed) {
       toast.error("Name cannot be empty");
       return;
     }
+
+    // 🛑 If they re–enter exactly their existing name, do nothing
+    if (trimmed === user.name) {
+      setEditingName(false);
+      return;
+    }
+
     try {
       await axios.put("http://localhost:5000/api/users/update-name", {
         email,
-        newName: newName.trim(),
+        newName: trimmed,
       });
-      setUser((prev: any) => ({ ...prev, name: newName.trim() }));
+      setUser((prev: any) => ({ ...prev, name: trimmed }));
       setEditingName(false);
       toast.success("Name updated successfully!");
     } catch (err: any) {
@@ -174,7 +182,7 @@ export function ProfilePage() {
   return (
     <div className="w-full min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-lg flex flex-col md:flex-row overflow-hidden ring-1 ring-gray-200">
-        {/* Left panel: User Info */}
+        <Toaster />
         <div className="md:w-1/3 bg-gradient-to-b from-indigo-700 to-indigo-900 text-white p-12 flex flex-col justify-center space-y-8">
           <h2 className="text-4xl font-extrabold border-b border-indigo-400 pb-4 mb-8 tracking-wide select-none">
             Profile Info
@@ -282,142 +290,149 @@ export function ProfilePage() {
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
                     tabIndex={-1}
                   >
-                    {showCurrent ? <EyeOff size={24} /> : <Eye size={24} />}
+                    {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                   {errors.currentPassword && (
-                    <p className="mt-1 text-red-600 text-sm select-none">
+                    <p className="text-red-500 text-sm mt-1">
                       {errors.currentPassword.message}
                     </p>
                   )}
+                  {!isCurrentPasswordValid && (
+                    <button
+                      type="button"
+                      onClick={handleVerifyCurrentPassword}
+                      className="mt-3 bg-indigo-600 text-white font-semibold py-2 px-5 rounded-xl shadow hover:bg-indigo-700 transition"
+                      disabled={verifying}
+                    >
+                      {verifying ? "Verifying..." : "Verify"}
+                    </button>
+                  )}
+                  {verifyMessage && (
+                    <p
+                      className={`text-sm mt-2 ${
+                        isCurrentPasswordValid
+                          ? "text-green-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {verifyMessage}
+                    </p>
+                  )}
                 </div>
-
-                {/* Verify button & message */}
-                {!isCurrentPasswordValid && (
-                  <button
-                    type="button"
-                    onClick={handleVerifyCurrentPassword}
-                    disabled={verifying || !watch("currentPassword")}
-                    className="w-full bg-indigo-700 hover:bg-indigo-800 disabled:bg-indigo-300 text-white font-semibold py-3 rounded-xl shadow-md transition select-none"
-                  >
-                    {verifying ? "Verifying..." : "Verify Current Password"}
-                  </button>
-                )}
-                {verifyMessage && (
-                  <p
-                    className={`mt-2 text-center select-none ${
-                      isCurrentPasswordValid ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {verifyMessage}
-                  </p>
-                )}
 
                 {/* New Password */}
-                <div className="relative">
-                  <label
-                    htmlFor="newPassword"
-                    className="block text-gray-800 font-semibold mb-2 select-none"
-                  >
-                    New Password
-                  </label>
-                  <input
-                    id="newPassword"
-                    type={showNew ? "text" : "password"}
-                    placeholder="Enter new password"
-                    disabled={!isCurrentPasswordValid}
-                    {...register("newPassword")}
-                    className={`w-full px-5 py-3 pr-12 border rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400 transition disabled:opacity-60 placeholder-gray-400 ${
-                      errors.newPassword
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNew((prev) => !prev)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
-                    tabIndex={-1}
-                  >
-                    {showNew ? <EyeOff size={24} /> : <Eye size={24} />}
-                  </button>
-                  {errors.newPassword && (
-                    <p className="mt-1 text-red-600 text-sm select-none">
-                      {errors.newPassword.message}
-                    </p>
-                  )}
-
-                  {/* Password Strength Bar */}
-                  <div
-                    className="flex space-x-1 mt-2 select-none"
-                    aria-label="password strength meter"
-                  >
-                    {[0, 1, 2, 3].map((index) => (
-                      <div
-                        key={index}
-                        className={`h-2 flex-1 rounded-full ${
-                          index < strength
-                            ? strengthColors[strength - 1]
-                            : "bg-gray-300"
+                {isCurrentPasswordValid && (
+                  <>
+                    <div className="relative">
+                      <label
+                        htmlFor="newPassword"
+                        className="block text-gray-800 font-semibold mb-2 select-none"
+                      >
+                        New Password
+                      </label>
+                      <input
+                        id="newPassword"
+                        type={showNew ? "text" : "password"}
+                        placeholder="Enter new password"
+                        {...register("newPassword")}
+                        className={`w-full px-5 py-3 pr-12 border rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400 transition placeholder-gray-400 ${
+                          errors.newPassword
+                            ? "border-red-500 focus:ring-red-400"
+                            : "border-gray-300"
                         }`}
                       />
-                    ))}
-                  </div>
-                </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowNew((prev) => !prev)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
+                        tabIndex={-1}
+                      >
+                        {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                      {errors.newPassword && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.newPassword.message}
+                        </p>
+                      )}
+                      {newPassword && (
+                        <div className="mt-3">
+                          <div className="flex space-x-1">
+                            {Array(4)
+                              .fill(0)
+                              .map((_, i) => (
+                                <div
+                                  key={i}
+                                  className={`h-2 flex-1 rounded-full ${
+                                    strength > i
+                                      ? strengthColors[strength - 1]
+                                      : "bg-gray-300"
+                                  }`}
+                                />
+                              ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Password strength
+                          </p>
+                        </div>
+                      )}
+                    </div>
 
-                {/* Confirm New Password */}
-                <div className="relative">
-                  <label
-                    htmlFor="confirmNewPassword"
-                    className="block text-gray-800 font-semibold mb-2 select-none"
-                  >
-                    Confirm New Password
-                  </label>
-                  <input
-                    id="confirmNewPassword"
-                    type={showConfirm ? "text" : "password"}
-                    placeholder="Confirm new password"
-                    disabled={!isCurrentPasswordValid}
-                    {...register("confirmNewPassword")}
-                    className={`w-full px-5 py-3 pr-12 border rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400 transition disabled:opacity-60 placeholder-gray-400 ${
-                      errors.confirmNewPassword
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm((prev) => !prev)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
-                    tabIndex={-1}
-                  >
-                    {showConfirm ? <EyeOff size={24} /> : <Eye size={24} />}
-                  </button>
-                  {errors.confirmNewPassword && (
-                    <p className="mt-1 text-red-600 text-sm select-none">
-                      {errors.confirmNewPassword.message}
-                    </p>
-                  )}
-                </div>
+                    {/* Confirm Password */}
+                    <div className="relative">
+                      <label
+                        htmlFor="confirmNewPassword"
+                        className="block text-gray-800 font-semibold mb-2 select-none"
+                      >
+                        Confirm New Password
+                      </label>
+                      <input
+                        id="confirmNewPassword"
+                        type={showConfirm ? "text" : "password"}
+                        placeholder="Re-enter new password"
+                        {...register("confirmNewPassword")}
+                        className={`w-full px-5 py-3 pr-12 border rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-400 transition placeholder-gray-400 ${
+                          errors.confirmNewPassword
+                            ? "border-red-500 focus:ring-red-400"
+                            : "border-gray-300"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm((prev) => !prev)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition select-none"
+                        tabIndex={-1}
+                      >
+                        {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                      {errors.confirmNewPassword && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.confirmNewPassword.message}
+                        </p>
+                      )}
+                    </div>
 
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={!isCurrentPasswordValid}
-                  className="w-full bg-indigo-700 hover:bg-indigo-800 disabled:bg-indigo-300 text-white font-semibold py-3 rounded-xl shadow-md transition select-none"
-                >
-                  Change Password
-                </button>
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow hover:bg-indigo-700 transition"
+                      >
+                        Update Password
+                      </button>
+                    </div>
+                  </>
+                )}
               </motion.form>
             ) : (
               <motion.div
-                key="placeholder"
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 40 }}
                 transition={{ duration: 0.35 }}
-                className="text-center text-gray-400 italic select-none"
+                className="text-center text-gray-600 text-lg p-8"
               >
-                Click "Change Password" to edit your password
+                <p className="mb-2 font-medium">
+                  Click on <strong>Change Password</strong> to get started.
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
