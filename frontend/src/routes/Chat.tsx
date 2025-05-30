@@ -14,6 +14,7 @@ interface Message {
   _id?: string;
   chatId: string;
   text: string;
+  senderName: string;
   sender: "user" | "owner";
   senderEmail: string;
   receiverEmail: string;
@@ -54,11 +55,13 @@ async function fetchMessages(
 ) {
   const res = await fetch(`http://localhost:5000/api/messages/${chatId}`);
   const data = await res.json();
+
   if (!data.success) throw new Error("Failed to fetch messages");
   return data.messages.map((msg: any) => ({
     ...msg,
     text: msg.content,
     senderEmail: msg.sender.email,
+    senderName: msg.sender.name,
     receiverEmail:
       senderEmail === msg.sender.email ? receiverEmail : senderEmail,
     sender: msg.sender.email === senderEmail ? "user" : "owner",
@@ -138,12 +141,13 @@ export function Chat() {
     if (!socket.connected) socket.connect();
 
     socket.emit("joinRoom", chatId);
-
     const handleReceiveMessage = (msg: any) => {
+      
       const newMsg: Message = {
         _id: msg.content._id,
         chatId: msg.content.chatId,
         text: msg.content.text,
+        senderName: msg.senderName,
         sender: msg.content.senderEmail === senderEmail ? "user" : "owner",
         senderEmail: msg.content.senderEmail,
         receiverEmail: msg.content.receiverEmail,
@@ -184,6 +188,7 @@ export function Chat() {
       });
 
       const data = await res.json();
+
       if (!data.success) return;
 
       const newMsg: Message = {
@@ -191,6 +196,7 @@ export function Chat() {
         chatId,
         text: data.message.content,
         sender: "user",
+        senderName: data.message.sender.name,
         senderEmail,
         receiverEmail,
         timestamp: data.message.timestamp,
@@ -251,7 +257,7 @@ export function Chat() {
                     }`}
                   >
                     <div className="text-xs font-medium mb-1 text-gray-300 dark:text-gray-400">
-                      {isSender ? "You" : msg.senderEmail}
+                      {isSender ? "You" : msg.senderName}
                     </div>
                     <div>{msg.text}</div>
                     <div className="text-right text-xs text-gray-400 mt-1">
