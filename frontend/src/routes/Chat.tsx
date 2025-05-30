@@ -142,7 +142,6 @@ export function Chat() {
 
     socket.emit("joinRoom", chatId);
     const handleReceiveMessage = (msg: any) => {
-      
       const newMsg: Message = {
         _id: msg.content._id,
         chatId: msg.content.chatId,
@@ -256,7 +255,7 @@ export function Chat() {
                         : "bg-gray-200 dark:bg-gray-700 text-black dark:text-white"
                     }`}
                   >
-                    <div className="text-xs font-medium mb-1 text-gray-300 dark:text-gray-400">
+                    <div className="text-xs font-medium mb-1 text-neutral-500 dark:text-gray-400">
                       {isSender ? "You" : msg.senderName}
                     </div>
                     <div>{msg.text}</div>

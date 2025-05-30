@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PostCard from "./PostCard";
-import { format } from "date-fns";
 import {
   Wifi,
   Snowflake,
@@ -9,8 +8,8 @@ import {
   Home,
   Tv,
   Refrigerator,
-  ChevronLeft,
-  ChevronRight,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
@@ -22,12 +21,6 @@ import {
 } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
-
-type ImageCarouselProps = {
-  images: string[];
-};
 
 const amenitiesList = [
   { key: "wi-fi", label: "Wi-Fi", icon: <Wifi size={16} /> },
@@ -42,70 +35,26 @@ const amenitiesList = [
   },
 ];
 
-export const ImageCarousel = ({ images }: ImageCarouselProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const handlePrev = () => {
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-  };
-
-  const handleNext = () => {
-    if (currentIndex < images.length - 1) setCurrentIndex(currentIndex + 1);
-  };
-
-  return (
-    <div className="relative w-full h-64 rounded-xl overflow-hidden shadow-lg">
-      <AnimatePresence initial={false}>
-        <motion.img
-          key={images[currentIndex]}
-          src={images[currentIndex]}
-          alt={`Image ${currentIndex + 1}`}
-          className="w-full h-full object-contain"
-          initial={{ opacity: 0.5, x: 100 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -100 }}
-          transition={{ duration: 0.4 }}
-        />
-      </AnimatePresence>
-
-      {/* Prev Button */}
-      {currentIndex > 0 && (
-        <button
-          onClick={handlePrev}
-          className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
-        >
-          <ChevronLeft />
-        </button>
-      )}
-
-      {/* Next Button */}
-      {currentIndex < images.length - 1 && (
-        <button
-          onClick={handleNext}
-          className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-white/70 p-1 rounded-full hover:bg-white"
-        >
-          <ChevronRight />
-        </button>
-      )}
-
-      {/* Indicators */}
-      <div className="absolute bottom-2 w-full flex justify-center gap-1">
-        {images.map((_, idx) => (
-          <div
-            key={idx}
-            className={`w-2 h-2 rounded-full ${
-              idx === currentIndex ? "bg-white" : "bg-white/50"
-            }`}
-          ></div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 export const OtherPosts = () => {
   const navigate = useNavigate();
   const observer = useRef<IntersectionObserver | null>(null);
+
+  // Theme state & toggle
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme") || "light";
+    setTheme(storedTheme);
+    document.documentElement.classList.toggle("dark", storedTheme === "dark");
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
+
   const [filters, setFilters] = useState({
     searchQuery: "",
     locationQuery: "",
@@ -115,21 +64,27 @@ export const OtherPosts = () => {
     availableFrom: "",
     amenityFilters: [] as string[],
   });
+
   const [tempFilters, setTempFilters] = useState(filters);
 
-  const [selectedPost, setSelectedPost] = useState(null);
-  console.log("Selected Post", selectedPost);
-  // Fetch posts from backend using infinite query
+  const toggleAmenity = (amenity: string) => {
+    setTempFilters((prev) => ({
+      ...prev,
+      amenityFilters: prev.amenityFilters.includes(amenity)
+        ? prev.amenityFilters.filter((a) => a !== amenity)
+        : [...prev.amenityFilters, amenity],
+    }));
+  };
+
   const fetchOtherPosts = async ({ pageParam = 1 }) => {
     const token = localStorage.getItem("token");
     const res = await axios.get(
-      `http://localhost:5000/api/posts/others?page=${pageParam}&limit=7`, // Update this URL as needed
+      `http://localhost:5000/api/posts/others?page=${pageParam}&limit=7`,
       {
         headers: { Authorization: `Bearer ${token}` },
         params: filters,
       }
     );
-    console.log("recieved other post data", res.data);
     return res.data;
   };
 
@@ -143,27 +98,17 @@ export const OtherPosts = () => {
     queryKey: ["otherposts", filters],
     queryFn: fetchOtherPosts,
     initialPageParam: 1,
-    getNextPageParam: (lastPage, pages) => {
-      return lastPage.hasMore ? pages.length + 1 : undefined;
-    },
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.hasMore ? pages.length + 1 : undefined,
   });
 
   const allPosts = posts?.pages.flatMap((page) => page?.posts || []) || [];
   const filteredPosts = allPosts;
-
-  const toggleAmenity = (amenity) => {
-    setTempFilters((prev) => ({
-      ...prev,
-      amenityFilters: prev.amenityFilters.includes(amenity)
-        ? prev.amenityFilters.filter((a) => a !== amenity)
-        : [...prev.amenityFilters, amenity],
-    }));
-  };
-
   const lastPostRef = useRef(null);
 
   useEffect(() => {
     if (isLoading || !hasNextPage) return;
+
     const options = {
       root: null,
       rootMargin: "100px",
@@ -199,14 +144,49 @@ export const OtherPosts = () => {
     );
   }
 
+  const isDark = theme === "dark";
+
   return (
-    <div className="bg-gradient-to-tr from-sky-50 to-indigo-100 min-h-screen p-6 lg:p-8">
+    <div
+      className={`min-h-screen p-6 lg:p-8 transition-all ${
+        isDark
+          ? "bg-gradient-to-tr from-gray-900 to-gray-800 text-white"
+          : "bg-gradient-to-tr from-sky-50 to-indigo-100 text-black"
+      }`}
+    >
+      {/* Theme toggle button fixed top-right */}
+      <div className="fixed top-6 right-6 z-50 mt-3">
+        <button
+          onClick={toggleTheme}
+          className={`p-2 rounded-full shadow transition ${
+            isDark
+              ? "bg-gray-700 hover:bg-gray-600"
+              : "bg-gray-100 hover:bg-gray-200"
+          }`}
+          aria-label="Toggle Theme"
+        >
+          {isDark ? (
+            <Sun size={20} className="text-yellow-400" />
+          ) : (
+            <Moon size={20} className="text-blue-600" />
+          )}
+        </button>
+      </div>
+
       <div className="max-w-7xl mx-auto grid lg:grid-cols-4 gap-8">
         {/* Sidebar Filters */}
-        <div className="bg-white shadow-xl rounded-2xl p-6 h-fit sticky top-4">
-          <h2 className="text-2xl font-bold text-indigo-700 mb-4">Filters</h2>
+        <div
+          className={`shadow-xl rounded-2xl p-6 h-fit sticky top-4 transition ${
+            isDark ? "bg-gray-800 text-white" : "bg-white text-black"
+          }`}
+        >
+          <h2 className="text-2xl font-bold mb-4">Filters</h2>
           <input
-            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+            className={`w-full mb-3 px-4 py-2 border rounded-md ${
+              isDark
+                ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
+                : "bg-white text-black border-gray-300"
+            }`}
             placeholder="Search by title or description"
             value={tempFilters.searchQuery}
             onChange={(e) =>
@@ -214,7 +194,11 @@ export const OtherPosts = () => {
             }
           />
           <input
-            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+            className={`w-full mb-3 px-4 py-2 border rounded-md ${
+              isDark
+                ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
+                : "bg-white text-black border-gray-300"
+            }`}
             placeholder="Location"
             value={tempFilters.locationQuery}
             onChange={(e) =>
@@ -222,7 +206,11 @@ export const OtherPosts = () => {
             }
           />
           <select
-            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+            className={`w-full mb-3 px-4 py-2 border rounded-md ${
+              isDark
+                ? "bg-gray-700 text-white border-gray-600"
+                : "bg-white text-black border-gray-300"
+            }`}
             value={tempFilters.priceFilter}
             onChange={(e) =>
               setTempFilters({ ...tempFilters, priceFilter: e.target.value })
@@ -234,7 +222,11 @@ export const OtherPosts = () => {
             <option value="6000">Under ₹6000</option>
           </select>
           <select
-            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+            className={`w-full mb-3 px-4 py-2 border rounded-md ${
+              isDark
+                ? "bg-gray-700 text-white border-gray-600"
+                : "bg-white text-black border-gray-300"
+            }`}
             value={tempFilters.roomTypeFilter}
             onChange={(e) =>
               setTempFilters({ ...tempFilters, roomTypeFilter: e.target.value })
@@ -247,7 +239,11 @@ export const OtherPosts = () => {
             <option value="Shared">Shared</option>
           </select>
           <select
-            className="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+            className={`w-full mb-3 px-4 py-2 border rounded-md ${
+              isDark
+                ? "bg-gray-700 text-white border-gray-600"
+                : "bg-white text-black border-gray-300"
+            }`}
             value={tempFilters.occupancyFilter}
             onChange={(e) =>
               setTempFilters({
@@ -264,7 +260,11 @@ export const OtherPosts = () => {
           </select>
           <input
             type="date"
-            className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-md"
+            className={`w-full mb-4 px-4 py-2 border rounded-md ${
+              isDark
+                ? "bg-gray-700 text-white border-gray-600"
+                : "bg-white text-black border-gray-300"
+            }`}
             value={tempFilters.availableFrom}
             onChange={(e) =>
               setTempFilters({ ...tempFilters, availableFrom: e.target.value })
@@ -281,6 +281,8 @@ export const OtherPosts = () => {
                 className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-all ${
                   tempFilters.amenityFilters.includes(key)
                     ? "bg-indigo-600 text-white border-indigo-600"
+                    : isDark
+                    ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -294,17 +296,19 @@ export const OtherPosts = () => {
           >
             Apply Filters
           </button>
-          <div className="mt-4 flex justify-center">
-            {/* <Button onClick={handleUserChatClick}>Chat with Owners</Button> */}
-          </div>
         </div>
 
         {/* Main Content */}
         <div className="lg:col-span-3">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-indigo-800">
+            <h1
+              className={`text-3xl font-bold ${
+                isDark ? "text-indigo-300" : "text-indigo-800"
+              }`}
+            >
               🏡 Explore Available Rooms
             </h1>
+
             <button
               onClick={() => navigate({ to: "/dashboard" })}
               className="px-6 py-3 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition-all"
@@ -313,7 +317,11 @@ export const OtherPosts = () => {
             </button>
           </div>
           {filteredPosts.length === 0 ? (
-            <p className="text-gray-500">
+            <p
+              className={`text-center ${
+                isDark ? "text-gray-400" : "text-gray-500"
+              }`}
+            >
               No rooms found matching the filters.
             </p>
           ) : (
@@ -336,10 +344,15 @@ export const OtherPosts = () => {
               <p className="text-indigo-600 font-semibold">Loading more...</p>
             </div>
           )}
-          {/* No more posts */}
           {!hasNextPage && (
             <div className="flex justify-center items-center py-4">
-              <p className="text-gray-500">No more posts available.</p>
+              <p
+                className={`text-center ${
+                  isDark ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
+                No more posts available.
+              </p>
             </div>
           )}
         </div>
@@ -356,7 +369,6 @@ export default (parentRoute: RootRoute) =>
     validateSearch: (search) => ({
       otherUserId: search.otherUserId as string,
     }),
-
     beforeLoad: async () => {
       const auth = await isAuthenticated();
       if (!auth) return redirect({ to: "/" });

@@ -3,7 +3,24 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sun, Moon } from "lucide-react"; // Added Sun and Moon icons
+
+// Function to get theme from local storage
+const getTheme = (): "light" | "dark" => {
+  if (typeof window !== "undefined") {
+    return (localStorage.getItem("theme") as "light" | "dark") || "light";
+  }
+  return "light";
+};
+
+// Function to set theme in local storage and update class on html element
+const setTheme = (theme: "light" | "dark") => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("theme", theme);
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
+  }
+};
 
 export function ChatList() {
   const queryClient = useQueryClient();
@@ -14,6 +31,30 @@ export function ChatList() {
   const { chatId: urlChatId } = useParams({});
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   useEffect(() => setSelectedChatId(urlChatId || null), [urlChatId]);
+
+  // Theme state and logic
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">(
+    getTheme()
+  );
+
+  useEffect(() => {
+    setTheme(currentTheme);
+  }, [currentTheme]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setCurrentTheme(getTheme());
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = currentTheme === "light" ? "dark" : "light";
+    setCurrentTheme(newTheme);
+  };
 
   // 1️⃣ Fetch current user
   const {
@@ -161,57 +202,123 @@ export function ChatList() {
     };
   }, [userId, queryClient, myRoomIds]);
 
+  // Apply theme-based classes
+  const sidebarBgClass =
+    currentTheme === "dark"
+      ? "bg-gray-900 border-gray-700 text-gray-200"
+      : "bg-white border-gray-300 text-gray-800";
+  const backButtonClass =
+    currentTheme === "dark"
+      ? "text-blue-400 hover:text-blue-300 hover:bg-gray-800"
+      : "text-blue-600 hover:text-blue-700 hover:bg-blue-50";
+  const tabButtonClass = (tab: "mine" | "others") =>
+    `flex-1 py-2 text-center font-semibold transition-colors duration-200 ${
+      activeTab === tab
+        ? currentTheme === "dark"
+          ? "border-b-2 border-blue-400 text-blue-400"
+          : "border-b-2 border-blue-600 text-blue-600"
+        : currentTheme === "dark"
+        ? "text-gray-400 hover:text-gray-300"
+        : "text-gray-600 hover:text-gray-700"
+    }`;
+  const chatItemClass = (isSelected: boolean) =>
+    `cursor-pointer p-3 border-b transition-colors duration-200 ${
+      isSelected
+        ? currentTheme === "dark"
+          ? "bg-blue-900 text-blue-100 border-gray-700"
+          : "bg-blue-100 text-blue-800 border-gray-200"
+        : currentTheme === "dark"
+        ? "hover:bg-gray-800 border-gray-700"
+        : "hover:bg-gray-50 border-gray-200"
+    }`;
+  const chatNameClass =
+    currentTheme === "dark" ? "text-white" : "text-gray-800";
+  const chatMessageClass =
+    currentTheme === "dark" ? "text-gray-400" : "text-gray-600";
+  const chatTimestampClass =
+    currentTheme === "dark" ? "text-gray-500" : "text-gray-400";
+
   if (userLoading || chatsLoading) {
-    return <div className="w-80 p-4 text-center">Loading...</div>;
+    return (
+      <div className={`w-80 p-4 text-center ${sidebarBgClass}`}>
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
   }
   if (userError || chatsError) {
     return (
-      <div className="w-80 p-4 text-center text-red-600">Error loading</div>
+      <div className={`w-80 p-4 text-center text-red-600 ${sidebarBgClass}`}>
+        Error loading
+      </div>
     );
   }
 
   return (
-    <div className="w-80 border-r flex flex-col">
-      <div className="p-3 border-b">
+    <div
+      className={`w-80 border-r flex flex-col shadow-xl transition-colors duration-300 ${sidebarBgClass}`}
+    >
+      {/* Header with Back Button and Theme Switcher */}
+      <div
+        className={`p-3 border-b flex justify-between items-center transition-colors duration-300 ${
+          currentTheme === "dark" ? "border-gray-700" : "border-gray-300"
+        }`}
+      >
         <button
           onClick={() => navigate({ to: "/dashboard" })}
-          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-md transition-colors duration-200"
+          className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md transition-colors duration-200 ${backButtonClass}`}
         >
           <ArrowLeft size={16} />
           Back
         </button>
+        {/* Theme Switcher Button */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className={`p-1 rounded-full transition-colors duration-200 ${
+            currentTheme === "dark"
+              ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+          aria-label="Toggle theme"
+        >
+          {currentTheme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
       </div>
 
-      <div className="flex border-b">
+      {/* Tabs */}
+      <div
+        className={`flex border-b transition-colors duration-300 ${
+          currentTheme === "dark" ? "border-gray-700" : "border-gray-300"
+        }`}
+      >
         <button
-          className={`flex-1 py-2 text-center font-semibold ${
-            activeTab === "mine" ? "border-b-2 text-blue-600" : "text-gray-600"
-          }`}
+          className={tabButtonClass("mine")}
           onClick={() => setActiveTab("mine")}
         >
           Tenants
         </button>
         <button
-          className={`flex-1 py-2 text-center font-semibold ${
-            activeTab === "others"
-              ? "border-b-2 text-blue-600"
-              : "text-gray-600"
-          }`}
+          className={tabButtonClass("others")}
           onClick={() => setActiveTab("others")}
         >
           Owners
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* Chat List Items */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {" "}
+        {/* Added custom-scrollbar */}
         <AnimatePresence>
           {filteredChats.length === 0 && (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="p-4 text-center text-gray-500 dark:text-gray-400" // Theme-aware empty message
             >
-              <p className="p-4 text-center text-gray-500">No chats</p>
+              No chats
             </motion.div>
           )}
 
@@ -222,13 +329,11 @@ export function ChatList() {
             return (
               <motion.div
                 key={chat._id}
-                layout
+                layout // Animate layout changes
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                className={`cursor-pointer p-3 border-b ${
-                  isSelected ? "bg-blue-100" : ""
-                }`}
+                className={chatItemClass(isSelected)} // Apply dynamic classes
                 onClick={() =>
                   navigate({
                     to: "/chat/$chatId",
@@ -236,11 +341,13 @@ export function ChatList() {
                   })
                 }
               >
-                <div className="font-semibold">{other?.name || "Unknown"}</div>
-                <div className="text-sm text-gray-600 truncate">
+                <div className={`font-semibold ${chatNameClass}`}>
+                  {other?.name || "Unknown"}
+                </div>
+                <div className={`text-sm truncate ${chatMessageClass}`}>
                   {lm.content || "No messages yet"}
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className={`text-xs mt-1 ${chatTimestampClass}`}>
                   {lm.timestamp ? new Date(lm.timestamp).toLocaleString() : ""}
                 </div>
               </motion.div>

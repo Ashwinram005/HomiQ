@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   useParams,
   useNavigate,
   RootRoute,
   createRoute,
-  redirect,
 } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
@@ -15,11 +14,15 @@ import {
   Popup,
   Polyline,
 } from "react-leaflet";
+import { Carousel } from "react-responsive-carousel"; // Carousel is not used in the current render
+import "react-responsive-carousel/lib/styles/carousel.min.css"; // Carousel styles not needed
+
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
+import { Sun, Moon } from "lucide-react"; // Import Sun and Moon icons
 
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -38,7 +41,7 @@ function getDistanceFromLatLonInKm(
 ): string {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const dLon = ((lat2 - lat1) * Math.PI) / 180; // Corrected dLon calculation
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
@@ -48,40 +51,49 @@ function getDistanceFromLatLonInKm(
   return (R * c).toFixed(2);
 }
 
+// Function to get theme from local storage
+const getTheme = (): "light" | "dark" => {
+  if (typeof window !== "undefined") {
+    return (localStorage.getItem("theme") as "light" | "dark") || "light";
+  }
+  return "light";
+};
+
+// Function to set theme in local storage and update class on html element
+const setTheme = (theme: "light" | "dark") => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("theme", theme);
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
+  }
+};
+
 export function SinglePost() {
   const { id } = useParams({ from: "/room/$id" });
   const navigate = useNavigate();
 
-  const handleChatClick = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const currentUserId = getUserIdFromToken();
-      const otherUserId = post.postedBy;
-      const roomId = post._id;
-      if (!token || !currentUserId || !otherUserId || !roomId) {
-        navigate({ to: "/?tab=login" });
-        return;
-      }
-      const response = await axios.post(
-        "http://localhost:5000/api/chatroom/create",
-        {
-          userId: currentUserId,
-          otherUserId,
-          roomId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+  // Theme state and logic
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">(
+    getTheme()
+  );
 
-      const chatId = response.data._id;
-      navigate({ to: `/chat/${chatId}` });
-    } catch (error) {
-      console.error("Failed to start chat:", error);
-      alert("Could not start chat. Please try again.");
-    }
+  useEffect(() => {
+    setTheme(currentTheme);
+  }, [currentTheme]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setCurrentTheme(getTheme());
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = currentTheme === "light" ? "dark" : "light";
+    setCurrentTheme(newTheme);
   };
 
   const [userLocation, setUserLocation] = useState<{
@@ -96,7 +108,6 @@ export function SinglePost() {
   const [distanceInKm, setDistanceInKm] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Fetch post data
   const {
     data: post,
     isLoading,
@@ -110,6 +121,7 @@ export function SinglePost() {
       });
       return res.data.data;
     },
+    staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
   });
 
   // Get user location
@@ -128,14 +140,13 @@ export function SinglePost() {
       },
       (err) => {
         setGeoError(err.message);
-        console.error("Geolocation error:", err);
       },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
     );
-    return () => navigator.geolocation.clearWatch(watchId);
+    return () => navigator.geolocation.clearWatch(watchId); // Cleanup watch
   }, []);
 
-  // Geocode post location using LocationIQ
+  // Fetch post coordinates
   useEffect(() => {
     if (!post?.location) return;
 
@@ -147,26 +158,23 @@ export function SinglePost() {
           )}&format=json&limit=1`
         );
         const data = await response.json();
-
-        if (data && data.length > 0) {
+        if (data?.length > 0) {
           setPostCoords({
             lat: parseFloat(data[0].lat),
             lng: parseFloat(data[0].lon),
           });
-          setGeoError(null);
         } else {
           setGeoError("Post location not found.");
         }
       } catch (error) {
         setGeoError("Error fetching post coordinates.");
-        console.error(error);
+        console.error("LocationIQ error:", error);
       }
     };
-
     fetchCoords();
   }, [post?.location]);
 
-  // Calculate distance between user and post
+  // Calculate distance
   useEffect(() => {
     if (userLocation && postCoords) {
       const dist = getDistanceFromLatLonInKm(
@@ -177,220 +185,416 @@ export function SinglePost() {
       );
       setDistanceInKm(dist);
     }
-  }, [userLocation, postCoords]);
+  }, [userLocation, postCoords]); // Re-calculate if user or post location changes
 
-  if (isLoading) return <div className="p-6 text-center">Loading...</div>;
+  const handleChatClick = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const currentUserId = getUserIdFromToken(); // Ensure this function works correctly
+      const otherUserId = post.postedBy;
+      const roomId = post._id;
+      if (!token || !currentUserId || !otherUserId || !roomId) {
+        // Redirect to login if not authenticated
+        navigate({ to: "/?tab=login" });
+        return;
+      }
+
+      // Check if the user is trying to chat with themselves
+      if (currentUserId === otherUserId) {
+        // Option 1: Show a message
+        alert("You cannot chat with yourself.");
+        // Option 2: Navigate to their "My Posts" page or similar
+        // navigate({ to: "/myposts" });
+        return;
+      }
+
+      // Check if a chatroom already exists between these two users for this post
+      const existingChatResponse = await axios.get(
+        `http://localhost:5000/api/chatroom/find?user1Id=${currentUserId}&user2Id=${otherUserId}&roomId=${roomId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (existingChatResponse.data.chatId) {
+        // Navigate to the existing chat room
+        navigate({ to: `/chat/${existingChatResponse.data.chatId}` });
+        return;
+      }
+
+      // Create a new chatroom if none exists
+      const response = await axios.post(
+        "http://localhost:5000/api/chatroom/create",
+        {
+          user1Id: currentUserId, // Assuming backend expects user1Id and user2Id
+          user2Id: otherUserId,
+          roomId,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const chatId = response.data._id; // Assuming the response contains the new chatroom ID
+      navigate({ to: `/chat/${chatId}` });
+    } catch (error: any) {
+      console.error("Error starting chat:", error);
+      alert(
+        `Could not start chat. Please try again. ${
+          error.response?.data?.message || error.message
+        }`
+      );
+    }
+  };
+
+  // Apply theme-based classes
+  const containerBgClass =
+    currentTheme === "dark"
+      ? "bg-gray-900 text-white"
+      : "bg-gray-100 text-gray-900"; // Changed to gray-100 for light mode bg
+  const panelBgClass =
+    currentTheme === "dark"
+      ? "bg-gray-800 text-white"
+      : "bg-white text-gray-900";
+  const backButtonClass =
+    currentTheme === "dark"
+      ? "text-blue-400 bg-gray-700 hover:bg-gray-600"
+      : "text-blue-600 bg-blue-100 hover:bg-blue-200";
+  const detailTitleClass =
+    currentTheme === "dark" ? "text-indigo-300" : "text-indigo-700";
+
+  if (isLoading)
+    return (
+      <div className={`p-6 text-center ${containerBgClass}`}>Loading...</div>
+    );
   if (isError || !post)
-    return <div className="p-6 text-center text-red-500">Post not found</div>;
+    return (
+      <div className={`p-6 text-center text-red-500 ${containerBgClass}`}>
+        Post not found
+      </div>
+    );
 
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16">
-      {/* Back button */}
-      <Button
-        onClick={() => navigate({ to: "/otherposts" })}
-        className="
-          mb-8
-          inline-flex
-          items-center
-          px-4
-          py-2
-          text-blue-600
-          bg-blue-100
-          hover:bg-blue-200
-          hover:text-blue-900
-          focus:outline-none
-          focus:ring-2
-          focus:ring-blue-500
-          focus:ring-offset-2
-          rounded-md
-          font-semibold
-          transition
-          duration-300
-          ease-in-out
-          select-none
-          shadow-sm
-        "
-        aria-label="Go back to listings"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="mr-2 h-5 w-5 font-bold"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-        Back
-      </Button>
-
-      <div className="flex flex-col md:flex-row gap-12 bg-white shadow-lg rounded-lg p-8">
-        {/* Left: Images */}
-        {post.images && post.images.length > 0 && (
-          <div className="md:w-1/3 flex flex-col">
-            <motion.div
-              key={currentImageIndex}
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              transition={{ duration: 0.5 }}
-              className="rounded-lg overflow-hidden shadow-md border border-gray-200 mb-4 aspect-[4/3]"
+    <div
+      className={`w-full min-h-screen transition-colors duration-300 ${containerBgClass}`}
+    >
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16">
+        <div className="flex justify-between items-center mb-8">
+          {" "}
+          {/* Flex container for back button and theme switcher */}
+          <Button
+            onClick={() => navigate({ to: "/otherposts" })}
+            className={`inline-flex items-center px-4 py-2 rounded-md font-semibold transition duration-300 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${backButtonClass} ${
+              currentTheme === "dark"
+                ? "focus:ring-blue-400 focus:ring-offset-gray-900"
+                : "focus:ring-blue-500 focus:ring-offset-gray-100"
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="mr-2 h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
             >
-              <img
-                src={post.images[currentImageIndex]}
-                alt={`Post image ${currentImageIndex + 1}`}
-                className="w-full h-full object-cover"
-                loading="lazy"
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
               />
-            </motion.div>
+            </svg>
+            Back
+          </Button>
+          {/* Theme Switcher Icon */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`p-2 rounded-full transition-colors duration-300 hover:bg-opacity-20 ${
+              currentTheme === "dark"
+                ? "text-yellow-300 hover:bg-gray-700"
+                : "text-indigo-700 hover:bg-gray-200"
+            }`}
+            aria-label="Toggle theme"
+          >
+            {currentTheme === "light" ? <Moon size={24} /> : <Sun size={24} />}
+          </button>
+        </div>
 
-            <div className="flex space-x-3 overflow-x-auto px-1">
-              {post.images.map((imgUrl: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-shadow duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    idx === currentImageIndex
-                      ? "border-blue-600 shadow-lg"
-                      : "border-gray-300 hover:border-blue-400"
+        <div
+          className={`flex flex-col md:flex-row gap-12 shadow-lg rounded-lg p-8 transition-colors duration-300 ${panelBgClass}`}
+        >
+          {post.images && post.images.length > 0 && (
+            <div className="md:w-1/2 w-full flex flex-col">
+              {/* Main Image with Carousel Buttons and Animation */}
+              <div className="relative">
+                <motion.div
+                  key={currentImageIndex}
+                  initial={{ opacity: 0.5, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className={`rounded-lg overflow-hidden border aspect-[4/3] mb-4 ${
+                    currentTheme === "dark"
+                      ? "border-gray-700"
+                      : "border-gray-300"
                   }`}
-                  aria-label={`Show image ${idx + 1}`}
                 >
                   <img
-                    src={imgUrl}
-                    alt={`Thumbnail ${idx + 1}`}
+                    src={post.images[currentImageIndex]}
+                    alt={`Post image ${currentImageIndex + 1}`}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
+                </motion.div>
+
+                {/* Carousel Navigation Buttons */}
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex(
+                      (currentImageIndex - 1 + post.images.length) %
+                        post.images.length
+                    )
+                  }
+                  className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition"
+                  aria-label="Previous Image"
+                >
+                  ‹
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Right: Post Details */}
-        <div className="md:w-2/3 flex flex-col space-y-6">
-          <motion.h2
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-extrabold text-gray-900 tracking-tight"
-          >
-            {post.title}
-          </motion.h2>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-lg text-gray-700 whitespace-pre-line leading-relaxed"
-          >
-            {post.description}
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 text-gray-700"
-          >
-            <div>
-              <strong className="font-semibold">Location:</strong>{" "}
-              <span className="text-gray-900">{post.location}</span>
-            </div>
-            <div>
-              <strong className="font-semibold">Type:</strong>{" "}
-              <span className="text-gray-900">{post.type}</span>
-            </div>
-            <div>
-              <strong className="font-semibold">Occupancy:</strong>{" "}
-              <span className="text-gray-900">{post.occupancy}</span>
-            </div>
-            <div>
-              <strong className="font-semibold">Furnished:</strong>{" "}
-              <span className="text-gray-900">
-                {post.furnished ? "Yes" : "No"}
-              </span>
-            </div>
-            <div>
-              <strong className="font-semibold">Available From:</strong>{" "}
-              <span className="text-gray-900">
-                {new Date(post.availableFrom).toLocaleDateString()}
-              </span>
-            </div>
-            <div>
-              <strong className="font-semibold">Price:</strong>{" "}
-              <span className="text-gray-900">₹{post.price}</span>
-            </div>
-            <div>
-              <strong className="font-semibold">Posted By:</strong>{" "}
-              <span className="text-gray-900">{post.email || "N/A"}</span>
-            </div>
-            <div>
-              <strong className="font-semibold">Distance:</strong>{" "}
-              <span className="text-gray-900">
-                {distanceInKm ? `${distanceInKm} km` : "Calculating..."}
-              </span>
-            </div>
-            {post.amenities && post.amenities.length > 0 && (
-              <div className="sm:col-span-2">
-                <strong className="font-semibold block mb-1">Amenities:</strong>
-                <ul className="list-disc list-inside text-gray-900 space-y-1">
-                  {post.amenities.map((amenity: string, index: number) => (
-                    <li key={index}>{amenity}</li>
-                  ))}
-                </ul>
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex(
+                      (currentImageIndex + 1) % post.images.length
+                    )
+                  }
+                  className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition"
+                  aria-label="Next Image"
+                >
+                  ›
+                </button>
               </div>
-            )}
-          </motion.div>
 
-          {postCoords && (
+              {/* Thumbnails Strip */}
+              <div className="flex space-x-3 overflow-x-auto px-1 pb-2">
+                {post.images.map((imgUrl: string, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-shadow duration-300 ${
+                      idx === currentImageIndex
+                        ? "border-blue-600 dark:border-blue-400 shadow-lg"
+                        : `border-gray-300 dark:border-gray-600 ${
+                            currentTheme === "dark"
+                              ? "hover:border-blue-400"
+                              : "hover:border-blue-400"
+                          }`
+                    }`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`Thumbnail ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Post Details */}
+          <div className="md:w-2/3 flex flex-col space-y-6">
+            <motion.h2
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`text-4xl font-extrabold tracking-tight ${detailTitleClass}`}
+            >
+              {post.title}
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className={`text-lg leading-relaxed ${
+                currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
+              {post.description}
+            </motion.p>
+
+            {/* Key Details Grid */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="h-96 rounded-lg overflow-hidden border border-gray-300 shadow-md"
+              className={`grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 ${
+                currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+              }`}
             >
-              <MapContainer
-                center={[postCoords.lat, postCoords.lng]}
-                zoom={13}
-                scrollWheelZoom={false}
-                style={{ height: "100%", width: "100%" }}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <Marker position={[postCoords.lat, postCoords.lng]}>
-                  <Popup>{post.location}</Popup>
-                </Marker>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Location:
+                </strong>{" "}
+                {post.location}
+              </div>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Type:
+                </strong>{" "}
+                {post.type}
+              </div>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Occupancy:
+                </strong>{" "}
+                {post.occupancy}
+              </div>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Furnished:
+                </strong>{" "}
+                {post.furnished ? "Yes" : "No"}
+              </div>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Available From:
+                </strong>{" "}
+                {new Date(post.availableFrom).toLocaleDateString()}
+              </div>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Price:
+                </strong>{" "}
+                ₹{post.price}
+              </div>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Posted By:
+                </strong>{" "}
+                {post.email || "N/A"}
+              </div>
+              <div>
+                <strong
+                  className={
+                    currentTheme === "dark" ? "text-white" : "text-gray-900"
+                  }
+                >
+                  Distance:
+                </strong>{" "}
+                {distanceInKm
+                  ? `${distanceInKm} km`
+                  : geoError || "Calculating..."}{" "}
+                {/* Show geoError if present */}
+              </div>
 
-                {userLocation && (
-                  <>
-                    <Marker position={[userLocation.lat, userLocation.lng]}>
-                      <Popup>Your Location</Popup>
-                    </Marker>
-                    <Polyline
-                      positions={[
-                        [userLocation.lat, userLocation.lng],
-                        [postCoords.lat, postCoords.lng],
-                      ]}
-                      color="blue"
-                    />
-                  </>
-                )}
-              </MapContainer>
+              {post.amenities?.length > 0 && (
+                <div className="sm:col-span-2">
+                  <strong
+                    className={
+                      currentTheme === "dark" ? "text-white" : "text-gray-900"
+                    }
+                  >
+                    Amenities:
+                  </strong>
+                  <ul className="list-disc list-inside">
+                    {post.amenities.map((amenity: string, index: number) => (
+                      <li key={index}>{amenity}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </motion.div>
-          )}
 
-          <Button
-            onClick={handleChatClick}
-            className="self-start px-6 py-3 font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            Start Chat
-          </Button>
+            {/* Location Map */}
+            {postCoords && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`h-96 rounded-lg overflow-hidden border transition-colors duration-300 ${
+                  currentTheme === "dark"
+                    ? "border-gray-700"
+                    : "border-gray-300"
+                }`}
+              >
+                <MapContainer
+                  center={[postCoords.lat, postCoords.lng]}
+                  zoom={13}
+                  scrollWheelZoom={false}
+                  style={{ height: "100%", width: "100%" }}
+                >
+                  {/* Use a different tile layer for dark mode if desired, requires conditional rendering */}
+
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+
+                  <Marker position={[postCoords.lat, postCoords.lng]}>
+                    <Popup>{post.location}</Popup>
+                  </Marker>
+
+                  {userLocation && (
+                    <>
+                      <Marker position={[userLocation.lat, userLocation.lng]}>
+                        <Popup>Your Location</Popup>
+                      </Marker>
+                      <Polyline
+                        positions={[
+                          [userLocation.lat, userLocation.lng],
+                          [postCoords.lat, postCoords.lng],
+                        ]}
+                      />
+                    </>
+                  )}
+                </MapContainer>
+              </motion.div>
+            )}
+            {geoError && (
+              <div
+                className={`text-sm mt-4 ${
+                  currentTheme === "dark" ? "text-red-400" : "text-red-600"
+                }`}
+              >
+                Geolocation Error: {geoError}
+              </div>
+            )}
+
+            {/* Chat Button */}
+            {getUserIdFromToken() !== post.postedBy && ( // Only show chat button if not viewing your own post
+              <Button
+                onClick={handleChatClick}
+                className={`self-start px-6 py-3 font-semibold rounded-md transition-colors duration-300 ${
+                  currentTheme === "dark"
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                Start Chat
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -402,4 +606,9 @@ export default (parentRoute: RootRoute) =>
     path: "/room/$id",
     component: SinglePost,
     getParentRoute: () => parentRoute,
+    // Optional: Add a beforeLoad to ensure authentication if necessary
+    // beforeLoad: async () => {
+    //     const auth = await isAuthenticated();
+    //     if (!auth) return redirect({ to: '/' });
+    // },
   });

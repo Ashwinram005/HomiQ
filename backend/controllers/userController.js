@@ -57,7 +57,7 @@ const loginUser = async (req, res) => {
   try {
     // Find the user by email
     const user = await User.findOne({ email });
-
+    console.log(user);
     // If user doesn't exist, send error response
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -79,7 +79,9 @@ const loginUser = async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       token,
-      email, // Sending back the JWT token
+      email,
+      name: user.name,
+      // Sending back the JWT token
     });
   } catch (error) {
     console.error(error);
