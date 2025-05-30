@@ -45,6 +45,7 @@ io.on("connection", (socket) => {
     const msg = {
       content: message, // ✅ message is just a string now
       sender,
+      senderName: message.senderName,
       timestamp: new Date().toISOString(),
       chatRoom: chatId,
     };

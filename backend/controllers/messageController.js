@@ -22,7 +22,10 @@ const sendMessage = async (req, res) => {
       latestMessage: savedMessage._id,
     });
 
-    const populatedMessage = await savedMessage.populate("sender", "email");
+    const populatedMessage = await savedMessage.populate(
+      "sender",
+      "email name"
+    );
 
     res.status(201).json({ success: true, message: populatedMessage });
   } catch (err) {
@@ -36,7 +39,7 @@ const getMessagesForChatRoom = async (req, res) => {
     const { chatRoomId } = req.params;
 
     const messages = await Message.find({ chatRoom: chatRoomId })
-      .populate("sender", "email")
+      .populate("sender", "email name")
       .sort({ timestamp: 1 });
 
     res.status(200).json({ success: true, messages });

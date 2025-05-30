@@ -162,7 +162,7 @@ async function getChats(req, res) {
     }
 
     const chats = await ChatRoom.find({ participants: user._id }) // ✅
-      .populate("participants", "email")
+      .populate("participants", "email name")
       .populate({
         path: "latestMessage",
         populate: { path: "sender", select: "email" },

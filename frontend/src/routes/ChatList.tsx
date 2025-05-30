@@ -50,6 +50,7 @@ export function ChatList() {
         `http://localhost:5000/api/chatroom/user/${userId}`
       );
       const json = await res.json();
+
       if (!json.success) throw new Error("Failed to fetch chats");
       return json.chats;
     },
@@ -235,7 +236,7 @@ export function ChatList() {
                   })
                 }
               >
-                <div className="font-semibold">{other?.email || "Unknown"}</div>
+                <div className="font-semibold">{other?.name || "Unknown"}</div>
                 <div className="text-sm text-gray-600 truncate">
                   {lm.content || "No messages yet"}
                 </div>
