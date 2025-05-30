@@ -123,8 +123,9 @@ function LoginForm() {
         alert(result.message || "Login failed");
         return;
       }
-      localStorage.setItem("token", result.token);
+       localStorage.setItem("token", result.token);
       localStorage.setItem("email", result.email);
+      localStorage.setItem("username", result.name);
       navigate({ to: "/dashboard" });
     } catch (error) {
       console.error("Error:", error);
@@ -190,6 +191,15 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   const [showOtpField, setShowOtpField] = useState(false);
   const [emailForOtp, setEmailForOtp] = useState("");
   const [otp, setOtp] = useState("");
+  const [theme, setTheme] = useState("light"); // State to hold the theme
+
+  useEffect(() => {
+    // Fetch theme from local storage on component mount
+    const storedTheme = localStorage.getItem("theme");
+    if (storedTheme) {
+      setTheme(storedTheme);
+    }
+  }, []);
 
   const onSubmit = async (data: SignupSchema) => {
     try {
@@ -206,11 +216,11 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         setShowOtpField(true); // Show OTP input field
       } else {
         const error = await response.json();
-        alert(error.message || "Signup failed");
+        toast.error(error.message || "Signup failed"); // Use toast for errors
       }
     } catch (err) {
       console.error("Signup error", err);
-      alert("An unexpected error occurred. Try again.");
+      toast.error("An unexpected error occurred. Try again."); // Use toast for errors
     }
   };
 
@@ -233,24 +243,35 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         toast.error(err.message || "Invalid OTP");
       }
     } catch (err) {
-      toast.error("OTP Verification Error", err);
-      alert("Something went wrong. Try again.");
+      toast.error("OTP Verification Error"); // Simplified error message for user
+      console.error("OTP Verification Error", err); // Log detailed error
     }
   };
+
+  // Define toaster class names based on the theme
+  const toasterClassNames =
+    theme === "dark"
+      ? {
+          toast:
+            "bg-gray-800 text-white shadow-md border border-gray-700 rounded-xl",
+          description: "text-sm text-gray-400",
+          actionButton: "bg-blue-600 text-white px-3 py-1 rounded-md text-sm",
+          cancelButton: "text-gray-400 text-sm",
+        }
+      : {
+          toast:
+            "bg-white shadow-md border border-gray-200 text-gray-900 rounded-xl",
+          description: "text-sm text-gray-600",
+          actionButton: "bg-indigo-600 text-white px-3 py-1 rounded-md text-sm",
+          cancelButton: "text-gray-500 text-sm",
+        };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
       <Toaster
         position="top-right"
         toastOptions={{
-          classNames: {
-            toast:
-              "bg-white shadow-md border border-gray-200 text-gray-900 rounded-xl",
-            description: "text-sm text-gray-600",
-            actionButton:
-              "bg-indigo-600 text-white px-3 py-1 rounded-md text-sm",
-            cancelButton: "text-gray-500 text-sm",
-          },
+          classNames: toasterClassNames,
         }}
       />
       <div className="text-center">
