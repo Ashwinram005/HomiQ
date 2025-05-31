@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TextField, Typography, Box } from "@mui/material";
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Moon, Sun } from "lucide-react";
 import {
   createRoute,
   redirect,
@@ -59,6 +60,7 @@ const amenitiesList = [
 
 export const MultiStepPostForm = () => {
   const [showSubmittingModal, setShowSubmittingModal] = useState(false);
+  const theme = localStorage.getItem("theme"); // Get theme
 
   // Helper function to upload a single image to Cloudinary with signed upload
   const uploadImageToCloudinary = async (file: File) => {
@@ -173,9 +175,25 @@ export const MultiStepPostForm = () => {
 
       // Now send postPayload to your backend
       mutation.mutate(postPayload);
-    } catch (error) {
+    } catch (error: any) {
       alert("Error uploading images or submitting form: " + error.message);
+      setShowSubmittingModal(false); // Hide modal on error
     }
+  };
+  const getTheme = (): "light" | "dark" => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("theme") as "light" | "dark") || "light";
+    }
+    return "light";
+  };
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">(
+    getTheme()
+  );
+  const toggleTheme = () => {
+    const newTheme = currentTheme === "light" ? "dark" : "light";
+    setCurrentTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
   const handleNext = async () => {
@@ -203,33 +221,57 @@ export const MultiStepPostForm = () => {
     }
   };
 
+  // Determine background class based on theme
+  const backgroundClass = theme === "dark" ? "bg-gray-900" : "bg-white";
+
   return (
     <FormProvider {...methods}>
-      <div className="w-full h-screen mx-auto p-6 sm:p-10 bg-white rounded-3xl shadow-2xl flex gap-10">
-        {/* Stepper Sidebar */}
-        <div className="w-1/4 min-w-[220px] bg-white border-r px-6 py-10 space-y-6 shadow-md">
+      <div
+        className={`w-full h-screen mx-auto p-6 sm:p-10 shadow-2xl flex flex-col relative ${backgroundClass}`}
+      >
+        {/* 🌗 Theme Toggle Icon (Top Right Corner) */}
+        <button
+          onClick={toggleTheme}
+          className="absolute top-6 right-6 p-2 rounded-full border transition-colors duration-300
+            hover:bg-gray-200 dark:hover:bg-gray-700"
+          aria-label="Toggle Theme"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-5 h-5 text-yellow-400" />
+          ) : (
+            <Moon className="w-5 h-5 text-gray-800" />
+          )}
+        </button>
+
+        {/* Stepper Top Navigation */}
+        <div
+          className={`w-full flex justify-around py-4 border-b ${
+            theme === "dark" ? "border-gray-700" : "border-gray-300"
+          } mb-8`}
+        >
           {stepLabels.map((label, index) => {
             const isActive = index === step;
             const isCompleted = step > index;
+            const textColor =
+              theme === "dark" ? "text-gray-300" : "text-gray-600";
 
             return (
-              <div key={label} className="flex items-start gap-3">
+              <div key={label} className="flex flex-col items-center gap-2">
                 <div
-                  className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm transition-colors
-                ${
-                  isCompleted
-                    ? "bg-green-500 text-white"
-                    : isActive
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-300 text-gray-800"
-                }
-              `}
+                  className={`w-10 h-10 flex items-center justify-center rounded-full font-bold text-sm transition-colors
+                    ${
+                      isCompleted
+                        ? "bg-green-500 text-white"
+                        : isActive
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-300 text-gray-800"
+                    }`}
                 >
-                  {isCompleted ? <Check size={16} /> : index + 1}
+                  {isCompleted ? <Check size={20} /> : index + 1}
                 </div>
                 <div
-                  className={`text-sm font-medium ${
-                    isActive ? "text-blue-600" : "text-gray-600"
+                  className={`text-sm font-medium text-center ${
+                    isActive ? "text-blue-600" : textColor
                   }`}
                 >
                   {label}
@@ -239,8 +281,8 @@ export const MultiStepPostForm = () => {
           })}
         </div>
 
-        {/* Form Area */}
-        <form className="w-3/4 flex flex-col h-full">
+        {/* Step Form Body */}
+        <form className="flex-1 flex flex-col h-full">
           <div className="flex-1 overflow-y-auto space-y-8">
             <AnimatePresence mode="wait">
               <motion.div
@@ -249,17 +291,26 @@ export const MultiStepPostForm = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -50 }}
                 transition={{ duration: 0.4 }}
-                className="bg-gray-50 border p-8 rounded-xl shadow-inner space-y-6"
+                className={`border p-8 rounded-xl shadow-inner space-y-6 ${
+                  theme === "dark"
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-gray-50"
+                }`}
               >
                 {steps[step]}
               </motion.div>
             </AnimatePresence>
           </div>
 
-          <div className="flex justify-between items-center border-t pt-6 mt-auto">
+          {/* Bottom Button Bar */}
+          <div
+            className={`flex justify-between items-center border-t pt-6 mt-auto ${
+              theme === "dark" ? "border-gray-700" : ""
+            }`}
+          >
             <div className="flex gap-3">
               <Button
-                variant="outline"
+                variant={theme === "dark" ? "secondary" : "outline"}
                 type="button"
                 disabled={step === 0}
                 onClick={() => setStep((s) => s - 1)}
@@ -268,7 +319,7 @@ export const MultiStepPostForm = () => {
               </Button>
 
               <Button
-                variant="ghost"
+                variant={theme === "dark" ? "secondary" : "outline"}
                 type="button"
                 onClick={() => navigate({ to: "/dashboard" })}
               >
@@ -298,6 +349,8 @@ export const MultiStepPostForm = () => {
             )}
           </div>
         </form>
+
+        {/* Submitting Modal */}
         <AnimatePresence>
           {showSubmittingModal && (
             <motion.div
@@ -311,10 +364,16 @@ export const MultiStepPostForm = () => {
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.8 }}
-                className="bg-white rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg"
+                className={`rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg ${
+                  theme === "dark" ? "bg-gray-800" : "bg-white"
+                }`}
               >
                 <Loader2 size={48} className="animate-spin text-blue-600" />
-                <p className="text-lg font-semibold text-gray-700 text-center">
+                <p
+                  className={`text-lg font-semibold text-center ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   Submitting your post, please wait...
                 </p>
               </motion.div>
@@ -329,32 +388,63 @@ export const MultiStepPostForm = () => {
 // Step 1
 const Step1 = () => {
   const { register, formState } = useFormContext<PostFormData>();
+  const theme = localStorage.getItem("theme");
+  const isDark = theme === "dark";
+
+  // text color for Typography and inputs
+  const textColor = isDark ? "white" : "black";
+  const bgColor = isDark ? "gray-800" : "#fff";
+
   return (
-    <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+    <Box>
+      <Typography variant="h6" fontWeight={600} color={textColor} mb={2}>
         Basic Information
-      </h3>
-      <div className="space-y-4">
+      </Typography>
+
+      <Box display="flex" flexDirection="column" gap={3}>
         <div>
-          <Label>
-            Title <span className="text-red-500">*</span>
-          </Label>
-          <Input {...register("title")} />
-          <p className="text-red-500 text-sm">
-            {formState.errors.title?.message}
-          </p>
+          <Typography variant="body1" color={textColor}>
+            Title <span style={{ color: "red" }}>*</span>
+          </Typography>
+          <TextField
+            {...register("title")}
+            fullWidth
+            variant="outlined"
+            size="small"
+            error={!!formState.errors.title}
+            helperText={formState.errors.title?.message}
+            InputProps={{
+              style: {
+                color: textColor,
+                backgroundColor: bgColor,
+              },
+            }}
+          />
         </div>
+
         <div>
-          <Label>
-            Description <span className="text-red-500">*</span>
-          </Label>
-          <Textarea rows={4} {...register("description")} />
-          <p className="text-red-500 text-sm">
-            {formState.errors.description?.message}
-          </p>
+          <Typography variant="body1" color={textColor}>
+            Description <span style={{ color: "red" }}>*</span>
+          </Typography>
+          <TextField
+            {...register("description")}
+            fullWidth
+            multiline
+            rows={4}
+            variant="outlined"
+            size="small"
+            error={!!formState.errors.description}
+            helperText={formState.errors.description?.message}
+            InputProps={{
+              style: {
+                color: textColor,
+                backgroundColor: bgColor,
+              },
+            }}
+          />
         </div>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 
@@ -367,6 +457,8 @@ const Step2 = () => {
 
   const { register, setValue, watch, formState } =
     useFormContext<PostFormData>();
+  const theme = localStorage.getItem("theme");
+  const labelTextColor = theme === "dark" ? "text-gray-300" : "text-gray-800";
 
   // Debounced fetch using useCallback
   const fetchPlaces = useCallback(async (search) => {
@@ -389,6 +481,10 @@ const Step2 = () => {
     }
     setLoading(false);
   }, []);
+  const inputTextColor =
+    theme === "dark"
+      ? "text-white bg-gray-900 placeholder-gray-400"
+      : "text-gray-900 bg-white placeholder-gray-500";
 
   useEffect(() => {
     // debounce with cleanup
@@ -399,22 +495,26 @@ const Step2 = () => {
     return () => clearTimeout(handler);
   }, [query, fetchPlaces]);
 
-  function handleSelect(place) {
+  function handleSelect(place: any) {
     setValue("location", place.display_name, { shouldValidate: true });
     setQuery(place.display_name);
     setSuggestions([]);
   }
 
   return (
-    <div className="relative max-w-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+    <div className="relative w-full max-w-3xl mx-auto px-6 py-10">
+      <h3 className={`text-lg font-semibold ${labelTextColor} mb-4`}>
         Property Details
       </h3>
       <div className="space-y-4">
         {/* Price input */}
         <div>
-          <Label>Price (₹)</Label>
-          <Input type="number" {...register("price")} />
+          <Label className={labelTextColor}>Price (₹)</Label>
+          <Input
+            className={`${inputTextColor}`}
+            type="number"
+            {...register("price")}
+          />
           <p className="text-red-500 text-sm">
             {formState.errors.price?.message}
           </p>
@@ -422,27 +522,31 @@ const Step2 = () => {
 
         {/* Location input + dropdown */}
         <div className="relative">
-          <Label>Location</Label>
+          <Label className={labelTextColor}>Location</Label>
           <Input
             {...register("location")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoComplete="off"
-            className="z-20 relative"
             placeholder="Search for city, school, popular place..."
+            className={`z-20 relative ${inputTextColor}`}
           />
-          {loading && (
-            <p className="absolute right-3 top-9 text-sm text-gray-500">
-              Loading...
-            </p>
-          )}
+
           {suggestions.length > 0 && (
-            <ul className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-              {suggestions.map((place) => (
+            <ul
+              className={`absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-md border ${
+                theme === "dark"
+                  ? "border-gray-700 bg-gray-800"
+                  : "border-gray-300 bg-white"
+              } shadow-lg scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100`}
+            >
+              {suggestions.map((place: any) => (
                 <li
                   key={place.place_id}
                   onClick={() => handleSelect(place)}
-                  className="cursor-pointer px-3 py-2 hover:bg-gray-200"
+                  className={`cursor-pointer px-3 py-2 ${
+                    theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-200"
+                  }`}
                 >
                   {place.display_name}
                 </li>
@@ -456,12 +560,12 @@ const Step2 = () => {
 
         {/* Type */}
         <div>
-          <Label>Type</Label>
+          <Label className={labelTextColor}>Type</Label>
           <Select
             value={watch("type")}
             onValueChange={(v) => setValue("type", v as any)}
           >
-            <SelectTrigger>
+            <SelectTrigger className={inputTextColor}>
               <SelectValue placeholder="Choose type" />
             </SelectTrigger>
             <SelectContent>
@@ -479,12 +583,12 @@ const Step2 = () => {
 
         {/* Occupancy */}
         <div>
-          <Label>Occupancy</Label>
+          <Label className={labelTextColor}>Occupancy</Label>
           <Select
             value={watch("occupancy")}
             onValueChange={(v) => setValue("occupancy", v as any)}
           >
-            <SelectTrigger>
+            <SelectTrigger className={inputTextColor}>
               <SelectValue placeholder="Choose occupancy" />
             </SelectTrigger>
             <SelectContent>
@@ -507,16 +611,19 @@ const Step2 = () => {
             checked={watch("furnished")}
             onCheckedChange={(v) => setValue("furnished", !!v)}
           />
-          <Label htmlFor="furnished">Furnished</Label>
+          <Label htmlFor="furnished" className={labelTextColor}>
+            Furnished
+          </Label>
         </div>
 
         {/* Available From */}
         <div>
-          <Label>Available From</Label>
+          <Label className={labelTextColor}>Available From</Label>
           <Input
             type="date"
             min={new Date().toISOString().split("T")[0]}
             {...register("availableFrom")}
+            className={inputTextColor}
           />
           <p className="text-red-500 text-sm">
             {formState.errors.availableFrom?.message}
@@ -533,6 +640,8 @@ const Step3 = () => {
   const { setValue, watch, formState, getValues } =
     useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
+  const theme = localStorage.getItem("theme");
+  const textColor = theme === "dark" ? "text-gray-300" : "text-gray-800";
 
   // Use a local state to keep track of uploaded images as File[]
   const [images, setImages] = useState<File[]>(() => {
@@ -577,7 +686,7 @@ const Step3 = () => {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+      <h3 className={`text-lg font-semibold ${textColor} mb-4`}>
         Amenities & Image
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
@@ -588,13 +697,15 @@ const Step3 = () => {
               checked={selected.includes(item)}
               onCheckedChange={() => toggleAmenity(item)}
             />
-            <Label htmlFor={item}>{item}</Label>
+            <Label htmlFor={item} className={textColor}>
+              {item}
+            </Label>
           </div>
         ))}
       </div>
 
       <div>
-        <Label>Upload Images</Label>
+        <Label className={textColor}>Upload Images</Label>
         <input
           type="file"
           multiple
@@ -613,7 +724,9 @@ const Step3 = () => {
         {imagePreviews.map((src, idx) => (
           <div
             key={idx}
-            className="relative w-24 h-24 border rounded overflow-hidden"
+            className={`relative w-24 h-24 border rounded overflow-hidden ${
+              theme === "dark" ? "border-gray-700" : ""
+            }`}
           >
             <img
               src={src}
@@ -638,6 +751,13 @@ const Step4 = () => {
   const { watch } = useFormContext<PostFormData>();
   const imageFiles = watch("imageFile");
 
+  // Fetch theme from local storage
+  const theme = localStorage.getItem("theme"); // Assuming the theme is stored under the key "theme"
+
+  // Determine text color based on theme
+  const labelTextColor = theme === "dark" ? "text-gray-300" : "text-gray-800";
+  const valueTextColor = theme === "dark" ? "text-gray-400" : "text-gray-700";
+
   // Create image URLs to preview
   const imagePreviews = imageFiles
     ? Array.from(imageFiles).map((file) => URL.createObjectURL(file))
@@ -645,61 +765,75 @@ const Step4 = () => {
   const data = watch();
 
   return (
-    <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+    <div className="w-full max-w-4xl mx-auto p-6  dark:bg-gray-900 rounded-xl shadow-lg">
+      <h3 className={`text-2xl font-semibold mb-6 ${labelTextColor}`}>
         Confirm Details
       </h3>
-      <div className="space-y-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <Label>Title</Label>
-          <p>{data.title}</p>
+          <Label className={labelTextColor}>Title</Label>
+          <p className={`mt-1 ${valueTextColor}`}>{data.title}</p>
         </div>
+
         <div>
-          <Label>Description</Label>
-          <p>{data.description}</p>
+          <Label className={labelTextColor}>Description</Label>
+          <p className={`mt-1 ${valueTextColor}`}>{data.description}</p>
         </div>
+
         <div>
-          <Label>Price (₹)</Label>
-          <p>{data.price}</p>
+          <Label className={labelTextColor}>Price (₹)</Label>
+          <p className={`mt-1 ${valueTextColor}`}>{data.price}</p>
         </div>
+
         <div>
-          <Label>Location</Label>
-          <p>{data.location}</p>
+          <Label className={labelTextColor}>Location</Label>
+          <p className={`mt-1 ${valueTextColor}`}>{data.location}</p>
         </div>
+
         <div>
-          <Label>Type</Label>
-          <p>{data.type}</p>
+          <Label className={labelTextColor}>Type</Label>
+          <p className={`mt-1 ${valueTextColor}`}>{data.type}</p>
         </div>
+
         <div>
-          <Label>Occupancy</Label>
-          <p>{data.occupancy}</p>
+          <Label className={labelTextColor}>Occupancy</Label>
+          <p className={`mt-1 ${valueTextColor}`}>{data.occupancy}</p>
         </div>
+
         <div>
-          <Label>Furnished</Label>
-          <p>{data.furnished ? "Yes" : "No"}</p>
+          <Label className={labelTextColor}>Furnished</Label>
+          <p className={`mt-1 ${valueTextColor}`}>
+            {data.furnished ? "Yes" : "No"}
+          </p>
         </div>
+
         <div>
-          <Label>Available From</Label>
-          <p>{data.availableFrom}</p>
+          <Label className={labelTextColor}>Available From</Label>
+          <p className={`mt-1 ${valueTextColor}`}>{data.availableFrom}</p>
         </div>
-        <div>
-          <Label>Amenities</Label>
-          <p>{data.amenities?.join(", ") || "None"}</p>
+
+        <div className="md:col-span-2">
+          <Label className={labelTextColor}>Amenities</Label>
+          <p className={`mt-1 ${valueTextColor}`}>
+            {data.amenities?.join(", ") || "None"}
+          </p>
         </div>
-        <div>
-          <Label>Images</Label>
-          <div className="grid grid-cols-3 gap-4 mt-2">
+
+        <div className="md:col-span-2">
+          <Label className={labelTextColor}>Images</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-2">
             {imagePreviews.length > 0 ? (
               imagePreviews.map((src, idx) => (
                 <img
                   key={idx}
                   src={src}
                   alt={`Uploaded preview ${idx + 1}`}
-                  className="w-full h-40 object-cover rounded-md"
+                  className="w-full h-40 object-cover rounded-lg shadow-md"
                 />
               ))
             ) : (
-              <p>No images uploaded.</p>
+              <p className={valueTextColor}>No images uploaded.</p>
             )}
           </div>
         </div>

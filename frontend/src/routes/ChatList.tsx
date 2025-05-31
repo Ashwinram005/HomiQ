@@ -245,17 +245,10 @@ export function ChatList() {
       </div>
     );
   }
-  if (userError || chatsError) {
-    return (
-      <div className={`w-80 p-4 text-center text-red-600 ${sidebarBgClass}`}>
-        Error loading
-      </div>
-    );
-  }
-
+  
   return (
     <div
-      className={`w-80 border-r flex flex-col shadow-xl transition-colors duration-300 ${sidebarBgClass}`}
+      className={`hidden md:flex w-80 border-r flex flex-col shadow-xl transition-colors duration-300 ${sidebarBgClass}`}
     >
       {/* Header with Back Button and Theme Switcher */}
       <div
@@ -334,12 +327,13 @@ export function ChatList() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
                 className={chatItemClass(isSelected)} // Apply dynamic classes
-                onClick={() =>
+                onClick={() => {
+                  setSelectedChatId(chat._id);
                   navigate({
                     to: "/chat/$chatId",
                     params: { chatId: chat._id },
-                  })
-                }
+                  });
+                }}
               >
                 <div className={`font-semibold ${chatNameClass}`}>
                   {other?.name || "Unknown"}
