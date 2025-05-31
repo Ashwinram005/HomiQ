@@ -237,7 +237,7 @@ export function Chat() {
           </small>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 hide-scrollbar">
           {messages.length ? (
             messages.map((msg, i) => {
               const isSender = msg.senderEmail === senderEmail;
