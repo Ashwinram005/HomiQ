@@ -227,7 +227,7 @@ export function Chat() {
   };
 
   return (
-    <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6 bg-gray-100 dark:bg-gray-950">
+    <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-8 bg-gray-100 dark:bg-gray-950">
       <ChatList />
       <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 shadow-xl overflow-hidden border border-gray-300 dark:border-gray-700">
         <div className="bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow">
@@ -249,11 +249,13 @@ export function Chat() {
                   }`}
                 >
                   <div
-                    className={`px-4 py-3 max-w-[70%] break-words whitespace-pre-wrap shadow-sm ${
-                      isSender
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-black dark:text-white"
-                    }`}
+                    className="px-4 py-3 max-w-[70%] break-words whitespace-pre-wrap shadow-sm text-white"
+                    style={{
+                      background: isSender
+                        ? "linear-gradient(135deg, #3b82f6, #2563eb)" // blue gradient for sender
+                        : "linear-gradient(135deg, #e0e7ff, #a5b4fc)", // purple gradient for receiver
+                      color: isSender ? "white" : "#1e293b",
+                    }}
                   >
                     <div className="text-xs font-medium mb-1 text-neutral-500 dark:text-gray-400">
                       {isSender ? "You" : msg.senderName}
@@ -284,7 +286,10 @@ export function Chat() {
             onKeyDown={handleKeyDown}
           />
           <button
-            onClick={sendMessage}
+            onClick={() => {
+              sendMessage(input);
+              setInput("");
+            }}
             disabled={!input.trim()}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 disabled:opacity-50"
           >
