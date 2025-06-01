@@ -128,6 +128,7 @@ export function Chat() {
     enabled: !!receiverEmail,
   });
 
+  // Fetch messages initially & when dependencies change
   useEffect(() => {
     if (!chatId || !senderEmail || !receiverEmail) return;
 
@@ -136,11 +137,13 @@ export function Chat() {
       .catch(console.error);
   }, [chatId, senderEmail, receiverEmail]);
 
+  // Setup socket listeners for realtime messages
   useEffect(() => {
     if (!chatId) return;
     if (!socket.connected) socket.connect();
 
     socket.emit("joinRoom", chatId);
+
     const handleReceiveMessage = (msg: any) => {
       const newMsg: Message = {
         _id: msg.content._id,
@@ -155,6 +158,7 @@ export function Chat() {
 
       if (newMsg.chatId === chatId) {
         setMessages((prev) => [...prev, newMsg]);
+        // Scroll to bottom on receiving new message
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 50);
@@ -210,14 +214,16 @@ export function Chat() {
         receiverEmail,
       });
 
+      // Scroll to bottom on sending new message
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
+      }, 100);
     } catch (err) {
       console.error("Send error:", err);
     }
   };
 
+  // Scroll to bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -226,18 +232,64 @@ export function Chat() {
     if (e.key === "Enter") sendMessage();
   };
 
+  const [openChatList, setOpenChatList] = useState(false);
+
   return (
-    <div className="flex-1 max-w-full flex flex-col md:flex-row gap-6 px-4 py-6 bg-gray-100 dark:bg-gray-950">
-      <ChatList />
-      <div className="w-full h-[90vh] flex flex-col bg-white dark:bg-gray-900 shadow-xl overflow-hidden border border-gray-300 dark:border-gray-700">
-        <div className="bg-blue-700 text-white px-6 py-4 flex justify-between items-center shadow">
-          <h2 className="text-xl font-semibold">Chat Room</h2>
-          <small className="text-sm">
-            Post: {roomData?.title || "Untitled"}
-          </small>
+    <div className="flex-1 max-w-full flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 dark:border-neutral-700">
+      {openChatList && (
+        <div className="fixed inset-0 z-50 flex h-screen md:static md:z-auto md:h-auto">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm md:hidden"
+            onClick={() => setOpenChatList(false)}
+          />
+
+          {/* Sidebar Panel */}
+          <div className="relative z-10 h-screen w-[80vw] max-w-sm bg-white dark:bg-neutral-900 md:w-80 md:h-auto md:static">
+            <ChatList setOpenChatList={setOpenChatList} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col md:h-[100vh] bg-white dark:bg-neutral-800 shadow-xl overflow-hidden border border-gray-200 dark:border-neutral-700 rounded-xl relative">
+        {/* Header */}
+        <div className="fixed top-0 w-full bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-4 md:px-6 py-3 flex items-center shadow-sm z-20">
+          <button
+            className="mr-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            onClick={() => setOpenChatList((prev) => !prev)}
+            aria-label="Toggle sidebar"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-6 w-6 text-gray-800 dark:text-white"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 5h18M3 12h18M3 19h18"
+              />
+            </svg>
+          </button>
+
+          <div className="flex-1 flex flex-col min-w-0">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white truncate">
+              Chat Room
+            </h2>
+            <small className="text-sm text-gray-500 dark:text-gray-400 truncate">
+              Post: {roomData?.title || "Untitled"}
+            </small>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 hide-scrollbar">
+        {/* Messages */}
+        <div
+          className="flex-1 overflow-y-auto px-4 py-20 space-y-3 hide-scrollbar"
+          style={{ marginTop: "56px" }} // height of header, to avoid overlap
+        >
           {messages.length ? (
             messages.map((msg, i) => {
               const isSender = msg.senderEmail === senderEmail;
@@ -249,13 +301,12 @@ export function Chat() {
                   }`}
                 >
                   <div
-                    className={`px-4 py-3 max-w-[70%] break-words whitespace-pre-wrap shadow-sm ${
-                      isSender
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-black dark:text-white"
-                    }`}
+                    className={`px-4 py-3 max-w-[70%] break-words whitespace-pre-wrap rounded-2xl text-sm text-black`}
+                    style={{
+                      background: isSender ? "#e0d3d5" : "#f3f4f6",
+                    }}
                   >
-                    <div className="text-xs font-medium mb-1 text-neutral-500 dark:text-gray-400">
+                    <div className="text-xs font-medium mb-1 text-gray-500">
                       {isSender ? "You" : msg.senderName}
                     </div>
                     <div>{msg.text}</div>
@@ -274,11 +325,16 @@ export function Chat() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border-t border-gray-300 dark:border-gray-700 px-6 py-3 flex items-center gap-3">
+        {/* Input */}
+        <div
+          className={`bg-white fixed bottom-0 dark:bg-neutral-800 border-t border-gray-200 dark:border-neutral-700 px-4 md:px-6 py-3 flex items-center gap-3 ${
+            openChatList ? "w-[calc(100%-320px)] left-80" : "w-full left-0"
+          }`}
+        >
           <input
             type="text"
-            placeholder="Type your message..."
-            className="flex-1 border border-gray-400 dark:border-gray-600 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-900 dark:text-white"
+            placeholder="Message..."
+            className="flex-1 md: border border-gray-300 dark:border-neutral-600 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-neutral-800 dark:text-white rounded-full"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -286,7 +342,7 @@ export function Chat() {
           <button
             onClick={sendMessage}
             disabled={!input.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 disabled:opacity-50"
+            className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white px-5 py-2 text-sm rounded-full transition disabled:opacity-50"
           >
             Send
           </button>

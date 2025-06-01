@@ -490,14 +490,14 @@ export function EditPost() {
             </label>
             <Textarea
               {...register("description")}
-              rows={4}
               placeholder="Describe your place, features, and surroundings..."
-              className={`${
+              className={`h-23 resize-none overflow-y-auto ${
                 currentTheme === "dark"
                   ? "bg-gray-800 border-gray-700 text-gray-200 placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
                   : "border-gray-300 placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500"
               } transition-colors duration-200`}
             />
+
             {errors.description && (
               <p
                 className={`text-sm ${

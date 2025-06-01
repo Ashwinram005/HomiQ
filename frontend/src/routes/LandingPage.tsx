@@ -274,18 +274,17 @@ const LandingPage: React.FC = () => {
         isDark ? "bg-gray-900" : "bg-white"
       }`}
       style={{
-        backgroundImage: isDark
-          ? "none"
-          : "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1470&q=80')",
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1470&q=80')",
       }}
     >
       {modalOpen && (
-        <div className="fixed inset-0 bg-white/20 backdrop-blur-sm z-30 transition-opacity duration-300"></div>
+        <div className="fixed inset-0 bg-white/20 backdrop-blur-xs z-30 transition-opacity duration-300"></div>
       )}
 
       <div
         className={`relative z-10 transition-all duration-300 ${
-          modalOpen ? "blur-sm pointer-events-none select-none" : ""
+          modalOpen ? "blur-xs pointer-events-none select-none" : ""
         }`}
       >
         <Navbar
@@ -295,12 +294,8 @@ const LandingPage: React.FC = () => {
         />
         {/* Pass setModalOpen */}
         <div className="px-4 py-10 max-w-7xl mx-auto">
-          <h1
-            className={`text-4xl font-extrabold mb-8 text-center ${
-              isDark ? "text-blue-400" : "text-gray-800"
-            }`}
-          >
-            Find Your Perfect Stay
+          <h1 className={`text-4xl font-extrabold mb-8 text-center text-white`}>
+            Find Your Space, Feel at Home.
           </h1>
 
           {/* Filters - Single Card Layout */}
@@ -608,29 +603,13 @@ const LandingPage: React.FC = () => {
       </div>
       {/* Modal outside of the blur container with higher z-index */}
       {modalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md mx-auto">
-            <button
-              onClick={() => setModalOpen(null)}
-              className="absolute top-4 right-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none"
-              aria-label="Close modal"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <AuthForm className="max-w-md" defaultTab={modalOpen ?? "login"} />
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md mx-auto">
+            <AuthForm
+              className="max-w-md"
+              defaultTab={modalOpen ?? "login"}
+              onClose={() => setModalOpen(null)}
+            />
           </div>
         </div>
       )}

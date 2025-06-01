@@ -52,6 +52,7 @@ type AuthFormProps = {
 export function AuthForm({
   className,
   defaultTab = "login",
+  onClose, // Destructure the prop
   ...props
 }: AuthFormProps) {
   const [tab, setTab] = useState(defaultTab);
@@ -78,9 +79,24 @@ export function AuthForm({
       className={cn("w-full max-w-md mx-auto", className)}
       {...props}
     >
+      {onClose && (
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className={cn(
+            "absolute top-2 right-0 rounded-full p-2 mb-5 transition hover:scale-110",
+            {
+              "text-white": isDark,
+              "text-black ": !isDark,
+            }
+          )}
+        >
+          <span className="text-3xl">&times;</span>
+        </button>
+      )}
       <TabsList
         className={cn("grid w-full grid-cols-2 mb-6", {
-          "bg-white text-black": isDark,
+          "bg-gray-700 text-gray-300": isDark,
           "bg-gray-200 text-gray-800": !isDark,
         })}
       >
@@ -89,7 +105,7 @@ export function AuthForm({
           className={cn({
             "data-[state=active]:bg-blue-600 data-[state=active]:text-white":
               !isDark,
-            "data-[state=active]:bg-gray-200 data-[state=active]:text-black":
+            "data-[state=active]:bg-blue-800 data-[state=active]:text-white":
               isDark,
           })}
         >
@@ -100,7 +116,7 @@ export function AuthForm({
           className={cn({
             "data-[state=active]:bg-blue-600 data-[state=active]:text-white":
               !isDark,
-            "data-[state=active]:bg-gray-200 data-[state=active]:text-black":
+            "data-[state=active]:bg-blue-800 data-[state=active]:text-white":
               isDark,
           })}
         >
@@ -111,7 +127,7 @@ export function AuthForm({
       <TabsContent
         value="login"
         className={cn("rounded-md border p-6 shadow-md", {
-          "bg-gray-800 border-gray-700 text-white": isDark,
+          "bg-gray-800 border-gray-700 text-gray-300": isDark,
           "bg-white border-gray-200 text-gray-800": !isDark,
         })}
       >
@@ -121,7 +137,7 @@ export function AuthForm({
       <TabsContent
         value="signup"
         className={cn("rounded-md border p-6 shadow-md", {
-          "bg-gray-800 border-gray-700 text-white": isDark,
+          "bg-gray-800 border-gray-700 text-gray-300": isDark,
           "bg-white border-gray-200 text-gray-800": !isDark,
         })}
       >
@@ -255,7 +271,7 @@ function LoginForm() {
         type="submit"
         className={cn("w-full", {
           "bg-blue-600 hover:bg-blue-700 text-white": !isDark,
-          "bg-white": isDark,
+          "bg-blue-800 hover:bg-blue-900 text-white": isDark,
         })}
       >
         Login
@@ -477,7 +493,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             type="submit"
             className={cn("w-full", {
               "bg-blue-600 hover:bg-blue-700 text-white": !isDark,
-              "bg-white": isDark,
+              "bg-blue-800 hover:bg-blue-900 text-white": isDark,
             })}
           >
             Send Otp
@@ -506,7 +522,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             onClick={verifyOtp}
             className={cn("w-full", {
               "bg-blue-600 hover:bg-blue-700 text-white": !isDark,
-              "bg-white": isDark,
+              "bg-blue-800 hover:bg-blue-900 text-white": isDark,
             })}
           >
             Verify OTP
