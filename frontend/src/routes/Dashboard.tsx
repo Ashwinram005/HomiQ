@@ -31,17 +31,17 @@ function ConfirmLogout({
 }: {
   isOpen: boolean;
   onConfirm: () => void;
-  onCancel: () => () => void;
+  onCancel: () => void; // corrected type here
 }) {
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50 p-4" // Added p-4 for mobile padding
-      onClick={onCancel()}
+      className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50 p-4"
+      onClick={onCancel} // pass function, don't call it here
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-sm shadow-xl border border-gray-300 dark:border-gray-700" // Made width full on smaller screens
+        className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-sm shadow-xl border border-gray-300 dark:border-gray-700"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">
@@ -52,9 +52,7 @@ function ConfirmLogout({
           be required to access your personalized dashboard.
         </p>
         <div className="flex flex-col sm:flex-row justify-end gap-3">
-          {" "}
-          {/* Stack buttons on smaller screens */}
-          <Button variant="outline" onClick={onCancel()}>
+          <Button variant="outline" onClick={onCancel}>
             Retain Session
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
@@ -121,11 +119,7 @@ export function Dashboard() {
 
   const handleLogout = async () => {
     if (socket.connected) socket.disconnect();
-    localStorage.removeItem("token");
-    localStorage.removeItem("email");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("username");
-    queryClient.clear();
+    localStorage.clear();
     navigate({ to: "/" });
   };
 

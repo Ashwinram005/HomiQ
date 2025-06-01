@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sun, Moon, X } from "lucide-react"; // Added Sun and Moon icons
+import { ArrowLeft, Sun, Moon, X } from "lucide-react";
 
-// Function to get theme from local storage
+// 🌓 Get theme from localStorage
 const getTheme = (): "light" | "dark" => {
   if (typeof window !== "undefined") {
     return (localStorage.getItem("theme") as "light" | "dark") || "light";
@@ -13,7 +13,7 @@ const getTheme = (): "light" | "dark" => {
   return "light";
 };
 
-// Function to set theme in local storage and update class on html element
+// 🌓 Set theme to localStorage and <html>
 const setTheme = (theme: "light" | "dark") => {
   if (typeof window !== "undefined") {
     localStorage.setItem("theme", theme);
@@ -22,49 +22,51 @@ const setTheme = (theme: "light" | "dark") => {
   }
 };
 
+// 📍 Get active tab from localStorage
+const getStoredTab = (): "mine" | "others" => {
+  if (typeof window !== "undefined") {
+    return (
+      (localStorage.getItem("activeChatTab") as "mine" | "others") || "others"
+    );
+  }
+  return "others";
+};
+
 export function ChatList({ setOpenChatList }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"mine" | "others">("others");
 
   const email = localStorage.getItem("email") || "";
   const { chatId: urlChatId } = useParams({});
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   useEffect(() => setSelectedChatId(urlChatId || null), [urlChatId]);
 
-  // Theme state and logic
+  // 🌙 Theme state
   const [currentTheme, setCurrentTheme] = useState<"light" | "dark">(
     getTheme()
   );
-
+  useEffect(() => setTheme(currentTheme), [currentTheme]);
   useEffect(() => {
-    setTheme(currentTheme);
-  }, [currentTheme]);
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setCurrentTheme(getTheme());
-    };
+    const handleStorageChange = () => setCurrentTheme(getTheme());
     window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
-
   const toggleTheme = () => {
     const newTheme = currentTheme === "light" ? "dark" : "light";
     setCurrentTheme(newTheme);
   };
 
+  // 🔁 Tab state (stored in localStorage)
+  const [activeTab, setActiveTab] = useState<"mine" | "others">(getStoredTab());
+  const handleTabChange = (tab: "mine" | "others") => {
+    setActiveTab(tab);
+    localStorage.setItem("activeChatTab", tab);
+  };
+
   // 1️⃣ Fetch current user
-  const {
-    data: currentUser,
-    isLoading: userLoading,
-    error: userError,
-  } = useQuery({
+  const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ["userByEmail", email],
     queryFn: async () => {
-      if (!email) throw new Error("No email");
       const res = await fetch(
         `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
           email
@@ -79,19 +81,13 @@ export function ChatList({ setOpenChatList }) {
   const userId = currentUser?._id;
 
   // 2️⃣ Fetch chats
-  const {
-    data: chats = [],
-    isLoading: chatsLoading,
-    error: chatsError,
-  } = useQuery({
+  const { data: chats = [], isLoading: chatsLoading } = useQuery({
     queryKey: ["chats", userId],
     queryFn: async () => {
-      if (!userId) return [];
       const res = await fetch(
         `http://localhost:5000/api/chatroom/user/${userId}`
       );
       const json = await res.json();
-
       if (!json.success) throw new Error("Failed to fetch chats");
       return json.chats;
     },
@@ -99,11 +95,10 @@ export function ChatList({ setOpenChatList }) {
     staleTime: 0,
   });
 
-  // 3️⃣ Fetch rooms owned by user
+  // 3️⃣ Fetch user's rooms
   const { data: myRooms = [] } = useQuery({
     queryKey: ["myRooms", userId],
     queryFn: async () => {
-      if (!userId) return [];
       const res = await fetch(`http://localhost:5000/api/posts/user/${userId}`);
       const json = await res.json();
       if (!json.success) throw new Error("Failed to fetch rooms");
@@ -114,14 +109,14 @@ export function ChatList({ setOpenChatList }) {
   });
   const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
 
-  const filteredChats =
-    chats?.filter((chat) => {
-      const roomId = chat.roomId?.toString() || "";
-      const isMine = myRoomIds.includes(roomId);
-      return activeTab === "mine" ? isMine : !isMine;
-    }) || [];
+  // 4️⃣ Filter chats by tab
+  const filteredChats = chats?.filter((chat) => {
+    const roomId = chat.roomId?.toString() || "";
+    const isMine = myRoomIds.includes(roomId);
+    return activeTab === "mine" ? isMine : !isMine;
+  });
 
-  // 5️⃣ Join all rooms on socket so you’ll get events for them
+  // 5️⃣ Join socket rooms
   useEffect(() => {
     if (!userId || !chats.length) return;
     if (!socket.connected) socket.connect();
@@ -137,13 +132,13 @@ export function ChatList({ setOpenChatList }) {
     };
   }, [userId, chats]);
 
-  // 6️⃣ Optimistic cache patch on incoming messages for any room
+  // 6️⃣ Optimistic chat updates
   useEffect(() => {
     if (!userId) return;
 
     const handleMessage = (payload: any) => {
       const roomId = payload.chatRoom;
-      const msg = payload.content; // { text, timestamp, ... }
+      const msg = payload.content;
 
       queryClient.setQueryData<any[]>(["chats", userId], (old = []) => {
         const idx = old.findIndex((c) => c._id === roomId);
@@ -153,14 +148,10 @@ export function ChatList({ setOpenChatList }) {
           const existing = old[idx];
           const updated = {
             ...existing,
-            latestMessage: {
-              content: msg.text,
-              timestamp: msg.timestamp,
-            },
+            latestMessage: { content: msg.text, timestamp: msg.timestamp },
           };
           updatedChats = [updated, ...old.slice(0, idx), ...old.slice(idx + 1)];
         } else {
-          // Insert new chat
           updatedChats = [
             {
               _id: roomId,
@@ -172,7 +163,7 @@ export function ChatList({ setOpenChatList }) {
           ];
         }
 
-        // 🔁 Determine if this is the most recent message
+        // Optionally update tab to match most recent message
         const latest = updatedChats.reduce(
           (latest, chat) => {
             const t = new Date(chat.latestMessage?.timestamp || 0).getTime();
@@ -180,13 +171,14 @@ export function ChatList({ setOpenChatList }) {
           },
           { time: 0, chat: null }
         );
-
         if (latest.chat) {
           const belongsToMyRoom = myRoomIds.includes(
             latest.chat.roomId?._id || latest.chat.roomId
           );
           const correctTab = belongsToMyRoom ? "mine" : "others";
-          setActiveTab((prev) => (prev !== correctTab ? correctTab : prev));
+          if (correctTab !== activeTab) {
+            handleTabChange(correctTab);
+          }
         }
 
         return updatedChats;
@@ -195,14 +187,13 @@ export function ChatList({ setOpenChatList }) {
 
     socket.on("receiveMessage", handleMessage);
     socket.on("updateMessage", handleMessage);
-
     return () => {
       socket.off("receiveMessage", handleMessage);
       socket.off("updateMessage", handleMessage);
     };
   }, [userId, queryClient, myRoomIds]);
 
-  // Apply theme-based classes
+  // 💄 Theme-based classes
   const sidebarBgClass =
     currentTheme === "dark"
       ? "bg-gray-900 border-gray-700 text-gray-200"
@@ -231,12 +222,6 @@ export function ChatList({ setOpenChatList }) {
         ? "hover:bg-gray-800 border-gray-700"
         : "hover:bg-gray-50 border-gray-200"
     }`;
-  const chatNameClass =
-    currentTheme === "dark" ? "text-white" : "text-gray-800";
-  const chatMessageClass =
-    currentTheme === "dark" ? "text-gray-400" : "text-gray-600";
-  const chatTimestampClass =
-    currentTheme === "dark" ? "text-gray-500" : "text-gray-400";
 
   if (userLoading || chatsLoading) {
     return (
@@ -248,15 +233,14 @@ export function ChatList({ setOpenChatList }) {
 
   return (
     <div
-      className={`w-full z-100 min-h-screen  border-r dark:bg-neutral-800 dark:border-neutral-700 flex flex-col shadow-xl transition-colors duration-300 ${sidebarBgClass}`}
+      className={`w-full z-100 min-h-screen border-r flex flex-col shadow-xl transition-colors duration-300 ${sidebarBgClass}`}
     >
-      {/* Header with Back Button and Theme Switcher */}
+      {/* Header */}
       <div
         className={`p-3 border-b flex items-center justify-between transition-colors duration-300 ${
           currentTheme === "dark" ? "border-gray-700" : "border-gray-300"
         }`}
       >
-        {/* Left side: Back button */}
         <div className="flex items-center flex-1">
           <button
             onClick={() => navigate({ to: "/dashboard" })}
@@ -267,11 +251,10 @@ export function ChatList({ setOpenChatList }) {
           </button>
         </div>
 
-        {/* Center: Theme switcher */}
+        {/* Theme toggle + close */}
         <div className="flex gap-1">
           <div className="flex justify-center flex-1">
             <button
-              type="button"
               onClick={toggleTheme}
               className={`p-1 rounded-full transition-colors duration-200 ${
                 currentTheme === "dark"
@@ -287,8 +270,6 @@ export function ChatList({ setOpenChatList }) {
               )}
             </button>
           </div>
-
-          {/* Right side: Close button */}
           <div className="flex justify-end flex-1">
             <button
               className="mr-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
@@ -309,22 +290,20 @@ export function ChatList({ setOpenChatList }) {
       >
         <button
           className={tabButtonClass("mine")}
-          onClick={() => setActiveTab("mine")}
+          onClick={() => handleTabChange("mine")}
         >
           Tenants
         </button>
         <button
           className={tabButtonClass("others")}
-          onClick={() => setActiveTab("others")}
+          onClick={() => handleTabChange("others")}
         >
           Owners
         </button>
       </div>
 
-      {/* Chat List Items */}
+      {/* Chat list */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {" "}
-        {/* Added custom-scrollbar */}
         <AnimatePresence>
           {filteredChats.length === 0 && (
             <motion.div
@@ -332,7 +311,7 @@ export function ChatList({ setOpenChatList }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="p-4 text-center text-gray-500 dark:text-gray-400" // Theme-aware empty message
+              className="p-4 text-center text-gray-500 dark:text-gray-400"
             >
               No chats
             </motion.div>
@@ -342,33 +321,46 @@ export function ChatList({ setOpenChatList }) {
             const isSelected = selectedChatId === chat._id;
             const other = chat.participants.find((p: any) => p.email !== email);
             const lm = chat.latestMessage || {};
+
             return (
               <motion.div
                 key={chat._id}
-                layout // Animate layout changes
+                layout
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                className={chatItemClass(isSelected)} // Apply dynamic classes
+                className={chatItemClass(isSelected)}
                 onClick={() => {
+                  setSelectedChatId(chat._id);
                   navigate({
                     to: "/chat/$chatId",
                     params: { chatId: chat._id },
                   });
+                  if (window.innerWidth < 768) setOpenChatList(false);
 
-                  // ✅ Close chat list on small screens
-                  if (window.innerWidth < 768) {
-                    setOpenChatList(false);
-                  }
+                  // 🧠 Store active tab when a chat is clicked
+                  localStorage.setItem("activeChatTab", activeTab);
                 }}
               >
-                <div className={`font-semibold ${chatNameClass}`}>
+                <div
+                  className={`font-semibold ${
+                    currentTheme === "dark" ? "text-white" : "text-gray-800"
+                  }`}
+                >
                   {other?.name || "Unknown"}
                 </div>
-                <div className={`text-sm truncate ${chatMessageClass}`}>
+                <div
+                  className={`text-sm truncate ${
+                    currentTheme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
                   {lm.content || "No messages yet"}
                 </div>
-                <div className={`text-xs mt-1 ${chatTimestampClass}`}>
+                <div
+                  className={`text-xs mt-1 ${
+                    currentTheme === "dark" ? "text-gray-500" : "text-gray-400"
+                  }`}
+                >
                   {lm.timestamp ? new Date(lm.timestamp).toLocaleString() : ""}
                 </div>
               </motion.div>

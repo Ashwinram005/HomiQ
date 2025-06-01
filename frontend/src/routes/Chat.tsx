@@ -128,6 +128,7 @@ export function Chat() {
     enabled: !!receiverEmail,
   });
 
+  // Fetch messages initially & when dependencies change
   useEffect(() => {
     if (!chatId || !senderEmail || !receiverEmail) return;
 
@@ -136,11 +137,13 @@ export function Chat() {
       .catch(console.error);
   }, [chatId, senderEmail, receiverEmail]);
 
+  // Setup socket listeners for realtime messages
   useEffect(() => {
     if (!chatId) return;
     if (!socket.connected) socket.connect();
 
     socket.emit("joinRoom", chatId);
+
     const handleReceiveMessage = (msg: any) => {
       const newMsg: Message = {
         _id: msg.content._id,
@@ -155,6 +158,7 @@ export function Chat() {
 
       if (newMsg.chatId === chatId) {
         setMessages((prev) => [...prev, newMsg]);
+        // Scroll to bottom on receiving new message
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 50);
@@ -210,14 +214,16 @@ export function Chat() {
         receiverEmail,
       });
 
+      // Scroll to bottom on sending new message
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
+      }, 100);
     } catch (err) {
       console.error("Send error:", err);
     }
   };
 
+  // Scroll to bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -226,7 +232,8 @@ export function Chat() {
     if (e.key === "Enter") sendMessage();
   };
 
-  const [openChatList, setOpenChatList] = useState();
+  const [openChatList, setOpenChatList] = useState(false);
+
   return (
     <div className="flex-1 max-w-full flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 dark:border-neutral-700">
       {openChatList && (
@@ -244,9 +251,9 @@ export function Chat() {
         </div>
       )}
 
-      <div className="flex-1  flex flex-col  md:h-[100vh] bg-white dark:bg-neutral-800 shadow-xl overflow-hidden border border-gray-200 dark:border-neutral-700 rounded-xl ">
+      <div className="flex-1 flex flex-col md:h-[100vh] bg-white dark:bg-neutral-800 shadow-xl overflow-hidden border border-gray-200 dark:border-neutral-700 rounded-xl relative">
         {/* Header */}
-        <div className="fixed top-0 w-full   bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-4 md:px-6 py-3 flex items-center shadow-sm">
+        <div className="fixed top-0 w-full bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-4 md:px-6 py-3 flex items-center shadow-sm z-20">
           <button
             className="mr-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
             onClick={() => setOpenChatList((prev) => !prev)}
@@ -268,7 +275,7 @@ export function Chat() {
             </svg>
           </button>
 
-          <div className="flex-1 flex flex-col min-w-0 ">
+          <div className="flex-1 flex flex-col min-w-0">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white truncate">
               Chat Room
             </h2>
@@ -279,7 +286,10 @@ export function Chat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3 hide-scrollbar">
+        <div
+          className="flex-1 overflow-y-auto px-4 py-20 space-y-3 hide-scrollbar"
+          style={{ marginTop: "56px" }} // height of header, to avoid overlap
+        >
           {messages.length ? (
             messages.map((msg, i) => {
               const isSender = msg.senderEmail === senderEmail;
@@ -324,16 +334,13 @@ export function Chat() {
           <input
             type="text"
             placeholder="Message..."
-            className="flex-1 border  border-gray-300 dark:border-neutral-600 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-neutral-800 dark:text-white rounded-full"
+            className="flex-1 md: border border-gray-300 dark:border-neutral-600 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-neutral-800 dark:text-white rounded-full"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
           />
           <button
-            onClick={() => {
-              sendMessage(input);
-              setInput("");
-            }}
+            onClick={sendMessage}
             disabled={!input.trim()}
             className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white px-5 py-2 text-sm rounded-full transition disabled:opacity-50"
           >

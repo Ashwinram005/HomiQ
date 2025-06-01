@@ -190,59 +190,34 @@ export function SinglePost() {
   const handleChatClick = async () => {
     try {
       const token = localStorage.getItem("token");
-      const currentUserId = getUserIdFromToken(); // Ensure this function works correctly
+      const currentUserId = getUserIdFromToken();
       const otherUserId = post.postedBy;
       const roomId = post._id;
       if (!token || !currentUserId || !otherUserId || !roomId) {
-        // Redirect to login if not authenticated
         navigate({ to: "/?tab=login" });
         return;
       }
-
-      // Check if the user is trying to chat with themselves
-      if (currentUserId === otherUserId) {
-        // Option 1: Show a message
-        alert("You cannot chat with yourself.");
-        // Option 2: Navigate to their "My Posts" page or similar
-        // navigate({ to: "/myposts" });
-        return;
-      }
-
-      // Check if a chatroom already exists between these two users for this post
-      const existingChatResponse = await axios.get(
-        `http://localhost:5000/api/chatroom/find?user1Id=${currentUserId}&user2Id=${otherUserId}&roomId=${roomId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (existingChatResponse.data.chatId) {
-        // Navigate to the existing chat room
-        navigate({ to: `/chat/${existingChatResponse.data.chatId}` });
-        return;
-      }
-
-      // Create a new chatroom if none exists
       const response = await axios.post(
         "http://localhost:5000/api/chatroom/create",
         {
-          user1Id: currentUserId, // Assuming backend expects user1Id and user2Id
-          user2Id: otherUserId,
+          userId: currentUserId,
+          otherUserId,
           roomId,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
-      const chatId = response.data._id; // Assuming the response contains the new chatroom ID
+      const chatId = response.data._id;
       navigate({ to: `/chat/${chatId}` });
-    } catch (error: any) {
-      console.error("Error starting chat:", error);
-      alert(
-        `Could not start chat. Please try again. ${
-          error.response?.data?.message || error.message
-        }`
-      );
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      alert("Could not start chat Please try again.");
     }
   };
-
   // Apply theme-based classes
   const containerBgClass =
     currentTheme === "dark"
