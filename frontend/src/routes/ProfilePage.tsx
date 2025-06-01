@@ -218,8 +218,7 @@ export function ProfilePage() {
       const token = localStorage.getItem("token");
       const res = await axios.post(
         "http://localhost:5000/api/users/verify-password", // Your backend endpoint
-        { email: user?.email, password: currentPassword },
-       
+        { email: user?.email, password: currentPassword }
       );
 
       if (res.status === 200) {
@@ -278,8 +277,7 @@ export function ProfilePage() {
       const token = localStorage.getItem("token");
       await axios.put(
         "http://localhost:5000/api/users/update-password", // Your backend endpoint
-        { email: user?.email, newPassword: data.newPassword },
-       
+        { email: user?.email, newPassword: data.newPassword }
       );
       toast.success("Password updated successfully!", { id: "passwordUpdate" });
       setShowChangePassword(false);
@@ -373,7 +371,7 @@ export function ProfilePage() {
       `}
         >
           <ArrowLeft size={16} />
-          Back to Dashboard
+          Back
         </button>
       </div>
 
@@ -413,13 +411,13 @@ export function ProfilePage() {
         {/* Header with Title and Theme Switcher */}
         <div className="flex justify-between items-center border-b pb-4">
           <h2
-            className={`text-3xl md:text-4xl font-extrabold ${
-              isDark ? "text-indigo-300" : "text-gray-800"
+            className={`text-3xl md:text-4xl font-semibold tracking-tight ${
+              isDark ? "text-indigo-200" : "text-gray-900"
             }`}
           >
-            {user?.name ? `${user.name}'s Profile` : "User Profile"}{" "}
-            {/* Dynamic title */}
+            {user?.name ? `${user.name}'s Profile` : "User Profile"}
           </h2>
+
           {/* Theme Switcher */}
           <button
             onClick={toggleTheme}

@@ -16,6 +16,14 @@ import {
   Home,
   Sun,
   Moon,
+  Search,
+  MapPin,
+  DollarSign,
+  Building,
+  Users,
+  Calendar,
+  ChevronDown,
+  Loader2,
 } from "lucide-react";
 
 interface Post {
@@ -56,13 +64,14 @@ const fetchPosts = async ({ pageParam = 1, queryKey }: any) => {
 const Navbar = ({
   toggleTheme,
   theme,
+  setModalOpen,
 }: {
   toggleTheme: () => void;
   theme: string;
+  setModalOpen: (tab: "login" | "signup" | null) => void;
 }) => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [modalOpen, setModalOpen] = useState<"login" | "signup" | null>(null);
 
   const location = useLocation();
 
@@ -88,7 +97,7 @@ const Navbar = ({
       setModalOpen(tab);
       setOpen(false);
     }
-  }, [location.search]);
+  }, [location.search, setModalOpen]); // Add setModalOpen to dependencies
 
   const isDark = theme === "dark";
 
@@ -165,7 +174,7 @@ const Navbar = ({
                   onClick={() => setModalOpen("signup")}
                   className={`w-full text-left px-5 py-3 hover:bg-blue-50 font-medium rounded-b-xl transition-colors duration-150 ${
                     isDark
-                      ? "text-blue-300 hover:bg-gray-600 hover:text-blue-200"
+                      ? "text-blue-300 border-gray-600 hover:bg-gray-600 hover:text-blue-200"
                       : "text-blue-700 hover:bg-blue-50"
                   }`}
                 >
@@ -174,10 +183,6 @@ const Navbar = ({
               </motion.div>
             )}
           </AnimatePresence>
-
-          <Modal isOpen={modalOpen !== null} onClose={() => setModalOpen(null)}>
-            <AuthForm className="max-w-md" defaultTab={modalOpen ?? "login"} />
-          </Modal>
         </div>
       </div>
     </nav>
@@ -195,6 +200,8 @@ const LandingPage: React.FC = () => {
   const [availableFromFilter, setAvailableFromFilter] = useState("");
   const [amenitiesFilter, setAmenitiesFilter] = useState<string[]>([]);
   const [theme, setTheme] = useState("light");
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [modalOpen, setModalOpen] = useState<"login" | "signup" | null>(null);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") || "light";
@@ -267,198 +274,293 @@ const LandingPage: React.FC = () => {
         isDark ? "bg-gray-900" : "bg-white"
       }`}
       style={{
-        backgroundImage: isDark
-          ? "none"
-          : "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1470&q=80')",
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1470&q=80')",
       }}
     >
+      {modalOpen && (
+        <div className="fixed inset-0 bg-white/20 backdrop-blur-xs z-30 transition-opacity duration-300"></div>
+      )}
+
       <div
-        className={`absolute inset-0 z-0 ${
-          isDark
-            ? "bg-gray-900 bg-opacity-90"
-            : "bg-white bg-opacity-80 backdrop-blur-sm"
+        className={`relative z-10 transition-all duration-300 ${
+          modalOpen ? "blur-xs pointer-events-none select-none" : ""
         }`}
-      ></div>
-
-      <div className="relative z-10">
-        <Navbar toggleTheme={toggleTheme} theme={theme} />
-
+      >
+        <Navbar
+          toggleTheme={toggleTheme}
+          theme={theme}
+          setModalOpen={setModalOpen}
+        />
+        {/* Pass setModalOpen */}
         <div className="px-4 py-10 max-w-7xl mx-auto">
-          <h1
-            className={`text-3xl font-bold mb-6 text-center ${
-              isDark ? "text-gray-200" : "text-gray-800"
-            }`}
-          >
-            Available Rooms
+          <h1 className={`text-4xl font-extrabold mb-8 text-center text-white`}>
+            Find Your Space, Feel at Home.
           </h1>
 
-          {/* Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {/* Title Search */}
-            <input
-              type="text"
-              placeholder="🔍 Search title or description"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 transition ${
+          {/* Filters - Single Card Layout */}
+          <div
+            className={`mb-12 p-6 rounded-xl shadow-xl transition-all duration-300 ease-in-out ${
+              isDark
+                ? "bg-gray-800 border border-gray-700"
+                : "bg-white border border-gray-200"
+            }`}
+          >
+            {/* Filter Toggler for smaller screens */}
+            <button
+              className={`lg:hidden flex items-center justify-between w-full px-4 py-2 font-semibold rounded-lg transition-colors duration-200 ${
                 isDark
-                  ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400 focus:ring-blue-700"
-                  : "bg-white text-black border-gray-300 focus:ring-blue-400"
+                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
-            />
-
-            {/* Location */}
-            <input
-              type="text"
-              placeholder="📍 Location"
-              value={locationQuery}
-              onChange={(e) => setLocationQuery(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 transition ${
-                isDark
-                  ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400 focus:ring-blue-700"
-                  : "bg-white text-black border-gray-300 focus:ring-blue-400"
-              }`}
-            />
-
-            {/* Price */}
-            <select
-              value={priceFilter}
-              onChange={(e) => setPriceFilter(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 transition ${
-                isDark
-                  ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
-                  : "bg-white text-black border-gray-300 focus:ring-blue-400"
-              }`}
+              onClick={() => setIsFilterVisible(!isFilterVisible)}
             >
-              <option value="all">💰 All Prices</option>
-              <option value="3000">Below ₹3,000</option>
-              <option value="5000">Below ₹5,000</option>
-              <option value="8000">Below ₹8,000</option>
-            </select>
+              Filter Options
+              <ChevronDown
+                className={`transform transition-transform duration-300 ${
+                  isFilterVisible ? "rotate-180" : "rotate-0"
+                }`}
+                size={20}
+              />
+            </button>
 
-            {/* Type */}
-            <select
-              value={roomTypeFilter}
-              onChange={(e) => setRoomTypeFilter(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 transition ${
-                isDark
-                  ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
-                  : "bg-white text-black border-gray-300 focus:ring-blue-400"
-              }`}
-            >
-              <option value="all">🏠 All Types</option>
-              <option value="Room">Room</option>
-              <option value="House">House</option>
-              <option value="PG">PG</option>
-              <option value="Shared">Shared</option>
-            </select>
+            {/* Filter Inputs - Initially hidden on smaller screens, always visible on lg */}
+            <AnimatePresence>
+              {(isFilterVisible || window.innerWidth >= 1024) && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 lg:pt-0">
+                    {/* Title Search */}
+                    <div className="relative">
+                      <Search
+                        className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                        size={20}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search title or description"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                          isDark
+                            ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400 focus:ring-blue-700"
+                            : "bg-gray-100 text-gray-800 border-gray-300 placeholder-gray-500 focus:ring-blue-400"
+                        }`}
+                      />
+                    </div>
 
-            {/* Occupancy */}
-            <select
-              value={occupancyFilter}
-              onChange={(e) => setOccupancyFilter(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 transition ${
-                isDark
-                  ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
-                  : "bg-white text-black border-gray-300 focus:ring-blue-400"
-              }`}
-            >
-              <option value="all">👥 Occupancy</option>
-              <option value="Single">Single</option>
-              <option value="Double">Double</option>
-              <option value="Triple">Triple</option>
-              <option value="Any">Any</option>
-            </select>
+                    {/* Location */}
+                    <div className="relative">
+                      <MapPin
+                        className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                        size={20}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Location"
+                        value={locationQuery}
+                        onChange={(e) => setLocationQuery(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                          isDark
+                            ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400 focus:ring-blue-700"
+                            : "bg-gray-100 text-gray-800 border-gray-300 placeholder-gray-500 focus:ring-blue-400"
+                        }`}
+                      />
+                    </div>
 
-            {/* Furnished */}
-            <select
-              value={furnishedFilter}
-              onChange={(e) => setFurnishedFilter(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 transition ${
-                isDark
-                  ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
-                  : "bg-white text-black border-gray-300 focus:ring-blue-400"
-              }`}
-            >
-              <option value="all">🛋 Furnishing</option>
-              <option value="true">Furnished</option>
-              <option value="false">Unfurnished</option>
-            </select>
+                    {/* Price */}
+                    <div className="relative">
+                      <DollarSign
+                        className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                        size={20}
+                      />
+                      <select
+                        value={priceFilter}
+                        onChange={(e) => setPriceFilter(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                          isDark
+                            ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
+                            : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-blue-400"
+                        }`}
+                      >
+                        <option value="all">All Prices</option>
+                        <option value="3000">Below ₹3,000</option>
+                        <option value="5000">Below ₹5,000</option>
+                        <option value="8000">Below ₹8,000</option>
+                      </select>
+                    </div>
 
-            {/* Available From */}
-            <input
-              type="date"
-              value={availableFromFilter}
-              onChange={(e) => setAvailableFromFilter(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 transition ${
-                isDark
-                  ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
-                  : "bg-white text-black border-gray-300 focus:ring-blue-400"
-              }`}
-            />
-          </div>
+                    {/* Type */}
+                    <div className="relative">
+                      <Building
+                        className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                        size={20}
+                      />
+                      <select
+                        value={roomTypeFilter}
+                        onChange={(e) => setRoomTypeFilter(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                          isDark
+                            ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
+                            : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-blue-400"
+                        }`}
+                      >
+                        <option value="all">All Types</option>
+                        <option value="Room">Room</option>
+                        <option value="House">House</option>
+                        <option value="PG">PG</option>
+                        <option value="Shared">Shared</option>
+                      </select>
+                    </div>
 
-          {/* Amenities Icons */}
-          <div className="flex flex-wrap gap-4 mb-8">
-            {[
-              { name: "Wi-Fi", Icon: Wifi },
-              { name: "Parking", Icon: Car },
-              { name: "AC", Icon: Snowflake },
-              { name: "Laundry", Icon: Home },
-              { name: "TV", Icon: Tv },
-              { name: "Refrigerator", Icon: Refrigerator },
-            ].map(({ name, Icon }) => {
-              const selected = amenitiesFilter.includes(name);
-              return (
-                <button
-                  key={name}
-                  onClick={() => handleAmenityChange(name)}
-                  className={`
-          flex items-center gap-2 px-3 py-2 border rounded-xl transition-all duration-200
+                    {/* Occupancy */}
+                    <div className="relative">
+                      <Users
+                        className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                        size={20}
+                      />
+                      <select
+                        value={occupancyFilter}
+                        onChange={(e) => setOccupancyFilter(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                          isDark
+                            ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
+                            : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-blue-400"
+                        }`}
+                      >
+                        <option value="all">Occupancy</option>
+                        <option value="Single">Single</option>
+                        <option value="Double">Double</option>
+                        <option value="Triple">Triple</option>
+                        <option value="Any">Any</option>
+                      </select>
+                    </div>
+
+                    {/* Furnished */}
+                    <div className="relative">
+                      <Home
+                        className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                        size={20}
+                      />
+                      <select
+                        value={furnishedFilter}
+                        onChange={(e) => setFurnishedFilter(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                          isDark
+                            ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
+                            : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-blue-400"
+                        }`}
+                      >
+                        <option value="all">Furnishing</option>
+                        <option value="true">Furnished</option>
+                        <option value="false">Unfurnished</option>
+                      </select>
+                    </div>
+
+                    {/* Available From */}
+                    <div className="relative">
+                      <Calendar
+                        className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                        size={20}
+                      />
+                      <input
+                        type="date"
+                        value={availableFromFilter}
+                        onChange={(e) => setAvailableFromFilter(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+                          isDark
+                            ? "bg-gray-700 text-white border-gray-600 focus:ring-blue-700"
+                            : "bg-gray-100 text-gray-800 border-gray-300 focus:ring-blue-400"
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Amenities Icons - Professional Styling */}
+                  <div className="flex flex-wrap gap-4 pt-6 border-t border-dashed mt-6">
+                    {[
+                      { name: "Wi-Fi", Icon: Wifi },
+                      { name: "Parking", Icon: Car },
+                      { name: "AC", Icon: Snowflake },
+                      { name: "Laundry", Icon: Home },
+                      { name: "TV", Icon: Tv },
+                      { name: "Refrigerator", Icon: Refrigerator },
+                    ].map(({ name, Icon }) => {
+                      const selected = amenitiesFilter.includes(name);
+                      return (
+                        <button
+                          key={name}
+                          onClick={() => handleAmenityChange(name)}
+                          className={`
+          flex items-center gap-2 px-5 py-2 rounded-full transition-all duration-200 text-sm font-medium
           ${
             selected
               ? isDark
-                ? "bg-blue-800 text-white border-blue-800 shadow"
-                : "bg-blue-600 text-white border-blue-600 shadow"
+                ? "bg-blue-800 text-white ring-2 ring-blue-500 hover:bg-blue-700"
+                : "bg-blue-600 text-white ring-2 ring-blue-500 hover:bg-blue-700"
               : isDark
-              ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
-              : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50"
+              ? "bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600"
+              : "bg-white text-gray-700 border border-gray-300 hover:bg-blue-50"
           }
         `}
-                  aria-pressed={selected}
-                >
-                  <Icon
-                    className={`h-5 w-5 ${
-                      selected
-                        ? isDark
-                          ? "text-blue-300"
-                          : "text-white"
-                        : isDark
-                        ? "text-blue-400"
-                        : "text-blue-500"
-                    }`}
-                  />
-                  <span className="capitalize">{name}</span>
-                </button>
-              );
-            })}
+                          aria-pressed={selected}
+                        >
+                          <Icon
+                            className={`h-5 w-5 ${
+                              selected
+                                ? isDark
+                                  ? "text-blue-300"
+                                  : "text-white"
+                                : isDark
+                                ? "text-blue-400"
+                                : "text-blue-500"
+                            }`}
+                          />
+                          <span className="capitalize">{name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+
           {/* Posts */}
           {isLoading ? (
             <p
-              className={`text-center ${
+              className={`text-center text-lg ${
                 isDark ? "text-gray-300" : "text-gray-700"
               }`}
             >
-              Loading...
+              Loading awesome rooms...
             </p>
           ) : isError ? (
-            <div className="text-center text-red-500">
-              <p>Something went wrong!</p>
+            <div className="text-center text-red-500 text-lg">
+              <p>Oops! Something went wrong while fetching rooms.</p>
               <p>{(error as any)?.message}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {data?.pages?.flatMap((page: any) =>
                 page?.posts?.map((post: Post) => (
                   <PostCard key={post._id} post={post} theme={theme} />
@@ -468,22 +570,49 @@ const LandingPage: React.FC = () => {
           )}
 
           {hasNextPage && (
-            <div className="mt-10 text-center">
+            <div className="mt-12 text-center">
               <button
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className={`px-6 py-2 font-semibold rounded-xl shadow transition duration-200 disabled:opacity-50 ${
+                className={`px-8 py-3 font-semibold rounded-xl shadow-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isDark
                     ? "bg-blue-800 text-white hover:bg-blue-700"
                     : "bg-blue-600 text-white hover:bg-blue-700"
                 }`}
               >
-                {isFetchingNextPage ? "Loading..." : "Load More"}
+                {isFetchingNextPage ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" /> Loading More...
+                  </span>
+                ) : (
+                  "Load More Rooms"
+                )}
               </button>
             </div>
           )}
+          {!hasNextPage && !isLoading && !isError && (
+            <p
+              className={`text-center mt-12 text-lg ${
+                isDark ? "text-gray-400" : "text-gray-600"
+              }`}
+            >
+              You've seen all available rooms for these filters!
+            </p>
+          )}
         </div>
       </div>
+      {/* Modal outside of the blur container with higher z-index */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md mx-auto">
+            <AuthForm
+              className="max-w-md"
+              defaultTab={modalOpen ?? "login"}
+              onClose={() => setModalOpen(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -508,14 +637,14 @@ const PostCard = ({ post, theme }: { post: Post; theme: string }) => {
   return (
     <motion.div
       onClick={handleClick}
-      className={`rounded-3xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 cursor-pointer flex flex-col max-w-sm mx-auto ${
+      className={`rounded-3xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer flex flex-col max-w-sm mx-auto h-full ${
         isDark
-          ? "bg-gray-800 text-white"
-          : "bg-white bg-gradient-to-br from-indigo-50 to-blue-50"
+          ? "bg-gray-800 text-white border border-gray-700"
+          : "bg-white bg-gradient-to-br from-indigo-50 to-blue-50 border border-blue-100"
       }`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.04 }}
+      whileHover={{ scale: 1.03 }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -525,11 +654,17 @@ const PostCard = ({ post, theme }: { post: Post; theme: string }) => {
       }}
     >
       <div className="relative w-full h-72 sm:h-80 md:h-72 overflow-hidden rounded-t-3xl">
-        <img
-          src={post.images?.[currentImage] || "/placeholder.jpg"}
-          alt={post.title}
-          className="w-full h-full object-cover object-center transition-transform duration-500"
-        />
+        {post.images && post.images.length > 0 ? (
+          <img
+            src={post.images[currentImage]}
+            alt={post.title}
+            className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-110"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <Home size={60} className="text-gray-500" />
+          </div>
+        )}
       </div>
       <div className="p-6 flex flex-col flex-grow">
         <h2
@@ -542,30 +677,30 @@ const PostCard = ({ post, theme }: { post: Post; theme: string }) => {
         <p
           className={`${
             isDark ? "text-gray-300" : "text-gray-700"
-          } line-clamp-3 mt-2 flex-grow`}
+          } line-clamp-3 mt-3 mb-4 text-sm flex-grow`}
         >
           {post.description}
         </p>
 
-        <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-dashed pt-4">
           <p
             className={`flex items-center text-base ${
               isDark ? "text-gray-400" : "text-gray-600"
             }`}
           >
-            <span className="mr-2">📍</span> {post.location}
+            <MapPin className="mr-2 h-5 w-5 text-blue-500" /> {post.location}
           </p>
           <p
             className={`${
-              isDark ? "text-green-300" : "text-green-700"
-            } font-extrabold text-lg sm:text-2xl`}
+              isDark ? "text-green-400" : "text-green-700"
+            } font-extrabold text-xl sm:text-2xl`}
           >
             ₹{post.price}/mo
           </p>
         </div>
 
         <p
-          className={`mt-4 text-sm italic select-none ${
+          className={`mt-4 text-xs italic select-none ${
             isDark ? "text-gray-500" : "text-gray-500"
           }`}
         >
