@@ -23,6 +23,7 @@ import {
   Home,
   Tv,
   Refrigerator,
+  Filter, // Added for mobile filter toggle
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,6 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Toaster } from "sonner";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"; // Import Sheet components
 
 const PAGE_LIMIT = 4;
 
@@ -77,11 +79,13 @@ const amenitiesList = [
     icon: <Refrigerator size={16} />,
   },
 ];
+
 export const MyPosts = () => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false); // Using this for the delete modal state
   const navigate = useNavigate();
   const [showDeletingModal, setShowDeletingModal] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // State for mobile filter sheet
 
   // Theme state and logic
   const [currentTheme, setCurrentTheme] = useState<"light" | "dark">(
@@ -136,8 +140,10 @@ export const MyPosts = () => {
       nextPage: response.data.hasMore ? pageParam + 1 : undefined,
     };
   };
+
   // Temp filters for controlled inputs before applying
   const [tempFilters, setTempFilters] = useState(filters);
+
   const toggleAmenity = (key: string) => {
     setTempFilters((prev) => {
       const exists = prev.amenityFilters.includes(key);
@@ -152,6 +158,26 @@ export const MyPosts = () => {
     });
   };
 
+  const applyFilters = () => {
+    setFilters(tempFilters);
+    setIsFilterSheetOpen(false); // Close sheet after applying filters on mobile
+  };
+
+  const resetFilters = () => {
+    const defaultFilters = {
+      searchQuery: "",
+      locationQuery: "",
+      priceFilter: "all",
+      roomTypeFilter: "all",
+      occupancyFilter: "all",
+      availableFrom: "",
+      amenityFilters: [],
+    };
+    setTempFilters(defaultFilters);
+    setFilters(defaultFilters); // Also apply the reset to the actual filters
+    setIsFilterSheetOpen(false); // Close sheet after resetting filters on mobile
+  };
+
   const {
     data,
     isLoading,
@@ -163,6 +189,7 @@ export const MyPosts = () => {
     queryKey: ["myPosts", filters],
     queryFn: fetchPosts,
     getNextPageParam: (lastPage) => lastPage.nextPage,
+    refetchOnWindowFocus: false, // Prevents re-fetching on window focus, can be adjusted
   });
 
   //delete
@@ -176,8 +203,10 @@ export const MyPosts = () => {
       return null;
     }
   }
+
   async function handleDeletePostAndImages(postId: string, images: string[]) {
     const token = localStorage.getItem("token") || "";
+    setLoading(true); // Set loading for the delete button
     try {
       setShowDeletingModal(true);
       toast.loading("Deleting images and post...", { id: "delete" });
@@ -228,9 +257,15 @@ export const MyPosts = () => {
       console.error("Delete error:", error);
       toast.error("Failed to delete post or images", { id: "delete" });
     } finally {
+      setLoading(false); // Reset loading state
       setShowDeletingModal(false);
     }
   }
+
+  // Wrapper for handleDeletePostAndImages to pass to AlertDialogAction
+  const handleDelete = (post: any) => {
+    handleDeletePostAndImages(post._id, post.images);
+  };
 
   // Flatten pages of posts into a single array
   const posts = data?.pages.flatMap((page) => page.posts) || [];
@@ -260,10 +295,170 @@ export const MyPosts = () => {
       : "bg-gradient-to-tr from-sky-50 to-indigo-100 text-black"
   }`;
 
+  // Filter content component to reuse for both desktop and mobile sheet
+  const FilterContent = () => (
+    <div className="space-y-6">
+      <h2
+        className={`text-2xl font-bold mb-4 ${
+          currentTheme === "dark" ? "text-indigo-300" : "text-indigo-700"
+        }`}
+      >
+        Filters
+      </h2>
+      <input
+        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+          currentTheme === "dark"
+            ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
+            : "bg-white text-black border-gray-300"
+        }`}
+        placeholder="Search by title or description"
+        value={tempFilters.searchQuery}
+        onChange={(e) =>
+          setTempFilters({ ...tempFilters, searchQuery: e.target.value })
+        }
+      />
+      <input
+        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+          currentTheme === "dark"
+            ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
+            : "bg-white text-black border-gray-300"
+        }`}
+        placeholder="Location"
+        value={tempFilters.locationQuery}
+        onChange={(e) =>
+          setTempFilters({
+            ...tempFilters,
+            locationQuery: e.target.value,
+          })
+        }
+      />
+      <select
+        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+          currentTheme === "dark"
+            ? "bg-gray-700 text-white border-gray-600"
+            : "bg-white text-black border-gray-300"
+        }`}
+        value={tempFilters.priceFilter}
+        onChange={(e) =>
+          setTempFilters({ ...tempFilters, priceFilter: e.target.value })
+        }
+      >
+        <option value="all">All Prices</option>
+        <option value="2500">Under ₹2500</option>
+        <option value="4000">Under ₹4000</option>
+        <option value="6000">Under ₹6000</option>
+      </select>
+      <select
+        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+          currentTheme === "dark"
+            ? "bg-gray-700 text-white border-gray-600"
+            : "bg-white text-black border-gray-300"
+        }`}
+        value={tempFilters.roomTypeFilter}
+        onChange={(e) =>
+          setTempFilters({
+            ...tempFilters,
+            roomTypeFilter: e.target.value,
+          })
+        }
+      >
+        <option value="all">All Room Types</option>
+        <option value="Room">Room</option>
+        <option value="House">House</option>
+        <option value="PG">PG</option>
+        <option value="Shared">Shared</option>
+      </select>
+      <select
+        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+          currentTheme === "dark"
+            ? "bg-gray-700 text-white border-gray-600"
+            : "bg-white text-black border-gray-300"
+        }`}
+        value={tempFilters.occupancyFilter}
+        onChange={(e) =>
+          setTempFilters({
+            ...tempFilters,
+            occupancyFilter: e.target.value,
+          })
+        }
+      >
+        <option value="all">All Occupancy</option>
+        <option value="Single">Single</option>
+        <option value="Double">Double</option>
+        <option value="Triple">Triple</option>
+        <option value="Any">Any</option>
+      </select>
+      <input
+        type="date"
+        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+          currentTheme === "dark"
+            ? "bg-gray-700 text-white border-gray-600"
+            : "bg-white text-black border-gray-300"
+        }`}
+        value={tempFilters.availableFrom}
+        onChange={(e) =>
+          setTempFilters({
+            ...tempFilters,
+            availableFrom: e.target.value,
+          })
+        }
+      />
+      <div>
+        <div
+          className={`mb-2 font-semibold text-sm ${
+            currentTheme === "dark" ? "text-indigo-300" : "text-indigo-600"
+          }`}
+        >
+          Amenities
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {amenitiesList.map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => toggleAmenity(key)}
+              className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-all ${
+                tempFilters.amenityFilters.includes(key)
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : currentTheme === "dark"
+                  ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {icon} {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5 flex gap-3">
+        <Button
+          variant="outline"
+          className={`flex-1 ${
+            currentTheme === "dark"
+              ? "bg-gray-600 text-white border-gray-500 hover:bg-gray-500"
+              : "bg-white text-black border-gray-300 hover:bg-gray-100"
+          }`}
+          onClick={resetFilters}
+        >
+          Reset
+        </Button>
+        <Button
+          className={`flex-1 ${
+            currentTheme === "dark"
+              ? "bg-indigo-700 hover:bg-indigo-800"
+              : "bg-indigo-600 hover:bg-indigo-700"
+          }`}
+          onClick={applyFilters}
+        >
+          Apply Filters
+        </Button>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div
-        className={`${containerClasses} max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`}
+        className={`${containerClasses} max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6`}
       >
         {Array.from({ length: PAGE_LIMIT }).map((_, i) => (
           <Card
@@ -312,17 +507,15 @@ export const MyPosts = () => {
 
   return (
     <div className={containerClasses}>
-      {" "}
-      {/* Apply theme background here */}
       <Toaster position="top-center" reverseOrder={false} />
       <div className="max-w-7xl mx-auto px-4 py-10">
         <div
-          className={`relative flex items-center justify-between gap-4 mb-10 sticky top-0 z-10 p-5 rounded-2xl ${
+          className={`relative flex items-center justify-between gap-4 mb-10 sticky top-0 z-20 p-4 sm:p-5 rounded-2xl ${
             currentTheme === "dark" ? "bg-gray-700" : "bg-blue-400"
           }`}
         >
-          {/* Left: Back Button */}
-          <div className="z-10">
+          {/* Left: Back Button & Mobile Filter Toggle */}
+          <div className="flex items-center gap-2 z-10">
             <Button
               variant="outline"
               onClick={() => navigate({ to: "/dashboard" })}
@@ -334,11 +527,37 @@ export const MyPosts = () => {
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
+            {/* Mobile Filter Button */}
+            <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button
+                  variant="outline"
+                  className={`flex gap-2 transition duration-300 ease-in-out transform hover:scale-105 ${
+                    currentTheme === "dark"
+                      ? "bg-gray-600 text-white border-gray-500 hover:bg-indigo-700"
+                      : "bg-white text-gray-800 border-gray-300 hover:bg-indigo-600 hover:text-white"
+                  }`}
+                >
+                  <Filter className="w-4 h-4" /> Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className={`w-[300px] sm:w-[350px] overflow-auto ${
+                  currentTheme === "dark"
+                    ? "bg-gray-800 text-white"
+                    : "bg-white text-black"
+                }`}
+              >
+                {/* Filter content inside the sheet */}
+                {FilterContent()}
+              </SheetContent>
+            </Sheet>
           </div>
 
           {/* Center: Absolutely Positioned Title */}
           <h1
-            className={`absolute left-1/2 transform -translate-x-1/2 text-2xl md:text-3xl font-bold tracking-tight ${
+            className={` hidden sm:flex absolute left-1/2 transform -translate-x-1/2 text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-center whitespace-nowrap ${
               currentTheme === "dark" ? "text-indigo-300" : "text-indigo-900"
             }`}
           >
@@ -366,190 +585,33 @@ export const MyPosts = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-6">
+          {/* Desktop Filter Sidebar */}
           <aside
-            className={`shadow-xl rounded-2xl p-6 h-fit sticky top-20 ${
+            className={`hidden md:block shadow-xl rounded-2xl p-6 h-fit sticky top-20 ${
               currentTheme === "dark"
                 ? "bg-gray-800 text-white"
                 : "bg-white text-black"
             }`}
           >
-            <h2
-              className={`text-2xl font-bold mb-4 ${
-                currentTheme === "dark" ? "text-indigo-300" : "text-indigo-700"
-              }`}
-            >
-              Filters
-            </h2>
-            <input
-              className={`w-full mb-3 px-4 py-2 border rounded-md ${
-                currentTheme === "dark"
-                  ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
-                  : "bg-white text-black border-gray-300"
-              }`}
-              placeholder="Search by title or description"
-              value={tempFilters.searchQuery}
-              onChange={(e) =>
-                setTempFilters({ ...tempFilters, searchQuery: e.target.value })
-              }
-            />
-            <input
-              className={`w-full mb-3 px-4 py-2 border rounded-md ${
-                currentTheme === "dark"
-                  ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
-                  : "bg-white text-black border-gray-300"
-              }`}
-              placeholder="Location"
-              value={tempFilters.locationQuery}
-              onChange={(e) =>
-                setTempFilters({
-                  ...tempFilters,
-                  locationQuery: e.target.value,
-                })
-              }
-            />
-            <select
-              className={`w-full mb-3 px-4 py-2 border rounded-md ${
-                currentTheme === "dark"
-                  ? "bg-gray-700 text-white border-gray-600"
-                  : "bg-white text-black border-gray-300"
-              }`}
-              value={tempFilters.priceFilter}
-              onChange={(e) =>
-                setTempFilters({ ...tempFilters, priceFilter: e.target.value })
-              }
-            >
-              <option value="all">All Prices</option>
-              <option value="2500">Under ₹2500</option>
-              <option value="4000">Under ₹4000</option>
-              <option value="6000">Under ₹6000</option>
-            </select>
-            <select
-              className={`w-full mb-3 px-4 py-2 border rounded-md ${
-                currentTheme === "dark"
-                  ? "bg-gray-700 text-white border-gray-600"
-                  : "bg-white text-black border-gray-300"
-              }`}
-              value={tempFilters.roomTypeFilter}
-              onChange={(e) =>
-                setTempFilters({
-                  ...tempFilters,
-                  roomTypeFilter: e.target.value,
-                })
-              }
-            >
-              <option value="all">All Room Types</option>
-              <option value="Room">Room</option>
-              <option value="House">House</option>
-              <option value="PG">PG</option>
-              <option value="Shared">Shared</option>
-            </select>
-            <select
-              className={`w-full mb-3 px-4 py-2 border rounded-md ${
-                currentTheme === "dark"
-                  ? "bg-gray-700 text-white border-gray-600"
-                  : "bg-white text-black border-gray-300"
-              }`}
-              value={tempFilters.occupancyFilter}
-              onChange={(e) =>
-                setTempFilters({
-                  ...tempFilters,
-                  occupancyFilter: e.target.value,
-                })
-              }
-            >
-              <option value="all">All Occupancy</option>
-              <option value="Single">Single</option>
-              <option value="Double">Double</option>
-              <option value="Triple">Triple</option>
-              <option value="Any">Any</option>
-            </select>
-            <input
-              type="date"
-              className={`w-full mb-4 px-4 py-2 border rounded-md ${
-                currentTheme === "dark"
-                  ? "bg-gray-700 text-white border-gray-600"
-                  : "bg-white text-black border-gray-300"
-              }`}
-              value={tempFilters.availableFrom}
-              onChange={(e) =>
-                setTempFilters({
-                  ...tempFilters,
-                  availableFrom: e.target.value,
-                })
-              }
-            />
-            <div
-              className={`mb-2 font-semibold text-sm ${
-                currentTheme === "dark" ? "text-indigo-300" : "text-indigo-600"
-              }`}
-            >
-              Amenities
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {amenitiesList.map(({ key, label, icon }) => (
-                <button
-                  key={key}
-                  onClick={() => toggleAmenity(key)}
-                  className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-all ${
-                    tempFilters.amenityFilters.includes(key)
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : currentTheme === "dark"
-                      ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {icon} {label}
-                </button>
-              ))}
-            </div>
-            <div className="mt-5 flex gap-3">
-              <Button
-                variant="outline"
-                className={`flex-1 ${
-                  currentTheme === "dark"
-                    ? "bg-gray-600 text-white border-gray-500 hover:bg-gray-500"
-                    : "bg-white text-black border-gray-300 hover:bg-gray-100"
-                }`}
-                onClick={() => setTempFilters(filters)} // reset temp filters to applied filters
-              >
-                Reset
-              </Button>
-              <Button
-                className={`flex-1 ${
-                  currentTheme === "dark"
-                    ? "bg-indigo-700 hover:bg-indigo-800"
-                    : "bg-indigo-600 hover:bg-indigo-700"
-                }`}
-                onClick={() => {
-                  setFilters(tempFilters);
-                  // query will refetch because filters changed
-                }}
-              >
-                Apply Filters
-              </Button>
-            </div>
+            {FilterContent()}
           </aside>
+
+          {/* Posts Grid */}
           <div className="space-y-6">
             {posts.length === 0 ? (
-              <div className="text-center py-20">
-                <p
-                  className={`text-lg ${
-                    currentTheme === "dark" ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  You haven't posted anything yet.
-                </p>
-                <p
-                  className={`text-sm mt-2 ${
-                    currentTheme === "dark" ? "text-gray-500" : "text-gray-400"
-                  }`}
-                >
+              <div
+                className={`text-center py-20 ${
+                  currentTheme === "dark" ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
+                <p className="text-lg">You haven't posted anything yet.</p>
+                <p className="text-sm mt-2">
                   Start posting to showcase your listings!
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {posts.map((post: any, index) => {
                   // Attach ref to last post for infinite scroll triggering
                   const isLastPost = index === posts.length - 1;
@@ -582,9 +644,9 @@ export const MyPosts = () => {
                       )}
 
                       <CardContent className="space-y-3 py-4 px-5 flex-1">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-start mb-2">
                           <CardTitle
-                            className={`text-xl font-semibold truncate ${
+                            className={`text-xl font-semibold break-words ${
                               currentTheme === "dark"
                                 ? "text-indigo-300"
                                 : "text-indigo-800"
@@ -593,11 +655,11 @@ export const MyPosts = () => {
                             {post.title}
                           </CardTitle>
                           <Badge
-                            className={`capitalize ${
+                            className={`flex-shrink-0 capitalize p-2 text-sm font-medium ${
                               post.status === "Booked"
                                 ? "bg-red-200 text-red-700 dark:bg-red-700 dark:text-red-200"
                                 : "bg-green-200 text-green-700 dark:bg-green-700 dark:text-green-200"
-                            } p-2 rounded-full text-sm font-medium`}
+                            }`}
                           >
                             {post.status || "Available"}
                           </Badge>
@@ -619,6 +681,7 @@ export const MyPosts = () => {
                               }`}
                             />
                             <span>
+                              Listed:{" "}
                               {format(new Date(post.createdAt), "dd MMM yyyy")}
                             </span>
                           </div>
@@ -688,7 +751,7 @@ export const MyPosts = () => {
                               currentTheme === "dark"
                                 ? "text-gray-400"
                                 : "text-muted-foreground"
-                            }`}
+                            } line-clamp-3`}
                           >
                             {post.description || "No description provided."}
                           </p>
@@ -784,7 +847,7 @@ export const MyPosts = () => {
                           <AlertDialogContent
                             className={
                               currentTheme === "dark"
-                                ? "bg-gray-800 text-white"
+                                ? "bg-gray-800 text-white border-gray-700"
                                 : ""
                             }
                           >
@@ -828,7 +891,7 @@ export const MyPosts = () => {
                                 {loading ? (
                                   <span className="flex items-center gap-2">
                                     <Loader2 className="animate-spin w-4 h-4" />
-                                    Deleting your post...
+                                    Deleting...
                                   </span>
                                 ) : (
                                   "Delete"
@@ -906,7 +969,11 @@ export const MyPosts = () => {
                       currentTheme === "dark"
                         ? "bg-gray-800 text-white"
                         : "bg-white text-black"
-                    } rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg`}
+                    } rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg border ${
+                      currentTheme === "dark"
+                        ? "border-gray-700"
+                        : "border-gray-200"
+                    }`}
                   >
                     <Loader2 size={48} className="animate-spin text-red-600" />
                     <p className="text-lg font-semibold text-center">

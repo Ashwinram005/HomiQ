@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sun, Moon } from "lucide-react"; // Added Sun and Moon icons
+import { ArrowLeft, Sun, Moon, X } from "lucide-react"; // Added Sun and Moon icons
 
 // Function to get theme from local storage
 const getTheme = (): "light" | "dark" => {
@@ -22,7 +22,7 @@ const setTheme = (theme: "light" | "dark") => {
   }
 };
 
-export function ChatList() {
+export function ChatList({ setOpenChatList }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"mine" | "others">("others");
@@ -245,37 +245,60 @@ export function ChatList() {
       </div>
     );
   }
-  
+
   return (
     <div
-      className={`hidden md:flex w-80 border-r flex flex-col shadow-xl transition-colors duration-300 ${sidebarBgClass}`}
+      className={`w-full z-100 min-h-screen  border-r dark:bg-neutral-800 dark:border-neutral-700 flex flex-col shadow-xl transition-colors duration-300 ${sidebarBgClass}`}
     >
       {/* Header with Back Button and Theme Switcher */}
       <div
-        className={`p-3 border-b flex justify-between items-center transition-colors duration-300 ${
+        className={`p-3 border-b flex items-center justify-between transition-colors duration-300 ${
           currentTheme === "dark" ? "border-gray-700" : "border-gray-300"
         }`}
       >
-        <button
-          onClick={() => navigate({ to: "/dashboard" })}
-          className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md transition-colors duration-200 ${backButtonClass}`}
-        >
-          <ArrowLeft size={16} />
-          Back
-        </button>
-        {/* Theme Switcher Button */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className={`p-1 rounded-full transition-colors duration-200 ${
-            currentTheme === "dark"
-              ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-          aria-label="Toggle theme"
-        >
-          {currentTheme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
+        {/* Left side: Back button */}
+        <div className="flex items-center flex-1">
+          <button
+            onClick={() => navigate({ to: "/dashboard" })}
+            className={`flex items-center gap-2 text-sm px-3 py-2 rounded-md transition-colors duration-200 ${backButtonClass}`}
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+        </div>
+
+        {/* Center: Theme switcher */}
+        <div className="flex gap-1">
+          <div className="flex justify-center flex-1">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={`p-1 rounded-full transition-colors duration-200 ${
+                currentTheme === "dark"
+                  ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              aria-label="Toggle theme"
+            >
+              {currentTheme === "light" ? (
+                <Moon size={20} />
+              ) : (
+                <Sun size={20} />
+              )}
+            </button>
+          </div>
+
+          {/* Right side: Close button */}
+          <div className="flex justify-end flex-1">
+            <button
+              className="mr-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
+              onClick={() => setOpenChatList((prev) => !prev)}
+              aria-label="Toggle sidebar"
+            >
+              <X />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -328,11 +351,15 @@ export function ChatList() {
                 exit={{ opacity: 0, y: -5 }}
                 className={chatItemClass(isSelected)} // Apply dynamic classes
                 onClick={() => {
-                  setSelectedChatId(chat._id);
                   navigate({
                     to: "/chat/$chatId",
                     params: { chatId: chat._id },
                   });
+
+                  // ✅ Close chat list on small screens
+                  if (window.innerWidth < 768) {
+                    setOpenChatList(false);
+                  }
                 }}
               >
                 <div className={`font-semibold ${chatNameClass}`}>

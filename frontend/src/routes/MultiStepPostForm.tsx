@@ -5,9 +5,9 @@ import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // Keep Textarea for better control if needed
 import { Checkbox } from "@/components/ui/checkbox";
-import { TextField, Typography, Box } from "@mui/material";
+import { TextField, Typography, Box } from "@mui/material"; // Keep MUI for TextField
 import {
   Select,
   SelectContent,
@@ -29,26 +29,47 @@ import { useMutation } from "@tanstack/react-query";
 // Form schema
 const postSchema = z.object({
   email: z.string(),
-  title: z.string().min(3).max(100),
-  description: z.string().min(10).max(1000),
-  price: z.string().regex(/^\d+$/, "Price must be numeric"),
-  location: z.string().min(3),
-  type: z.enum(["Room", "House", "PG", "Shared"]),
-  occupancy: z.enum(["Single", "Double", "Triple", "Any"]),
+  title: z
+    .string()
+    .min(3, "Title must be at least 3 characters")
+    .max(100, "Title must be at most 100 characters"),
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters")
+    .max(1000, "Description must be at most 1000 characters"),
+  price: z.number(), // Added non-negative assumption
+  location: z.string().min(3, "Location is required"),
+  type: z.enum(["Room", "House", "PG", "Shared"], {
+    message: "Please select a property type",
+  }),
+  occupancy: z.enum(["Single", "Double", "Triple", "Any"], {
+    message: "Please select an occupancy type",
+  }),
   furnished: z.boolean(),
   availableFrom: z
     .string()
-    .min(1, { message: "Available From date is required" }), // required
-  amenities: z.array(z.string()).optional(),
+    .min(1, { message: "Available From date is required" })
+    .refine(
+      (dateString) => {
+        // Validate future or today's date
+        const selectedDate = new Date(dateString);
+        selectedDate.setHours(0, 0, 0, 0); // Normalize to start of day
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to start of day
+        return selectedDate >= today;
+      },
+      { message: "Available From date cannot be in the past" }
+    ),
   imageFile: z
     .any()
     .refine((files) => files instanceof FileList && files.length > 0, {
       message: "Please upload at least one image",
     }),
+  amenities: z.array(z.string()).optional(),
 });
 
 type PostFormData = z.infer<typeof postSchema>;
-const email = localStorage.getItem("email");
+const email = localStorage.getItem("email"); // Ensure this is not null for production
 const amenitiesList = [
   "Wi-Fi",
   "AC",
@@ -60,7 +81,32 @@ const amenitiesList = [
 
 export const MultiStepPostForm = () => {
   const [showSubmittingModal, setShowSubmittingModal] = useState(false);
-  const theme = localStorage.getItem("theme"); // Get theme
+  const navigate = useNavigate();
+
+  // Theme state and logic for the parent component
+  const getTheme = (): "light" | "dark" => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("theme") as "light" | "dark") || "light";
+    }
+    return "light";
+  };
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">(
+    getTheme()
+  );
+
+  useEffect(() => {
+    // Apply theme class to HTML element on mount and theme change
+    if (typeof window !== "undefined") {
+      document.documentElement.classList.remove("light", "dark");
+      document.documentElement.classList.add(currentTheme);
+    }
+  }, [currentTheme]);
+
+  const toggleTheme = () => {
+    const newTheme = currentTheme === "light" ? "dark" : "light";
+    setCurrentTheme(newTheme);
+    localStorage.setItem("theme", newTheme); // Store in local storage
+  };
 
   // Helper function to upload a single image to Cloudinary with signed upload
   const uploadImageToCloudinary = async (file: File) => {
@@ -78,7 +124,7 @@ export const MultiStepPostForm = () => {
       formData.append("api_key", apiKey);
       formData.append("timestamp", timestamp);
       formData.append("signature", signature);
-      formData.append("folder", "HomiQ");
+      formData.append("folder", "HomiQ"); // Ensure this folder exists or is desired
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
@@ -92,13 +138,13 @@ export const MultiStepPostForm = () => {
       return uploadResult.secure_url;
     } catch (error) {
       console.error("Image upload error:", error);
-      alert("Image upload failed. Please try again.");
+      // alert("Image upload failed. Please try again."); // Moved error handling to mutation
       throw error; // Rethrow to handle in onSubmit
     }
   };
 
   const createPost = async (data: PostFormData) => {
-    const token = localStorage.getItem("token"); // or sessionStorage or from context
+    const token = localStorage.getItem("token");
 
     const response = await fetch("http://localhost:5000/api/posts", {
       method: "POST",
@@ -109,7 +155,10 @@ export const MultiStepPostForm = () => {
       body: JSON.stringify(data),
     });
 
-    if (!response.ok) throw new Error("Failed to submit post");
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to submit post");
+    }
 
     return response.json();
   };
@@ -118,35 +167,34 @@ export const MultiStepPostForm = () => {
     mutationFn: createPost,
     onSuccess: () => {
       setShowSubmittingModal(false);
-
       navigate({ to: "/dashboard" });
     },
-    onError: () => {
-      alert("Something went wrong.");
+    onError: (error) => {
+      console.error("Post submission error:", error);
+      alert("Something went wrong: " + error.message);
       setShowSubmittingModal(false);
     },
   });
 
   const methods = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
-    defaultValues: { email: email, amenities: [], furnished: false },
-    mode: "onBlur",
+    defaultValues: { email: email || "", amenities: [], furnished: false },
+    mode: "onTouched", // Validate on blur, but also on interaction for better UX
   });
 
   const [step, setStep] = useState(0);
-  const navigate = useNavigate();
 
   const steps = [
-    <Step1 key="step1" />,
-    <Step2 key="step2" />,
-    <Step3 key="step3" />,
-    <Step4 key="step4" />, // Add this step to the steps array
+    <Step1 key="step1" currentTheme={currentTheme} />,
+    <Step2 key="step2" currentTheme={currentTheme} />,
+    <Step3 key="step3" currentTheme={currentTheme} />,
+    <Step4 key="step4" currentTheme={currentTheme} />,
   ];
   const stepLabels = [
     "Basic Info",
     "Details",
     "Amenities & Image",
-    "Confirm details",
+    "Confirmation",
   ];
 
   const onSubmit = async (data: PostFormData) => {
@@ -157,48 +205,33 @@ export const MultiStepPostForm = () => {
         throw new Error("No images selected");
       }
 
-      // Upload images sequentially (can be parallel with Promise.all if you want)
       const imageUrls = [];
       for (let i = 0; i < files.length; i++) {
         const url = await uploadImageToCloudinary(files[i]);
         imageUrls.push(url);
       }
 
-      // Prepare post payload with image URLs instead of FileList
       const postPayload = {
         ...data,
-        images: imageUrls, // add images field with URLs
+        images: imageUrls,
       };
 
-      // Remove imageFile field from payload because it's raw files
-      delete postPayload.imageFile;
+      // Remove imageFile field as it contains raw files not needed by backend
+      const { imageFile, ...finalPayload } = postPayload;
 
-      // Now send postPayload to your backend
-      mutation.mutate(postPayload);
+      mutation.mutate(
+        finalPayload as Omit<PostFormData, "imageFile"> & { images: string[] }
+      );
     } catch (error: any) {
       alert("Error uploading images or submitting form: " + error.message);
-      setShowSubmittingModal(false); // Hide modal on error
+      setShowSubmittingModal(false);
     }
-  };
-  const getTheme = (): "light" | "dark" => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("theme") as "light" | "dark") || "light";
-    }
-    return "light";
-  };
-  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">(
-    getTheme()
-  );
-  const toggleTheme = () => {
-    const newTheme = currentTheme === "light" ? "dark" : "light";
-    setCurrentTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
   const handleNext = async () => {
     let isValid = false;
 
+    // Trigger validation based on the current step's fields
     if (step === 0) {
       isValid = await methods.trigger(["title", "description"]);
     } else if (step === 1) {
@@ -211,67 +244,99 @@ export const MultiStepPostForm = () => {
         "availableFrom",
       ]);
     } else if (step === 2) {
-      isValid = await methods.trigger(["imageFile", "amenities"]);
+      // Validate amenities and imageFile
+      // amenities are optional so only imageFile is critical here
+      isValid = await methods.trigger(["imageFile"]);
+    } else if (step === 3) {
+      // Nothing to validate on confirm step before final submit
+      isValid = true;
     }
 
     if (isValid && step < steps.length - 1) {
       setStep((s) => s + 1);
     } else {
       console.log("Validation errors:", methods.formState.errors);
+      // Optionally scroll to the first error or show a global error message
+      if (!isValid) {
+        const firstErrorField = Object.keys(methods.formState.errors)[0];
+        if (firstErrorField) {
+          methods.setFocus(firstErrorField as any); // Focus on the first invalid field
+        }
+      }
     }
   };
 
   // Determine background class based on theme
-  const backgroundClass = theme === "dark" ? "bg-gray-900" : "bg-white";
+  const backgroundClass =
+    currentTheme === "dark"
+      ? "bg-gray-900"
+      : "bg-gradient-to-tr from-blue-50 to-indigo-100";
 
   return (
     <FormProvider {...methods}>
       <div
-        className={`w-full h-screen mx-auto p-6 sm:p-10 shadow-2xl flex flex-col relative ${backgroundClass}`}
+        className={`w-full min-h-screen mx-auto p-4 sm:p-6 md:p-10 flex flex-col relative ${backgroundClass} transition-colors duration-300`}
       >
         {/* 🌗 Theme Toggle Icon (Top Right Corner) */}
         <button
           onClick={toggleTheme}
-          className="absolute top-6 right-6 p-2 rounded-full border transition-colors duration-300
-            hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full border transition-colors duration-300
+            hover:bg-gray-200 dark:hover:bg-gray-700 z-10"
           aria-label="Toggle Theme"
         >
-          {theme === "dark" ? (
+          {currentTheme === "dark" ? (
             <Sun className="w-5 h-5 text-yellow-400" />
           ) : (
             <Moon className="w-5 h-5 text-gray-800" />
           )}
         </button>
 
+        <h1
+          className={`text-2xl sm:text-3xl font-bold text-center mb-8 ${
+            currentTheme === "dark" ? "text-indigo-300" : "text-indigo-800"
+          }`}
+        >
+          Create New Listing
+        </h1>
+
         {/* Stepper Top Navigation */}
         <div
           className={`w-full flex justify-around py-4 border-b ${
-            theme === "dark" ? "border-gray-700" : "border-gray-300"
-          } mb-8`}
+            currentTheme === "dark" ? "border-gray-700" : "border-gray-300"
+          } mb-6`}
         >
           {stepLabels.map((label, index) => {
             const isActive = index === step;
             const isCompleted = step > index;
             const textColor =
-              theme === "dark" ? "text-gray-300" : "text-gray-600";
+              currentTheme === "dark" ? "text-gray-400" : "text-gray-600";
 
             return (
-              <div key={label} className="flex flex-col items-center gap-2">
+              <div
+                key={label}
+                className="flex flex-col items-center gap-1 sm:gap-2 flex-1"
+              >
                 <div
-                  className={`w-10 h-10 flex items-center justify-center rounded-full font-bold text-sm transition-colors
+                  className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full font-bold text-sm transition-colors
                     ${
                       isCompleted
                         ? "bg-green-500 text-white"
                         : isActive
                         ? "bg-blue-600 text-white"
+                        : currentTheme === "dark"
+                        ? "bg-gray-600 text-gray-300"
                         : "bg-gray-300 text-gray-800"
                     }`}
                 >
-                  {isCompleted ? <Check size={20} /> : index + 1}
+                  {isCompleted ? <Check size={16} sm:size={20} /> : index + 1}
                 </div>
                 <div
-                  className={`text-sm font-medium text-center ${
-                    isActive ? "text-blue-600" : textColor
+                  className={`text-xs sm:text-sm font-medium text-center mt-1 sm:mt-0 ${
+                    isActive
+                      ? currentTheme === "dark"
+                        ? "text-blue-400"
+                        : "text-blue-600"
+                      : textColor
                   }`}
                 >
                   {label}
@@ -282,19 +347,28 @@ export const MultiStepPostForm = () => {
         </div>
 
         {/* Step Form Body */}
-        <form className="flex-1 flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto space-y-8">
+        <form className="flex-1 flex flex-col">
+          <div className="flex-1 overflow-y-auto pb-8">
+            {" "}
+            {/* Added padding-bottom for scrollable content */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -50 }}
+                initial={{
+                  opacity: 0,
+                  x: step > methods.formState.submitCount ? 50 : -50,
+                }} // Simple slide animation
+                animate={{ opacity: 1, x: 0 }}
+                exit={{
+                  opacity: 0,
+                  x: step > methods.formState.submitCount ? -50 : 50,
+                }}
                 transition={{ duration: 0.4 }}
-                className={`border p-8 rounded-xl shadow-inner space-y-6 ${
-                  theme === "dark"
+                className={`border p-6 sm:p-8 rounded-xl shadow-inner min-h-[300px] flex flex-col ${
+                  // Ensure it takes enough height
+                  currentTheme === "dark"
                     ? "bg-gray-800 border-gray-700"
-                    : "bg-gray-50"
+                    : "bg-white border-gray-200"
                 }`}
               >
                 {steps[step]}
@@ -304,31 +378,37 @@ export const MultiStepPostForm = () => {
 
           {/* Bottom Button Bar */}
           <div
-            className={`flex justify-between items-center border-t pt-6 mt-auto ${
-              theme === "dark" ? "border-gray-700" : ""
+            className={`flex justify-between items-center border-t pt-4 sm:pt-6 mt-6 ${
+              currentTheme === "dark" ? "border-gray-700" : "border-gray-300"
             }`}
           >
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <Button
-                variant={theme === "dark" ? "secondary" : "outline"}
+                variant={currentTheme === "dark" ? "secondary" : "outline"}
                 type="button"
                 disabled={step === 0}
                 onClick={() => setStep((s) => s - 1)}
+                className="text-xs sm:text-sm px-3 sm:px-4 py-2"
               >
                 Back
               </Button>
 
               <Button
-                variant={theme === "dark" ? "secondary" : "outline"}
+                variant={currentTheme === "dark" ? "secondary" : "outline"}
                 type="button"
                 onClick={() => navigate({ to: "/dashboard" })}
+                className="text-xs sm:text-sm px-3 sm:px-4 py-2"
               >
                 Cancel
               </Button>
             </div>
 
             {step < steps.length - 1 ? (
-              <Button type="button" onClick={handleNext}>
+              <Button
+                type="button"
+                onClick={handleNext}
+                className="text-xs sm:text-sm px-3 sm:px-4 py-2"
+              >
                 Next
               </Button>
             ) : (
@@ -336,6 +416,7 @@ export const MultiStepPostForm = () => {
                 type="button"
                 onClick={() => methods.handleSubmit(onSubmit)()}
                 disabled={mutation.isPending}
+                className="text-xs sm:text-sm px-3 sm:px-4 py-2"
               >
                 {mutation.isPending ? (
                   <span className="flex items-center gap-2">
@@ -358,20 +439,22 @@ export const MultiStepPostForm = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
             >
               <motion.div
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.8 }}
-                className={`rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg ${
-                  theme === "dark" ? "bg-gray-800" : "bg-white"
+                className={`rounded-lg p-6 sm:p-8 flex flex-col items-center space-y-4 max-w-xs sm:max-w-sm w-full shadow-lg border ${
+                  currentTheme === "dark"
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200"
                 }`}
               >
                 <Loader2 size={48} className="animate-spin text-blue-600" />
                 <p
-                  className={`text-lg font-semibold text-center ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  className={`text-lg sm:text-xl font-semibold text-center ${
+                    currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
                   }`}
                 >
                   Submitting your post, please wait...
@@ -385,47 +468,77 @@ export const MultiStepPostForm = () => {
   );
 };
 
-// Step 1
-const Step1 = () => {
-  const { register, formState } = useFormContext<PostFormData>();
-  const theme = localStorage.getItem("theme");
-  const isDark = theme === "dark";
+// ======================= Step Components =======================
 
-  // text color for Typography and inputs
-  const textColor = isDark ? "white" : "black";
-  const bgColor = isDark ? "gray-800" : "#fff";
+interface StepProps {
+  currentTheme: "light" | "dark";
+}
+
+const Step1 = ({ currentTheme }: StepProps) => {
+  const { register, formState, setFocus } = useFormContext<PostFormData>();
+  const isDark = currentTheme === "dark";
+
+  const textColor = isDark ? "text-gray-300" : "text-gray-800"; // For Labels/Typography
+  const inputBgColor = isDark ? "#1a202c" : "#fff"; // For MUI TextField background
+  const inputTextColor = isDark ? "#e2e8f0" : "#000"; // For MUI TextField text color
+  const inputBorderColor = isDark ? "#4a5568" : "#e2e8f0"; // For MUI TextField border color
+
+  // Custom styling for MUI TextField
+  const muiTextFieldStyle = {
+    "& .MuiOutlinedInput-root": {
+      color: inputTextColor,
+      backgroundColor: inputBgColor,
+      "& fieldset": {
+        borderColor: inputBorderColor,
+      },
+      "&:hover fieldset": {
+        borderColor: isDark ? "#63b3ed" : "#3b82f6", // Blue on hover
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: isDark ? "#63b3ed" : "#3b82f6", // Blue on focus
+        borderWidth: "2px",
+      },
+    },
+    "& .MuiInputLabel-root": {
+      color: textColor,
+    },
+    "& .MuiFormHelperText-root": {
+      color: isDark ? "#fca5a5" : "#ef4444", // Red for errors
+    },
+  };
+
+  useEffect(() => {
+    // Set focus on the first input when the step mounts
+    setFocus("title");
+  }, [setFocus]);
 
   return (
     <Box>
-      <Typography variant="h6" fontWeight={600} color={textColor} mb={2}>
+      <Typography variant="h6" fontWeight={600} className={`mb-2 ${textColor}`}>
         Basic Information
       </Typography>
 
       <Box display="flex" flexDirection="column" gap={3}>
         <div>
-          <Typography variant="body1" color={textColor}>
-            Title <span style={{ color: "red" }}>*</span>
-          </Typography>
+          <Label className={`${textColor} mb-1 block`}>
+            Title <span className="text-red-500">*</span>
+          </Label>
           <TextField
             {...register("title")}
             fullWidth
             variant="outlined"
             size="small"
+            placeholder="e.g., Spacious 2BHK near University"
             error={!!formState.errors.title}
             helperText={formState.errors.title?.message}
-            InputProps={{
-              style: {
-                color: textColor,
-                backgroundColor: bgColor,
-              },
-            }}
+            sx={muiTextFieldStyle}
           />
         </div>
 
         <div>
-          <Typography variant="body1" color={textColor}>
-            Description <span style={{ color: "red" }}>*</span>
-          </Typography>
+          <Label className={`${textColor} mb-1 block`}>
+            Description <span className="text-red-500">*</span>
+          </Label>
           <TextField
             {...register("description")}
             fullWidth
@@ -433,14 +546,10 @@ const Step1 = () => {
             rows={4}
             variant="outlined"
             size="small"
+            placeholder="Describe your property: features, neighborhood, etc."
             error={!!formState.errors.description}
             helperText={formState.errors.description?.message}
-            InputProps={{
-              style: {
-                color: textColor,
-                backgroundColor: bgColor,
-              },
-            }}
+            sx={muiTextFieldStyle}
           />
         </div>
       </Box>
@@ -448,25 +557,31 @@ const Step1 = () => {
   );
 };
 
-// Step 2
-
-const Step2 = () => {
+const Step2 = ({ currentTheme }: StepProps) => {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-  const { register, setValue, watch, formState } =
+  const { register, setValue, watch, formState, setFocus } =
     useFormContext<PostFormData>();
-  const theme = localStorage.getItem("theme");
-  const labelTextColor = theme === "dark" ? "text-gray-300" : "text-gray-800";
 
-  // Debounced fetch using useCallback
-  const fetchPlaces = useCallback(async (search) => {
-    if (!search) {
+  const isDark = currentTheme === "dark";
+  const labelTextColor = isDark ? "text-gray-300" : "text-gray-800";
+  const inputBgColor = isDark ? "bg-gray-700" : "bg-white";
+  const inputTextColor = isDark ? "text-white" : "text-gray-900";
+  const inputBorderColor = isDark ? "border-gray-600" : "border-gray-300";
+  const inputFocusRing = isDark ? "focus:ring-blue-400" : "focus:ring-blue-500";
+  const placeholderColor = isDark
+    ? "placeholder-gray-400"
+    : "placeholder-gray-500";
+
+  const fetchPlaces = useCallback(async (search: string) => {
+    if (search.length < 3) {
       setSuggestions([]);
+      setLoadingSuggestions(false);
       return;
     }
-    setLoading(true);
+    setLoadingSuggestions(true);
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
@@ -478,22 +593,29 @@ const Step2 = () => {
     } catch (err) {
       console.error("Error fetching places:", err);
       setSuggestions([]);
+    } finally {
+      setLoadingSuggestions(false);
     }
-    setLoading(false);
   }, []);
-  const inputTextColor =
-    theme === "dark"
-      ? "text-white bg-gray-900 placeholder-gray-400"
-      : "text-gray-900 bg-white placeholder-gray-500";
 
+  // ✅ Focus price only on mount
   useEffect(() => {
-    // debounce with cleanup
+    setFocus("price");
+  }, [setFocus]);
+
+  // 🔁 Watch query and fetch suggestions with debounce
+  useEffect(() => {
+    const currentLocation = watch("location");
+    if (currentLocation) {
+      setQuery(currentLocation);
+    }
+
     const handler = setTimeout(() => {
       fetchPlaces(query);
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [query, fetchPlaces]);
+  }, [query, fetchPlaces, watch]);
 
   function handleSelect(place: any) {
     setValue("location", place.display_name, { shouldValidate: true });
@@ -501,115 +623,182 @@ const Step2 = () => {
     setSuggestions([]);
   }
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
-    <div className="relative w-full max-w-3xl mx-auto px-6 py-10">
+    <div className="relative w-full mx-auto">
       <h3 className={`text-lg font-semibold ${labelTextColor} mb-4`}>
         Property Details
       </h3>
       <div className="space-y-4">
-        {/* Price input */}
+        {/* Price */}
         <div>
-          <Label className={labelTextColor}>Price (₹)</Label>
+          <Label className={`${labelTextColor} mb-1 block`}>
+            Price (₹) <span className="text-red-500">*</span>
+          </Label>
           <Input
-            className={`${inputTextColor}`}
+            className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} ${placeholderColor} transition-colors duration-200`}
             type="number"
-            {...register("price")}
+            {...register("price", { valueAsNumber: true })}
+            placeholder="e.g., 5000"
           />
-          <p className="text-red-500 text-sm">
-            {formState.errors.price?.message}
-          </p>
+          {formState.errors.price && (
+            <p className="text-red-500 text-sm mt-1">
+              {formState.errors.price?.message}
+            </p>
+          )}
         </div>
 
-        {/* Location input + dropdown */}
+        {/* Location */}
         <div className="relative">
-          <Label className={labelTextColor}>Location</Label>
+          <Label className={`${labelTextColor} mb-1 block`}>
+            Location <span className="text-red-500">*</span>
+          </Label>
           <Input
             {...register("location")}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setValue("location", e.target.value, { shouldValidate: false });
+            }}
             autoComplete="off"
             placeholder="Search for city, school, popular place..."
-            className={`z-20 relative ${inputTextColor}`}
+            className={`z-20 relative ${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} ${placeholderColor} transition-colors duration-200`}
           />
-
-          {suggestions.length > 0 && (
-            <ul
-              className={`absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-md border ${
-                theme === "dark"
-                  ? "border-gray-700 bg-gray-800"
-                  : "border-gray-300 bg-white"
-              } shadow-lg scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100`}
-            >
-              {suggestions.map((place: any) => (
-                <li
-                  key={place.place_id}
-                  onClick={() => handleSelect(place)}
-                  className={`cursor-pointer px-3 py-2 ${
-                    theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-200"
-                  }`}
-                >
-                  {place.display_name}
-                </li>
-              ))}
-            </ul>
+          {loadingSuggestions && (
+            <div className="absolute z-30 w-full flex justify-center items-center py-2">
+              <Loader2
+                className={`animate-spin w-5 h-5 ${
+                  isDark ? "text-gray-300" : "text-gray-600"
+                }`}
+              />
+            </div>
           )}
-          <p className="text-red-500 text-sm">
-            {formState.errors.location?.message}
-          </p>
+          {suggestions.length > 0 &&
+            !loadingSuggestions &&
+            query.length >= 3 && (
+              <ul
+                className={`absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-md border ${
+                  isDark
+                    ? "border-gray-700 bg-gray-800"
+                    : "border-gray-300 bg-white"
+                } shadow-lg scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100`}
+              >
+                {suggestions.map((place: any) => (
+                  <li
+                    key={place.place_id}
+                    onClick={() => handleSelect(place)}
+                    className={`cursor-pointer px-3 py-2 ${
+                      isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                    } transition-colors duration-150 text-sm ${
+                      isDark ? "text-gray-300" : "text-gray-800"
+                    }`}
+                  >
+                    {place.display_name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          {formState.errors.location && (
+            <p className="text-red-500 text-sm mt-1">
+              {formState.errors.location?.message}
+            </p>
+          )}
         </div>
 
         {/* Type */}
         <div>
-          <Label className={labelTextColor}>Type</Label>
+          <Label className={`${labelTextColor} mb-1 block`}>
+            Type <span className="text-red-500">*</span>
+          </Label>
           <Select
             value={watch("type")}
-            onValueChange={(v) => setValue("type", v as any)}
+            onValueChange={(v) =>
+              setValue("type", v as any, { shouldValidate: true })
+            }
           >
-            <SelectTrigger className={inputTextColor}>
+            <SelectTrigger
+              className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} transition-colors duration-200`}
+            >
               <SelectValue placeholder="Choose type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              className={`${
+                isDark
+                  ? "bg-gray-800 text-white border-gray-700"
+                  : "bg-white text-gray-900 border-gray-200"
+              }`}
+            >
               {["Room", "House", "PG", "Shared"].map((type) => (
-                <SelectItem key={type} value={type}>
+                <SelectItem
+                  key={type}
+                  value={type}
+                  className={isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}
+                >
                   {type}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-red-500 text-sm">
-            {formState.errors.type?.message}
-          </p>
+          {formState.errors.type && (
+            <p className="text-red-500 text-sm mt-1">
+              {formState.errors.type?.message}
+            </p>
+          )}
         </div>
 
         {/* Occupancy */}
         <div>
-          <Label className={labelTextColor}>Occupancy</Label>
+          <Label className={`${labelTextColor} mb-1 block`}>
+            Occupancy <span className="text-red-500">*</span>
+          </Label>
           <Select
             value={watch("occupancy")}
-            onValueChange={(v) => setValue("occupancy", v as any)}
+            onValueChange={(v) =>
+              setValue("occupancy", v as any, { shouldValidate: true })
+            }
           >
-            <SelectTrigger className={inputTextColor}>
+            <SelectTrigger
+              className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} transition-colors duration-200`}
+            >
               <SelectValue placeholder="Choose occupancy" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              className={`${
+                isDark
+                  ? "bg-gray-800 text-white border-gray-700"
+                  : "bg-white text-gray-900 border-gray-200"
+              }`}
+            >
               {["Single", "Double", "Triple", "Any"].map((o) => (
-                <SelectItem key={o} value={o}>
+                <SelectItem
+                  key={o}
+                  value={o}
+                  className={isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}
+                >
                   {o}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-red-500 text-sm">
-            {formState.errors.occupancy?.message}
-          </p>
+          {formState.errors.occupancy && (
+            <p className="text-red-500 text-sm mt-1">
+              {formState.errors.occupancy?.message}
+            </p>
+          )}
         </div>
 
-        {/* Furnished checkbox */}
-        <div className="flex items-center space-x-2">
+        {/* Furnished */}
+        <div className="flex items-center space-x-2 py-2">
           <Checkbox
             id="furnished"
             checked={watch("furnished")}
             onCheckedChange={(v) => setValue("furnished", !!v)}
+            className={
+              isDark
+                ? "data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 border-gray-500"
+                : ""
+            }
           />
           <Label htmlFor="furnished" className={labelTextColor}>
             Furnished
@@ -618,33 +807,40 @@ const Step2 = () => {
 
         {/* Available From */}
         <div>
-          <Label className={labelTextColor}>Available From</Label>
+          <Label className={`${labelTextColor} mb-1 block`}>
+            Available From <span className="text-red-500">*</span>
+          </Label>
           <Input
             type="date"
-            min={new Date().toISOString().split("T")[0]}
+            min={today}
             {...register("availableFrom")}
-            className={inputTextColor}
+            className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} transition-colors duration-200`}
           />
-          <p className="text-red-500 text-sm">
-            {formState.errors.availableFrom?.message}
-          </p>
+          {formState.errors.availableFrom && (
+            <p className="text-red-500 text-sm mt-1">
+              {formState.errors.availableFrom?.message}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// Step 3
-
-const Step3 = () => {
-  const { setValue, watch, formState, getValues } =
+const Step3 = ({ currentTheme }: StepProps) => {
+  const { setValue, watch, formState, getValues, setFocus } =
     useFormContext<PostFormData>();
   const selected = watch("amenities") || [];
-  const theme = localStorage.getItem("theme");
-  const textColor = theme === "dark" ? "text-gray-300" : "text-gray-800";
+  const isDark = currentTheme === "dark";
+  const textColor = isDark ? "text-gray-300" : "text-gray-800";
+  const inputBorderColor = isDark ? "border-gray-600" : "border-gray-300";
+  const inputBgColor = isDark ? "bg-gray-700" : "bg-white";
+  const inputTextColor = isDark ? "text-white" : "text-gray-900";
+  const inputFocusRing = isDark ? "focus:ring-blue-400" : "focus:ring-blue-500";
 
   // Use a local state to keep track of uploaded images as File[]
   const [images, setImages] = useState<File[]>(() => {
+    // When the component mounts, try to get existing files from the form state
     const files = getValues("imageFile");
     if (files && files instanceof FileList) {
       return Array.from(files);
@@ -652,17 +848,23 @@ const Step3 = () => {
     return [];
   });
 
+  // Effect to update the form's imageFile field whenever 'images' state changes
   useEffect(() => {
     const dataTransfer = new DataTransfer();
     images.forEach((file) => dataTransfer.items.add(file));
     setValue("imageFile", dataTransfer.files, { shouldValidate: true });
   }, [images, setValue]);
 
+  useEffect(() => {
+    // Set focus on the first input when the step mounts (e.g., first checkbox)
+    setFocus(amenitiesList[0] as any);
+  }, [setFocus]);
+
   // Handler when new files are uploaded
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
 
-    // Append new files to existing images array
+    // Convert FileList to array and append new files to existing images array
     setImages((prev) => [...prev, ...Array.from(e.target.files)]);
     // Reset input value so same file can be uploaded again if needed
     e.target.value = "";
@@ -687,15 +889,20 @@ const Step3 = () => {
   return (
     <div>
       <h3 className={`text-lg font-semibold ${textColor} mb-4`}>
-        Amenities & Image
+        Amenities & Images
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         {amenitiesList.map((item) => (
           <div key={item} className="flex items-center space-x-2">
             <Checkbox
               id={item}
               checked={selected.includes(item)}
               onCheckedChange={() => toggleAmenity(item)}
+              className={
+                isDark
+                  ? "data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 border-gray-500"
+                  : ""
+              }
             />
             <Label htmlFor={item} className={textColor}>
               {item}
@@ -705,38 +912,46 @@ const Step3 = () => {
       </div>
 
       <div>
-        <Label className={textColor}>Upload Images</Label>
-        <input
+        <Label htmlFor="image-upload" className={`${textColor} mb-1 block`}>
+          Upload Images <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="image-upload"
           type="file"
           multiple
           accept="image/*"
           onChange={handleFileChange}
+          className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} transition-colors duration-200 file:text-blue-500 file:file:border-none file:rounded-md file:mr-4 file:py-2 file:px-4`}
         />
         {formState.errors.imageFile && (
-          <p className="text-red-500 text-sm">
-            {formState.errors.imageFile.message}
+          <p className="text-red-500 text-sm mt-1">
+            {formState.errors.imageFile.message as string}
           </p>
         )}
       </div>
 
       {/* Image preview with delete buttons */}
-      <div className="mt-4 flex flex-wrap gap-4">
+      <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {imagePreviews.map((src, idx) => (
           <div
             key={idx}
-            className={`relative w-24 h-24 border rounded overflow-hidden ${
-              theme === "dark" ? "border-gray-700" : ""
+            className={`relative w-full h-24 sm:h-32 border rounded-lg overflow-hidden shadow-sm group ${
+              isDark
+                ? "border-gray-700 bg-gray-600"
+                : "border-gray-200 bg-gray-50"
             }`}
           >
             <img
               src={src}
               alt={`Preview ${idx}`}
               className="object-cover w-full h-full"
+              onLoad={() => URL.revokeObjectURL(src)} // Clean up memory
             />
             <button
               type="button"
               onClick={() => handleRemoveImage(idx)}
-              className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700"
+              className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+              aria-label={`Remove image ${idx + 1}`}
             >
               &times;
             </button>
@@ -747,89 +962,105 @@ const Step3 = () => {
   );
 };
 
-const Step4 = () => {
+const Step4 = ({ currentTheme }: StepProps) => {
   const { watch } = useFormContext<PostFormData>();
-  const imageFiles = watch("imageFile");
-
-  // Fetch theme from local storage
-  const theme = localStorage.getItem("theme"); // Assuming the theme is stored under the key "theme"
+  const isDark = currentTheme === "dark";
 
   // Determine text color based on theme
-  const labelTextColor = theme === "dark" ? "text-gray-300" : "text-gray-800";
-  const valueTextColor = theme === "dark" ? "text-gray-400" : "text-gray-700";
+  const labelTextColor = isDark ? "text-gray-300" : "text-gray-800";
+  const valueTextColor = isDark ? "text-gray-400" : "text-gray-700";
+
+  const data = watch();
+  const imageFiles = data.imageFile;
 
   // Create image URLs to preview
   const imagePreviews = imageFiles
     ? Array.from(imageFiles).map((file) => URL.createObjectURL(file))
     : [];
-  const data = watch();
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6  dark:bg-gray-900 rounded-xl shadow-lg">
-      <h3 className={`text-2xl font-semibold mb-6 ${labelTextColor}`}>
+    <div className="w-full mx-auto p-4 rounded-xl">
+      <h3
+        className={`text-xl sm:text-2xl font-semibold mb-6 ${labelTextColor}`}
+      >
         Confirm Details
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
         <div>
-          <Label className={labelTextColor}>Title</Label>
-          <p className={`mt-1 ${valueTextColor}`}>{data.title}</p>
+          <Label className={`${labelTextColor} font-semibold`}>Title</Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>{data.title}</p>
         </div>
 
         <div>
-          <Label className={labelTextColor}>Description</Label>
-          <p className={`mt-1 ${valueTextColor}`}>{data.description}</p>
+          <Label className={`${labelTextColor} font-semibold`}>Location</Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>{data.location}</p>
+        </div>
+
+        <div className="md:col-span-2">
+          <Label className={`${labelTextColor} font-semibold`}>
+            Description
+          </Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>
+            {data.description}
+          </p>
         </div>
 
         <div>
-          <Label className={labelTextColor}>Price (₹)</Label>
-          <p className={`mt-1 ${valueTextColor}`}>{data.price}</p>
+          <Label className={`${labelTextColor} font-semibold`}>Price (₹)</Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>
+            ₹ {data.price?.toLocaleString()}
+          </p>
         </div>
 
         <div>
-          <Label className={labelTextColor}>Location</Label>
-          <p className={`mt-1 ${valueTextColor}`}>{data.location}</p>
+          <Label className={`${labelTextColor} font-semibold`}>Type</Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>{data.type}</p>
         </div>
 
         <div>
-          <Label className={labelTextColor}>Type</Label>
-          <p className={`mt-1 ${valueTextColor}`}>{data.type}</p>
+          <Label className={`${labelTextColor} font-semibold`}>Occupancy</Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>{data.occupancy}</p>
         </div>
 
         <div>
-          <Label className={labelTextColor}>Occupancy</Label>
-          <p className={`mt-1 ${valueTextColor}`}>{data.occupancy}</p>
-        </div>
-
-        <div>
-          <Label className={labelTextColor}>Furnished</Label>
-          <p className={`mt-1 ${valueTextColor}`}>
+          <Label className={`${labelTextColor} font-semibold`}>Furnished</Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>
             {data.furnished ? "Yes" : "No"}
           </p>
         </div>
 
         <div>
-          <Label className={labelTextColor}>Available From</Label>
-          <p className={`mt-1 ${valueTextColor}`}>{data.availableFrom}</p>
-        </div>
-
-        <div className="md:col-span-2">
-          <Label className={labelTextColor}>Amenities</Label>
-          <p className={`mt-1 ${valueTextColor}`}>
-            {data.amenities?.join(", ") || "None"}
+          <Label className={`${labelTextColor} font-semibold`}>
+            Available From
+          </Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>
+            {data.availableFrom}
           </p>
         </div>
 
         <div className="md:col-span-2">
-          <Label className={labelTextColor}>Images</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+          <Label className={`${labelTextColor} font-semibold`}>Amenities</Label>
+          <p className={`mt-1 text-base ${valueTextColor}`}>
+            {data.amenities && data.amenities.length > 0
+              ? data.amenities.join(", ")
+              : "None"}
+          </p>
+        </div>
+
+        <div className="md:col-span-2">
+          <Label className={`${labelTextColor} font-semibold mb-2 block`}>
+            Images
+          </Label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
             {imagePreviews.length > 0 ? (
               imagePreviews.map((src, idx) => (
                 <img
                   key={idx}
                   src={src}
                   alt={`Uploaded preview ${idx + 1}`}
-                  className="w-full h-40 object-cover rounded-lg shadow-md"
+                  className="w-full h-28 sm:h-32 object-cover rounded-lg shadow-md"
+                  onLoad={() => URL.revokeObjectURL(src)} // Clean up memory
                 />
               ))
             ) : (
@@ -842,6 +1073,7 @@ const Step4 = () => {
   );
 };
 
+// ======================= Tanstack Router Route =======================
 export default (parentRoute: RootRoute) =>
   createRoute({
     path: "/post",
