@@ -51,18 +51,18 @@ function EmptyChat() {
             </svg>
           </button>
 
-          <div className="flex-1 flex flex-col  ">
+          <div className="flex-1 flex flex-col   ">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
               Chat Room
             </h2>
-            <small className="text-sm text-gray-500 dark:text-gray-400">
+            <small className=" text-sm text-gray-500 dark:text-gray-400">
               Select a chat to start conversation
             </small>
           </div>
         </div>
 
         {/* Placeholder Chat Box */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 mx-6 my-8">
+        <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 mx-6 my-8">
           <div className="text-center px-6">
             <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-100">
               Select a chat to start conversation

@@ -196,7 +196,7 @@ export function ChatList({ setOpenChatList }) {
   // 💄 Theme-based classes
   const sidebarBgClass =
     currentTheme === "dark"
-      ? "bg-gray-900 border-gray-700 text-gray-200"
+      ? "bg-neutral-800 border-gray-700 text-gray-200"
       : "bg-white border-gray-300 text-gray-800";
   const backButtonClass =
     currentTheme === "dark"
