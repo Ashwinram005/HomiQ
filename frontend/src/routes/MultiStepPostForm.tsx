@@ -520,7 +520,7 @@ const Step1 = ({ currentTheme }: StepProps) => {
 
       <Box display="flex" flexDirection="column" gap={3}>
         <div>
-          <Label className={`${textColor} mb-1 block`}>
+          <Label className={`${textColor} mb-3 mt-4 block`}>
             Title <span className="text-red-500">*</span>
           </Label>
           <TextField
@@ -536,7 +536,7 @@ const Step1 = ({ currentTheme }: StepProps) => {
         </div>
 
         <div>
-          <Label className={`${textColor} mb-1 block`}>
+          <Label className={`${textColor} mb-3 block`}>
             Description <span className="text-red-500">*</span>
           </Label>
           <TextField
@@ -626,7 +626,7 @@ const Step2 = ({ currentTheme }: StepProps) => {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="relative w-full mx-auto">
+    <div className="relative w-full mx-auto ">
       <h3 className={`text-lg font-semibold ${labelTextColor} mb-4`}>
         Property Details
       </h3>
