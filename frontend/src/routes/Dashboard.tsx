@@ -287,7 +287,7 @@ function DashboardCard({
           </div>
           {title}
         </CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-300 mt-3 text-base">
+        <CardDescription className="text-gray-600 text-md dark:text-gray-300 mt-3 text-base">
           {description}
         </CardDescription>
       </CardHeader>
