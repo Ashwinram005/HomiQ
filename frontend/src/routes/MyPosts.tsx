@@ -47,6 +47,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Toaster } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"; // Import Sheet components
+import { Input } from "@/components/ui/input"; // Import Input for better styling
+import { Label } from "@/components/ui/label"; // Import Label for form fields
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Import Select components
 
 const PAGE_LIMIT = 4;
 
@@ -103,6 +112,21 @@ export const MyPosts = () => {
     window.addEventListener("storage", handleStorageChange);
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  // Effect to close the sheet when screen size changes from small to large
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        // md breakpoint
+        setIsFilterSheetOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -289,124 +313,232 @@ export const MyPosts = () => {
   );
 
   // Apply base background and text color to the main container based on theme
-  const containerClasses = `min-h-screen transition-all ${
+  const containerClasses = `min-h-screen transition-all duration-300 ease-in-out ${
     currentTheme === "dark"
-      ? "bg-gradient-to-tr from-gray-900 to-gray-800 text-white"
-      : "bg-gradient-to-tr from-sky-50 to-indigo-100 text-black"
+      ? "bg-gradient-to-tr from-gray-950 to-gray-800 text-gray-100"
+      : "bg-gradient-to-tr from-blue-50 to-indigo-100 text-gray-900"
   }`;
 
   // Filter content component to reuse for both desktop and mobile sheet
   const FilterContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-0">
+      {" "}
+      {/* Remove padding on md and larger screens */}
       <h2
         className={`text-2xl font-bold mb-4 ${
-          currentTheme === "dark" ? "text-indigo-300" : "text-indigo-700"
+          currentTheme === "dark" ? "text-indigo-400" : "text-indigo-700"
         }`}
       >
         Filters
       </h2>
-      <input
-        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-          currentTheme === "dark"
-            ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
-            : "bg-white text-black border-gray-300"
-        }`}
-        placeholder="Search by title or description"
-        value={tempFilters.searchQuery}
-        onChange={(e) =>
-          setTempFilters({ ...tempFilters, searchQuery: e.target.value })
-        }
-      />
-      <input
-        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-          currentTheme === "dark"
-            ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
-            : "bg-white text-black border-gray-300"
-        }`}
-        placeholder="Location"
-        value={tempFilters.locationQuery}
-        onChange={(e) =>
-          setTempFilters({
-            ...tempFilters,
-            locationQuery: e.target.value,
-          })
-        }
-      />
-      <select
-        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-          currentTheme === "dark"
-            ? "bg-gray-700 text-white border-gray-600"
-            : "bg-white text-black border-gray-300"
-        }`}
-        value={tempFilters.priceFilter}
-        onChange={(e) =>
-          setTempFilters({ ...tempFilters, priceFilter: e.target.value })
-        }
-      >
-        <option value="all">All Prices</option>
-        <option value="2500">Under ₹2500</option>
-        <option value="4000">Under ₹4000</option>
-        <option value="6000">Under ₹6000</option>
-      </select>
-      <select
-        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-          currentTheme === "dark"
-            ? "bg-gray-700 text-white border-gray-600"
-            : "bg-white text-black border-gray-300"
-        }`}
-        value={tempFilters.roomTypeFilter}
-        onChange={(e) =>
-          setTempFilters({
-            ...tempFilters,
-            roomTypeFilter: e.target.value,
-          })
-        }
-      >
-        <option value="all">All Room Types</option>
-        <option value="Room">Room</option>
-        <option value="House">House</option>
-        <option value="PG">PG</option>
-        <option value="Shared">Shared</option>
-      </select>
-      <select
-        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-          currentTheme === "dark"
-            ? "bg-gray-700 text-white border-gray-600"
-            : "bg-white text-black border-gray-300"
-        }`}
-        value={tempFilters.occupancyFilter}
-        onChange={(e) =>
-          setTempFilters({
-            ...tempFilters,
-            occupancyFilter: e.target.value,
-          })
-        }
-      >
-        <option value="all">All Occupancy</option>
-        <option value="Single">Single</option>
-        <option value="Double">Double</option>
-        <option value="Triple">Triple</option>
-        <option value="Any">Any</option>
-      </select>
-      <input
-        type="date"
-        className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-          currentTheme === "dark"
-            ? "bg-gray-700 text-white border-gray-600"
-            : "bg-white text-black border-gray-300"
-        }`}
-        value={tempFilters.availableFrom}
-        onChange={(e) =>
-          setTempFilters({
-            ...tempFilters,
-            availableFrom: e.target.value,
-          })
-        }
-      />
+      {/* Search Query */}
+      <div>
+        <Label
+          htmlFor="searchQuery"
+          className={`mb-2 block ${
+            currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+          }`}
+        >
+          Search by title or description
+        </Label>
+        <Input
+          id="searchQuery"
+          className={`${
+            currentTheme === "dark"
+              ? "bg-gray-700 text-white border-gray-600 placeholder:text-gray-400 focus-visible:ring-indigo-500"
+              : "bg-white text-black border-gray-300 placeholder:text-gray-500 focus-visible:ring-indigo-500"
+          }`}
+          placeholder="e.g., Cozy apartment near campus"
+          value={tempFilters.searchQuery}
+          onChange={(e) =>
+            setTempFilters({ ...tempFilters, searchQuery: e.target.value })
+          }
+        />
+      </div>
+      {/* Location Query */}
+      <div>
+        <Label
+          htmlFor="locationQuery"
+          className={`mb-2 block ${
+            currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+          }`}
+        >
+          Location
+        </Label>
+        <Input
+          id="locationQuery"
+          className={`${
+            currentTheme === "dark"
+              ? "bg-gray-700 text-white border-gray-600 placeholder:text-gray-400 focus-visible:ring-indigo-500"
+              : "bg-white text-black border-gray-300 placeholder:text-gray-500 focus-visible:ring-indigo-500"
+          }`}
+          placeholder="e.g., Delhi, Karol Bagh"
+          value={tempFilters.locationQuery}
+          onChange={(e) =>
+            setTempFilters({
+              ...tempFilters,
+              locationQuery: e.target.value,
+            })
+          }
+        />
+      </div>
+      {/* Price Filter */}
+      <div>
+        <Label
+          htmlFor="priceFilter"
+          className={`mb-2 block ${
+            currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+          }`}
+        >
+          Price Range
+        </Label>
+        <Select
+          value={tempFilters.priceFilter}
+          onValueChange={(value) =>
+            setTempFilters({ ...tempFilters, priceFilter: value })
+          }
+        >
+          <SelectTrigger
+            id="priceFilter"
+            className={`${
+              currentTheme === "dark"
+                ? "bg-gray-700 text-white border-gray-600 focus-visible:ring-indigo-500"
+                : "bg-white text-black border-gray-300 focus-visible:ring-indigo-500"
+            }`}
+          >
+            <SelectValue placeholder="All Prices" />
+          </SelectTrigger>
+          <SelectContent
+            className={`${
+              currentTheme === "dark"
+                ? "bg-gray-800 text-white border-gray-700"
+                : "bg-white text-black border-gray-200"
+            }`}
+          >
+            <SelectItem value="all">All Prices</SelectItem>
+            <SelectItem value="2500">Under ₹2500</SelectItem>
+            <SelectItem value="4000">Under ₹4000</SelectItem>
+            <SelectItem value="6000">Under ₹6000</SelectItem>
+            <SelectItem value="8000">Under ₹8000</SelectItem>
+            <SelectItem value="10000">Under ₹10000</SelectItem>
+            <SelectItem value="15000">Under ₹15000</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Room Type Filter */}
+      <div>
+        <Label
+          htmlFor="roomTypeFilter"
+          className={`mb-2 block ${
+            currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+          }`}
+        >
+          Room Type
+        </Label>
+        <Select
+          value={tempFilters.roomTypeFilter}
+          onValueChange={(value) =>
+            setTempFilters({ ...tempFilters, roomTypeFilter: value })
+          }
+        >
+          <SelectTrigger
+            id="roomTypeFilter"
+            className={`${
+              currentTheme === "dark"
+                ? "bg-gray-700 text-white border-gray-600 focus-visible:ring-indigo-500"
+                : "bg-white text-black border-gray-300 focus-visible:ring-indigo-500"
+            }`}
+          >
+            <SelectValue placeholder="All Room Types" />
+          </SelectTrigger>
+          <SelectContent
+            className={`${
+              currentTheme === "dark"
+                ? "bg-gray-800 text-white border-gray-700"
+                : "bg-white text-black border-gray-200"
+            }`}
+          >
+            <SelectItem value="all">All Room Types</SelectItem>
+            <SelectItem value="Room">Room</SelectItem>
+            <SelectItem value="House">House</SelectItem>
+            <SelectItem value="PG">PG</SelectItem>
+            <SelectItem value="Shared">Shared</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Occupancy Filter */}
+      <div>
+        <Label
+          htmlFor="occupancyFilter"
+          className={`mb-2 block ${
+            currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+          }`}
+        >
+          Occupancy
+        </Label>
+        <Select
+          value={tempFilters.occupancyFilter}
+          onValueChange={(value) =>
+            setTempFilters({ ...tempFilters, occupancyFilter: value })
+          }
+        >
+          <SelectTrigger
+            id="occupancyFilter"
+            className={`${
+              currentTheme === "dark"
+                ? "bg-gray-700 text-white border-gray-600 focus-visible:ring-indigo-500"
+                : "bg-white text-black border-gray-300 focus-visible:ring-indigo-500"
+            }`}
+          >
+            <SelectValue placeholder="All Occupancy" />
+          </SelectTrigger>
+          <SelectContent
+            className={`${
+              currentTheme === "dark"
+                ? "bg-gray-800 text-white border-gray-700"
+                : "bg-white text-black border-gray-200"
+            }`}
+          >
+            <SelectItem value="all">All Occupancy</SelectItem>
+            <SelectItem value="Single">Single</SelectItem>
+            <SelectItem value="Double">Double</SelectItem>
+            <SelectItem value="Triple">Triple</SelectItem>
+            <SelectItem value="Any">Any</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Available From Date */}
+      <div>
+        <Label
+          htmlFor="availableFrom"
+          className={`mb-2 block ${
+            currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
+          }`}
+        >
+          Available From
+        </Label>
+        <Input
+          type="date"
+          id="availableFrom"
+          className={`${
+            currentTheme === "dark"
+              ? "bg-gray-700 text-white border-gray-600 focus-visible:ring-indigo-500"
+              : "bg-white text-black border-gray-300 focus-visible:ring-indigo-500"
+          }`}
+          value={tempFilters.availableFrom}
+          onChange={(e) =>
+            setTempFilters({
+              ...tempFilters,
+              availableFrom: e.target.value,
+            })
+          }
+        />
+      </div>
+      {/* Amenities Filter */}
       <div>
         <div
           className={`mb-2 font-semibold text-sm ${
-            currentTheme === "dark" ? "text-indigo-300" : "text-indigo-600"
+            currentTheme === "dark" ? "text-indigo-400" : "text-indigo-600"
           }`}
         >
           Amenities
@@ -416,12 +548,12 @@ export const MyPosts = () => {
             <button
               key={key}
               onClick={() => toggleAmenity(key)}
-              className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-all ${
+              className={`flex items-center gap-1 px-3 py-1 text-xs rounded-full border transition-all duration-200 ${
                 tempFilters.amenityFilters.includes(key)
-                  ? "bg-indigo-600 text-white border-indigo-600"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
                   : currentTheme === "dark"
-                  ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600 hover:text-white"
+                  : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 hover:text-gray-800"
               }`}
             >
               {icon} {label}
@@ -429,23 +561,24 @@ export const MyPosts = () => {
           ))}
         </div>
       </div>
-      <div className="mt-5 flex gap-3">
+      {/* Action Buttons */}
+      <div className="mt-6 flex flex-col sm:flex-row gap-3">
         <Button
           variant="outline"
-          className={`flex-1 ${
+          className={`flex-1 transition duration-300 ease-in-out transform hover:scale-[1.02] ${
             currentTheme === "dark"
-              ? "bg-gray-600 text-white border-gray-500 hover:bg-gray-500"
-              : "bg-white text-black border-gray-300 hover:bg-gray-100"
+              ? "bg-gray-600 text-white border-gray-500 hover:bg-gray-500 hover:text-white"
+              : "bg-white text-black border-gray-300 hover:bg-gray-100 hover:text-black"
           }`}
           onClick={resetFilters}
         >
-          Reset
+          Reset Filters
         </Button>
         <Button
-          className={`flex-1 ${
+          className={`flex-1 transition duration-300 ease-in-out transform hover:scale-[1.02] ${
             currentTheme === "dark"
-              ? "bg-indigo-700 hover:bg-indigo-800"
-              : "bg-indigo-600 hover:bg-indigo-700"
+              ? "bg-indigo-700 hover:bg-indigo-800 text-white"
+              : "bg-indigo-600 hover:bg-indigo-700 text-white"
           }`}
           onClick={applyFilters}
         >
@@ -458,37 +591,54 @@ export const MyPosts = () => {
   if (isLoading) {
     return (
       <div
-        className={`${containerClasses} max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6`}
+        className={`${containerClasses} min-h-screen p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`}
       >
         {Array.from({ length: PAGE_LIMIT }).map((_, i) => (
           <Card
             key={i}
-            className={`space-y-4 p-4 ${
+            className={`space-y-4 p-4 rounded-xl shadow-lg ${
               currentTheme === "dark"
                 ? "bg-gray-800 border-gray-700"
                 : "bg-white border-gray-200"
             }`}
           >
             <Skeleton
-              className={`h-40 w-full rounded-lg ${
+              className={`h-48 w-full rounded-lg ${
                 currentTheme === "dark" ? "bg-gray-700" : "bg-gray-200"
               }`}
             />
             <Skeleton
-              className={`h-6 w-2/3 ${
+              className={`h-6 w-3/4 rounded-md ${
                 currentTheme === "dark" ? "bg-gray-700" : "bg-gray-200"
               }`}
             />
             <Skeleton
-              className={`h-4 w-1/2 ${
+              className={`h-4 w-1/2 rounded-md ${
                 currentTheme === "dark" ? "bg-gray-700" : "bg-gray-200"
               }`}
             />
             <Skeleton
-              className={`h-10 w-full ${
+              className={`h-4 w-2/3 rounded-md ${
                 currentTheme === "dark" ? "bg-gray-700" : "bg-gray-200"
               }`}
             />
+            <Skeleton
+              className={`h-4 w-1/3 rounded-md ${
+                currentTheme === "dark" ? "bg-gray-700" : "bg-gray-200"
+              }`}
+            />
+            <div className="flex gap-3">
+              <Skeleton
+                className={`h-10 w-full rounded-md ${
+                  currentTheme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                }`}
+              />
+              <Skeleton
+                className={`h-10 w-full rounded-md ${
+                  currentTheme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                }`}
+              />
+            </div>
           </Card>
         ))}
       </div>
@@ -498,7 +648,7 @@ export const MyPosts = () => {
   if (isError) {
     return (
       <div
-        className={`${containerClasses} text-center py-20 text-red-500 dark:text-red-400`}
+        className={`${containerClasses} text-center py-20 text-red-600 dark:text-red-400 font-semibold text-xl`}
       >
         Error loading posts. Please try again later.
       </div>
@@ -507,11 +657,14 @@ export const MyPosts = () => {
 
   return (
     <div className={containerClasses}>
-      <Toaster position="top-center" reverseOrder={false} />
+      <Toaster position="top-center" richColors />
       <div className="max-w-7xl mx-auto px-4 py-10">
+        {/* Header Section */}
         <div
-          className={`relative flex items-center justify-between gap-4 mb-10 sticky top-0 z-20 p-4 sm:p-5 rounded-2xl ${
-            currentTheme === "dark" ? "bg-gray-700" : "bg-blue-400"
+          className={`relative flex w-full items-center justify-between gap-4 mb-10 sticky top-0 z-20 p-4 sm:p-5 rounded-2xl shadow-xl transition-all duration-300 ease-in-out ${
+            currentTheme === "dark"
+              ? "bg-gray-800 text-white border border-gray-700"
+              : "bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg"
           }`}
         >
           {/* Left: Back Button & Mobile Filter Toggle */}
@@ -519,9 +672,9 @@ export const MyPosts = () => {
             <Button
               variant="outline"
               onClick={() => navigate({ to: "/dashboard" })}
-              className={`flex gap-2 justify-center transition duration-300 ease-in-out transform hover:scale-105 ${
+              className={`flex gap-2 justify-center transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg ${
                 currentTheme === "dark"
-                  ? "bg-gray-600 text-white border-gray-500 hover:bg-indigo-700"
+                  ? "bg-gray-700 text-gray-200 border-gray-600 hover:bg-indigo-700 hover:text-white"
                   : "bg-white text-gray-800 border-gray-300 hover:bg-indigo-600 hover:text-white"
               }`}
             >
@@ -532,9 +685,9 @@ export const MyPosts = () => {
               <SheetTrigger asChild className="md:hidden">
                 <Button
                   variant="outline"
-                  className={`flex gap-2 transition duration-300 ease-in-out transform hover:scale-105 ${
+                  className={`flex gap-2 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg ${
                     currentTheme === "dark"
-                      ? "bg-gray-600 text-white border-gray-500 hover:bg-indigo-700"
+                      ? "bg-gray-700 text-gray-200 border-gray-600 hover:bg-indigo-700 hover:text-white"
                       : "bg-white text-gray-800 border-gray-300 hover:bg-indigo-600 hover:text-white"
                   }`}
                 >
@@ -543,10 +696,10 @@ export const MyPosts = () => {
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className={`w-[300px] sm:w-[350px] overflow-auto ${
+                className={`w-[300px] sm:w-[350px] overflow-y-auto ${
                   currentTheme === "dark"
-                    ? "bg-gray-800 text-white"
-                    : "bg-white text-black"
+                    ? "bg-gray-900 text-white border-gray-700"
+                    : "bg-white text-black border-gray-200"
                 }`}
               >
                 {/* Filter content inside the sheet */}
@@ -557,8 +710,8 @@ export const MyPosts = () => {
 
           {/* Center: Absolutely Positioned Title */}
           <h1
-            className={` hidden sm:flex absolute left-1/2 transform -translate-x-1/2 text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-center whitespace-nowrap ${
-              currentTheme === "dark" ? "text-indigo-300" : "text-indigo-900"
+            className={`hidden sm:flex absolute left-1/2 transform -translate-x-1/2 text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-center whitespace-nowrap drop-shadow-md ${
+              currentTheme === "dark" ? "text-indigo-400" : "text-white"
             }`}
           >
             🏡 Your Property Listings
@@ -569,10 +722,10 @@ export const MyPosts = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className={`p-2 rounded-full transition-colors duration-200 ${
+              className={`p-2 rounded-full transition-colors duration-200 transform hover:scale-110 shadow-md ${
                 currentTheme === "dark"
-                  ? "bg-gray-600 text-gray-200 hover:bg-gray-500"
-                  : "bg-white text-gray-700 hover:bg-gray-200"
+                  ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
               aria-label="Toggle theme"
             >
@@ -585,30 +738,45 @@ export const MyPosts = () => {
           </div>
         </div>
 
+        {/* Main Content Area: Filters and Posts */}
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-6">
           {/* Desktop Filter Sidebar */}
           <aside
-            className={`hidden md:block shadow-xl rounded-2xl p-6 h-fit sticky top-20 ${
+            className={`hidden md:block shadow-xl rounded-2xl p-6 h-fit sticky top-24 transition-all duration-300 ease-in-out ${
               currentTheme === "dark"
-                ? "bg-gray-800 text-white"
-                : "bg-white text-black"
+                ? "bg-gray-800 text-white border border-gray-700"
+                : "bg-white text-black border border-gray-200"
             }`}
           >
             {FilterContent()}
           </aside>
 
           {/* Posts Grid */}
-          <div className="space-y-6">
+          <div className="space-y-6 w-full">
             {posts.length === 0 ? (
               <div
-                className={`text-center py-20 ${
-                  currentTheme === "dark" ? "text-gray-400" : "text-gray-500"
+                className={`text-center py-20 rounded-xl p-8 shadow-lg ${
+                  currentTheme === "dark"
+                    ? "bg-gray-800 text-gray-400 border border-gray-700"
+                    : "bg-white text-gray-500 border border-gray-200"
                 }`}
               >
-                <p className="text-lg">You haven't posted anything yet.</p>
+                <p className="text-lg font-semibold mb-2">
+                  You haven't posted anything yet.
+                </p>
                 <p className="text-sm mt-2">
                   Start posting to showcase your listings!
                 </p>
+                <Button
+                  onClick={() => navigate({ to: "/create-post" })}
+                  className={`mt-6 px-6 py-3 rounded-full text-white font-semibold shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                    currentTheme === "dark"
+                      ? "bg-indigo-600 hover:bg-indigo-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  Create Your First Post
+                </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -619,27 +787,27 @@ export const MyPosts = () => {
                     <Card
                       key={post._id}
                       ref={isLastPost ? lastPostRef : null}
-                      className={`flex flex-col justify-between shadow-xl border hover:shadow-2xl transition duration-300 rounded-xl overflow-hidden ${
+                      className={`flex flex-col justify-between shadow-xl border hover:shadow-2xl transition duration-300 ease-in-out transform hover:-translate-y-1 rounded-xl overflow-hidden ${
                         currentTheme === "dark"
-                          ? "bg-gray-700 border-gray-600 hover:border-blue-500 text-white"
-                          : "bg-gradient-to-br from-indigo-100 to-blue-50 border-gray-300 hover:border-blue-500 text-black"
+                          ? "bg-gray-700 border-gray-600 hover:border-indigo-500 text-gray-100"
+                          : "bg-gradient-to-br from-indigo-100 to-blue-50 border-gray-200 hover:border-blue-500 text-gray-900"
                       }`}
                     >
                       {post.images?.length > 0 ? (
                         <img
                           src={post.images[0]}
                           alt="Property"
-                          className="w-full h-48 object-cover"
+                          className="w-full h-48 object-cover object-center"
                         />
                       ) : (
                         <div
                           className={`h-48 flex justify-center items-center text-6xl ${
                             currentTheme === "dark"
                               ? "bg-gray-600 text-gray-400"
-                              : "bg-gradient-to-br from-blue-100 to-blue-50"
+                              : "bg-gradient-to-br from-blue-100 to-blue-50 text-gray-400"
                           }`}
                         >
-                          🏠
+                          <Home size={64} />
                         </div>
                       )}
 
@@ -655,7 +823,7 @@ export const MyPosts = () => {
                             {post.title}
                           </CardTitle>
                           <Badge
-                            className={`flex-shrink-0 capitalize p-2 text-sm font-medium ${
+                            className={`flex-shrink-0 capitalize px-3 py-1 text-sm font-medium rounded-full ${
                               post.status === "Booked"
                                 ? "bg-red-200 text-red-700 dark:bg-red-700 dark:text-red-200"
                                 : "bg-green-200 text-green-700 dark:bg-green-700 dark:text-green-200"
@@ -668,7 +836,7 @@ export const MyPosts = () => {
                         <div
                           className={`text-sm space-y-1 ${
                             currentTheme === "dark"
-                              ? "text-gray-400"
+                              ? "text-gray-300"
                               : "text-muted-foreground"
                           }`}
                         >
@@ -704,7 +872,7 @@ export const MyPosts = () => {
                               }`}
                             />
                             <span
-                              className={`font-medium text-lg ${
+                              className={`font-semibold text-lg ${
                                 currentTheme === "dark"
                                   ? "text-indigo-300"
                                   : "text-indigo-800"
@@ -714,20 +882,29 @@ export const MyPosts = () => {
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            🏡<span>Type: {post.type}</span>
+                            <span className="text-xl">🏡</span>
+                            <span>Type: {post.type}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            🛏️ <span>Occupancy: {post.occupancy}</span>
+                            <span className="text-xl">🛏️</span>
+                            <span>Occupancy: {post.occupancy}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            🛋️{" "}
+                            <span className="text-xl">🛋️</span>
                             <span>
                               Furnished: {post.furnished ? "Yes" : "No"}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <strong>Available From: </strong>
+                          <div className="flex items-center gap-2 font-medium">
+                            <Calendar
+                              className={`w-4 h-4 ${
+                                currentTheme === "dark"
+                                  ? "text-purple-300"
+                                  : "text-purple-600"
+                              }`}
+                            />
                             <span>
+                              Available From:{" "}
                               {format(
                                 new Date(post.availableFrom),
                                 "dd MMM yyyy"
@@ -737,20 +914,20 @@ export const MyPosts = () => {
                         </div>
 
                         <div>
-                          <strong
-                            className={`text-sm ${
+                          <p
+                            className={`font-semibold text-sm mb-1 ${
                               currentTheme === "dark"
-                                ? "text-white"
-                                : "text-foreground"
+                                ? "text-gray-100"
+                                : "text-gray-700"
                             }`}
                           >
                             Description:
-                          </strong>
+                          </p>
                           <p
-                            className={`text-sm mt-1 ${
+                            className={`text-sm ${
                               currentTheme === "dark"
                                 ? "text-gray-400"
-                                : "text-muted-foreground"
+                                : "text-gray-600"
                             } line-clamp-3`}
                           >
                             {post.description || "No description provided."}
@@ -758,27 +935,39 @@ export const MyPosts = () => {
                         </div>
 
                         <div>
-                          <strong
-                            className={`text-sm ${
+                          <p
+                            className={`font-semibold text-sm mb-1 ${
                               currentTheme === "dark"
-                                ? "text-white"
-                                : "text-foreground"
+                                ? "text-gray-100"
+                                : "text-gray-700"
                             }`}
                           >
                             Amenities:
-                          </strong>
+                          </p>
                           <div
                             className={`max-h-24 overflow-auto mt-1 text-sm ${
                               currentTheme === "dark"
                                 ? "text-gray-400"
-                                : "text-muted-foreground"
-                            }`}
+                                : "text-gray-600"
+                            } rounded-md p-2`}
                           >
                             {post.amenities?.length > 0 ? (
-                              <ul className="list-disc ml-5">
+                              <ul className="grid grid-cols-2 gap-y-1 list-none p-0 m-0">
                                 {post.amenities.map(
                                   (amenity: string, idx: number) => (
-                                    <li key={idx}>{amenity}</li>
+                                    <li
+                                      key={idx}
+                                      className="flex items-center gap-1"
+                                    >
+                                      {
+                                        amenitiesList.find(
+                                          (a) => a.key === amenity.toLowerCase()
+                                        )?.icon
+                                      }{" "}
+                                      <span className="capitalize">
+                                        {amenity}
+                                      </span>
+                                    </li>
                                   )
                                 )}
                               </ul>
@@ -789,45 +978,47 @@ export const MyPosts = () => {
                         </div>
 
                         {post.contactEmail && (
-                          <div className="text-sm mt-2">
-                            📧{" "}
-                            <span
-                              className={`${
+                          <div className="text-sm mt-2 flex items-center gap-2">
+                            <span className="text-blue-500">📧</span>
+                            <a
+                              href={`mailto:${post.contactEmail}`}
+                              className={`underline hover:no-underline transition-colors ${
                                 currentTheme === "dark"
-                                  ? "text-blue-300"
-                                  : "text-blue-600"
+                                  ? "text-blue-300 hover:text-blue-200"
+                                  : "text-blue-600 hover:text-blue-700"
                               }`}
                             >
                               {post.contactEmail}
-                            </span>
+                            </a>
                           </div>
                         )}
                         {post.contactPhone && (
-                          <div className="text-sm">
-                            📱{" "}
-                            <span
-                              className={`${
+                          <div className="text-sm flex items-center gap-2">
+                            <span className="text-blue-500">📱</span>
+                            <a
+                              href={`tel:${post.contactPhone}`}
+                              className={`underline hover:no-underline transition-colors ${
                                 currentTheme === "dark"
-                                  ? "text-blue-300"
-                                  : "text-blue-600"
+                                  ? "text-blue-300 hover:text-blue-200"
+                                  : "text-blue-600 hover:text-blue-700"
                               }`}
                             >
                               {post.contactPhone}
-                            </span>
+                            </a>
                           </div>
                         )}
                       </CardContent>
 
-                      <CardFooter className="grid grid-cols-2 gap-3 px-5 pb-5">
+                      <CardFooter className="grid grid-cols-2 gap-3 px-5 pb-5 pt-0">
                         <Button
                           onClick={() =>
                             navigate({ to: `/edit-post/${post._id}` })
                           }
                           variant="outline"
-                          className={`flex gap-2 hover:cursor-pointer justify-center w-full transition duration-300 ease-in-out transform hover:scale-105 ${
+                          className={`flex gap-2 hover:cursor-pointer justify-center w-full transition duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-md ${
                             currentTheme === "dark"
-                              ? "bg-gray-600 text-white border-gray-500 hover:bg-indigo-700"
-                              : "bg-white text-black border-gray-300 hover:bg-indigo-600 hover:text-white"
+                              ? "bg-gray-600 text-gray-200 border-gray-500 hover:bg-indigo-700 hover:text-white"
+                              : "bg-white text-gray-800 border-gray-300 hover:bg-indigo-600 hover:text-white"
                           }`}
                         >
                           <PencilLine className="w-4 h-4" />
@@ -838,7 +1029,7 @@ export const MyPosts = () => {
                           <AlertDialogTrigger asChild>
                             <Button
                               variant="destructive"
-                              className="flex gap-2 justify-center hover:cursor-pointer w-full transition duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-105"
+                              className="flex gap-2 justify-center hover:cursor-pointer w-full transition duration-300 ease-in-out transform hover:scale-[1.02] hover:bg-red-700 hover:text-white hover:shadow-md"
                             >
                               <Trash2 className="w-4 h-4" />
                               Delete
@@ -847,7 +1038,7 @@ export const MyPosts = () => {
                           <AlertDialogContent
                             className={
                               currentTheme === "dark"
-                                ? "bg-gray-800 text-white border-gray-700"
+                                ? "bg-gray-900 text-white border-gray-700"
                                 : ""
                             }
                           >
@@ -857,15 +1048,16 @@ export const MyPosts = () => {
                                   currentTheme === "dark" ? "text-white" : ""
                                 }
                               >
-                                Are you sure?
+                                Are you absolutely sure?
                               </AlertDialogTitle>
                               <AlertDialogDescription
                                 className={
                                   currentTheme === "dark" ? "text-gray-400" : ""
                                 }
                               >
-                                This action will permanently delete this post
-                                and all associated images from Cloudinary.
+                                This action cannot be undone. This will
+                                permanently delete your post and all associated
+                                images from Cloudinary.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -873,7 +1065,7 @@ export const MyPosts = () => {
                                 disabled={loading}
                                 className={
                                   currentTheme === "dark"
-                                    ? "bg-gray-600 text-white border-gray-500 hover:bg-gray-500"
+                                    ? "bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600"
                                     : ""
                                 }
                               >
@@ -884,8 +1076,8 @@ export const MyPosts = () => {
                                 onClick={() => handleDelete(post)}
                                 className={
                                   currentTheme === "dark"
-                                    ? "bg-red-700 hover:bg-red-800"
-                                    : ""
+                                    ? "bg-red-600 hover:bg-red-700 text-white"
+                                    : "bg-red-500 hover:bg-red-600 text-white"
                                 }
                               >
                                 {loading ? (
@@ -910,16 +1102,16 @@ export const MyPosts = () => {
             {/* Loading indicator for fetching next page */}
             {isFetchingNextPage && (
               <div
-                className={`flex flex-col items-center gap-3 mt-8 border rounded-lg p-4 shadow-lg ${
+                className={`flex flex-col items-center justify-center gap-3 mt-8 border rounded-lg p-6 shadow-xl transition-all duration-300 ease-in-out ${
                   currentTheme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-300"
+                    ? "bg-gray-800 border-gray-700 text-gray-300"
                     : "bg-indigo-50 border-indigo-400 text-indigo-900"
                 }`}
               >
                 <svg
-                  className={`animate-spin h-10 w-10 ${
+                  className={`animate-spin h-12 w-12 ${
                     currentTheme === "dark"
-                      ? "text-indigo-300"
+                      ? "text-indigo-400"
                       : "text-indigo-700"
                   }`}
                   xmlns="http://www.w3.org/2000/svg"
@@ -941,7 +1133,7 @@ export const MyPosts = () => {
                   ></path>
                 </svg>
                 <p
-                  className={`font-semibold text-lg ${
+                  className={`font-semibold text-xl ${
                     currentTheme === "dark"
                       ? "text-indigo-300"
                       : "text-indigo-900"
@@ -952,6 +1144,19 @@ export const MyPosts = () => {
               </div>
             )}
 
+            {/* No more posts message */}
+            {!hasNextPage && posts.length > 0 && !isFetchingNextPage && (
+              <div
+                className={`text-center py-6 text-sm font-medium rounded-lg shadow-sm ${
+                  currentTheme === "dark"
+                    ? "bg-gray-700 text-gray-400 border border-gray-600"
+                    : "bg-gray-100 text-gray-500 border border-gray-200"
+                }`}
+              >
+                You've reached the end of your posts!
+              </div>
+            )}
+
             <AnimatePresence>
               {showDeletingModal && (
                 <motion.div
@@ -959,25 +1164,31 @@ export const MyPosts = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                  className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
                 >
                   <motion.div
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0.8 }}
+                    initial={{ scale: 0.8, y: 50 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.8, y: 50 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
                     className={`${
                       currentTheme === "dark"
-                        ? "bg-gray-800 text-white"
-                        : "bg-white text-black"
-                    } rounded-lg p-8 flex flex-col items-center space-y-4 max-w-sm w-full shadow-lg border ${
-                      currentTheme === "dark"
-                        ? "border-gray-700"
-                        : "border-gray-200"
-                    }`}
+                        ? "bg-gray-800 text-white border-gray-700"
+                        : "bg-white text-black border-gray-200"
+                    } rounded-xl p-8 flex flex-col items-center space-y-5 max-w-sm w-full shadow-2xl border`}
                   >
-                    <Loader2 size={48} className="animate-spin text-red-600" />
-                    <p className="text-lg font-semibold text-center">
-                      Deleting your post, please wait...
+                    <Loader2 size={56} className="animate-spin text-red-500" />
+                    <p className="text-xl font-bold text-center">
+                      Deleting your post...
+                    </p>
+                    <p
+                      className={`text-sm text-center ${
+                        currentTheme === "dark"
+                          ? "text-gray-400"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      This might take a moment as images are also being removed.
                     </p>
                   </motion.div>
                 </motion.div>
