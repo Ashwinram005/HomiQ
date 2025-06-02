@@ -235,7 +235,7 @@ export function Chat() {
   const [openChatList, setOpenChatList] = useState(true);
 
   return (
-    <div className="flex-1 max-w-full flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 dark:border-neutral-700">
+    <div className="flex-1 max-w-full flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 ">
       {openChatList && (
         <div className="fixed inset-0 z-50 flex h-screen md:static md:z-auto md:h-auto">
           {/* Backdrop */}
@@ -251,9 +251,9 @@ export function Chat() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col md:h-[100vh] bg-white dark:bg-neutral-800 shadow-xl overflow-hidden border border-gray-200 dark:border-neutral-700 rounded-xl relative">
+      <div className="flex-1 flex flex-col md:h-[100vh] bg-white dark:bg-neutral-800  overflow-hidden  border-gray-200 dark:border-neutral-700 h-full relative">
         {/* Header */}
-        <div className="fixed top-0 w-full bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-4 md:px-6 py-3 flex items-center shadow-sm z-20">
+        <div className="fixed top-0 w-full bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-4 md:px-6 py-3 flex items-center  z-20">
           <button
             className="mr-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
             onClick={() => setOpenChatList((prev) => !prev)}
@@ -275,7 +275,7 @@ export function Chat() {
             </svg>
           </button>
 
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 mb-1 ">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white truncate">
               Chat Room
             </h2>
@@ -287,8 +287,8 @@ export function Chat() {
 
         {/* Messages */}
         <div
-          className="flex-1 overflow-y-auto px-4 py-20 space-y-3 hide-scrollbar"
-          style={{ marginTop: "56px" }} // height of header, to avoid overlap
+          className="flex-1 overflow-y-auto px-4 pt-8 pb-17 space-y-3 hide-scrollbar"
+          style={{ marginTop: "56px" }}
         >
           {messages.length ? (
             messages.map((msg, i) => {
@@ -318,8 +318,8 @@ export function Chat() {
               );
             })
           ) : (
-            <div className="text-center text-gray-400 mt-12">
-              No messages yet. Start the conversation!
+            <div className="text-center text-gray-400 mt-12 max-h-100">
+
             </div>
           )}
           <div ref={messagesEndRef} />
