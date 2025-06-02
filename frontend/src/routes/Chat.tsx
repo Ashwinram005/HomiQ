@@ -232,7 +232,7 @@ export function Chat() {
     if (e.key === "Enter") sendMessage();
   };
 
-  const [openChatList, setOpenChatList] = useState(false);
+  const [openChatList, setOpenChatList] = useState(true);
 
   return (
     <div className="flex-1 max-w-full flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 dark:border-neutral-700">
