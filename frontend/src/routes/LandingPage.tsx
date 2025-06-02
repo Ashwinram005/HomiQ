@@ -4,7 +4,9 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import debounce from "lodash.debounce";
 import { AuthForm } from "@/components/AuthForm";
-import { Modal } from "@/components/Modal";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHouseCircleCheck } from "@fortawesome/free-solid-svg-icons";
+
 import { useNavigate } from "@tanstack/react-router";
 import { useLocation } from "@tanstack/react-router";
 import {
@@ -23,7 +25,9 @@ import {
   Users,
   Calendar,
   ChevronDown,
+  ChevronUp, // Added ChevronUp icon
   Loader2,
+  Filter, // Added Filter icon
 } from "lucide-react";
 
 interface Post {
@@ -108,46 +112,39 @@ const Navbar = ({
       }`}
     >
       <div className="flex items-center gap-3">
-        <img
-          src="https://img.icons8.com/external-flaticons-lineal-color-flat-icons/64/000000/external-home-real-estate-agency-flaticons-lineal-color-flat-icons.png"
-          alt="RoomRental Logo"
-          className="h-9 w-9 object-contain"
-        />
+        <FontAwesomeIcon  icon={faHouseCircleCheck} />
         <h2
           className={`text-2xl font-extrabold select-none ${
-            isDark ? "text-blue-400" : "text-blue-600"
+            isDark ? "text-blue-400" : "text-black"
           }`}
         >
-          RoomRental
+          HomiQ
         </h2>
       </div>
 
       <div className="flex items-center gap-4">
         <button
           onClick={toggleTheme}
-          className={`p-2 rounded-full transition-colors duration-300 ${
+          className={`p-2 rounded-full  transition-colors duration-300 ${
             isDark
               ? "hover:bg-gray-700 text-yellow-300"
-              : "hover:bg-blue-100 text-blue-600"
+              : "hover:bg-gray-300 text-blue-600"
           }`}
           aria-label="Toggle theme"
         >
-          {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          {isDark ? <Sun size={20} /> : <Moon className="text-black" size={20} />}
         </button>
 
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setOpen((prev) => !prev)}
-            className={`flex items-center gap-1 px-5 py-2 border rounded-lg font-semibold shadow-sm hover:bg-blue-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+            className={`flex items-center gap-1 px-3 sm:px-5 py-2 text-sm sm:text-base border rounded-lg font-semibold shadow-sm  transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
               isDark
                 ? "bg-gray-700 border-gray-600 text-blue-300 hover:bg-gray-600 focus:ring-blue-700 focus:ring-offset-gray-800"
-                : "bg-blue-50 border-blue-300 text-blue-700 focus:ring-blue-400 focus:ring-offset-white"
+                : "bg-black  text-white "
             }`}
-            aria-haspopup="true"
-            aria-expanded={open}
-            aria-label="Account menu"
           >
-            Account <span className="text-sm">▼</span>
+            Account <span className="text-xs">▼</span>
           </button>
 
           <AnimatePresence>
@@ -165,7 +162,7 @@ const Navbar = ({
                   className={`w-full text-left px-5 py-3 border-b border-gray-200 hover:bg-blue-50 font-medium rounded-t-xl transition-colors duration-150 ${
                     isDark
                       ? "text-blue-300 border-gray-600 hover:bg-gray-600 hover:text-blue-200"
-                      : "text-blue-700 hover:bg-blue-50"
+                      : "text-black hover:bg-gray-300"
                   }`}
                 >
                   Login
@@ -175,7 +172,7 @@ const Navbar = ({
                   className={`w-full text-left px-5 py-3 hover:bg-blue-50 font-medium rounded-b-xl transition-colors duration-150 ${
                     isDark
                       ? "text-blue-300 border-gray-600 hover:bg-gray-600 hover:text-blue-200"
-                      : "text-blue-700 hover:bg-blue-50"
+                      : "text-black hover:bg-gray-300"
                   }`}
                 >
                   Signup
@@ -200,13 +197,22 @@ const LandingPage: React.FC = () => {
   const [availableFromFilter, setAvailableFromFilter] = useState("");
   const [amenitiesFilter, setAmenitiesFilter] = useState<string[]>([]);
   const [theme, setTheme] = useState("light");
-  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [showFilters, setShowFilters] = useState(false); // New state for filter visibility
+
   const [modalOpen, setModalOpen] = useState<"login" | "signup" | null>(null);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") || "light";
     setTheme(storedTheme);
     document.documentElement.classList.toggle("dark", storedTheme === "dark");
+
+    // Initialize showFilters based on screen size
+    const handleResize = () => {
+      setShowFilters(window.innerWidth >= 1024);
+    };
+    handleResize(); // Set initial state
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const toggleTheme = () => {
@@ -307,27 +313,33 @@ const LandingPage: React.FC = () => {
             }`}
           >
             {/* Filter Toggler for smaller screens */}
-            <button
-              className={`lg:hidden flex items-center justify-between w-full px-4 py-2 font-semibold rounded-lg transition-colors duration-200 ${
-                isDark
-                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-              onClick={() => setIsFilterVisible(!isFilterVisible)}
-            >
-              Filter Options
-              <ChevronDown
-                className={`transform transition-transform duration-300 ${
-                  isFilterVisible ? "rotate-180" : "rotate-0"
+            <div className="flex justify-between items-center lg:hidden mb-4">
+              <h3
+                className={`text-lg font-semibold ${
+                  isDark ? "text-white" : "text-gray-900"
                 }`}
-                size={20}
-              />
-            </button>
+              >
+                Room Filters
+              </h3>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`p-2 rounded-full transition-colors duration-200 ${
+                  isDark
+                    ? "text-blue-300 hover:bg-gray-700"
+                    : "text-blue-600 hover:bg-blue-100"
+                }`}
+                aria-expanded={showFilters}
+                aria-controls="filter-section"
+              >
+                {showFilters ? <ChevronUp size={24} /> : <Filter size={24} />}
+              </button>
+            </div>
 
             {/* Filter Inputs - Initially hidden on smaller screens, always visible on lg */}
             <AnimatePresence>
-              {(isFilterVisible || window.innerWidth >= 1024) && (
+              {(showFilters || window.innerWidth >= 1024) && (
                 <motion.div
+                  id="filter-section"
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
@@ -637,7 +649,7 @@ const PostCard = ({ post, theme }: { post: Post; theme: string }) => {
   return (
     <motion.div
       onClick={handleClick}
-      className={`rounded-3xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer flex flex-col max-w-sm mx-auto h-full ${
+      className={`rounded-3xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer flex flex-col max-w-screen w-full mx-auto h-full ${
         isDark
           ? "bg-gray-800 text-white border border-gray-700"
           : "bg-white bg-gradient-to-br from-indigo-50 to-blue-50 border border-blue-100"
@@ -677,7 +689,14 @@ const PostCard = ({ post, theme }: { post: Post; theme: string }) => {
         <p
           className={`${
             isDark ? "text-gray-300" : "text-gray-700"
-          } line-clamp-3 mt-3 mb-4 text-sm flex-grow`}
+          } mt-3 mb-4 text-sm`}
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            minHeight: "3.6em", // ~3 lines of text at text-sm
+          }}
         >
           {post.description}
         </p>

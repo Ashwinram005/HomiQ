@@ -119,7 +119,9 @@ export function Dashboard() {
 
   const handleLogout = async () => {
     if (socket.connected) socket.disconnect();
-    localStorage.clear();
+    localStorage.removeItem("email");
+    localStorage.removeItem("username");
+    localStorage.removeItem("token");
     navigate({ to: "/" });
   };
 
@@ -149,9 +151,7 @@ export function Dashboard() {
       {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-black opacity-40"></div>
 
-      <header className="relative z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-lg px-4 md:px-6 py-4 flex flex-col sm:flex-row items-center justify-between sticky top-0 rounded-b-lg gap-4 sm:gap-0">
-        {" "}
-        {/* Stack items on smaller screens */}
+      <header className="relative z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-lg px-4 md:px-6 py-4 flex items-center justify-between sticky top-0 rounded-b-lg gap-4">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-800 dark:text-gray-100 drop-shadow text-center sm:text-left">
           Greetings, {username}!
         </h1>
@@ -160,11 +160,13 @@ export function Dashboard() {
           {/* Adjust gap */}
           <Button
             variant="ghost"
-            className="gap-2 px-3 py-2 text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-800/60 rounded-lg transition-all duration-200" // Adjust padding and text size
+            // Keep gap-2 but remove sm:flex, and use responsive padding
+            className="flex items-center gap-2 px-3 py-2 text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-800/60 rounded-lg transition-all duration-200"
             onClick={() => navigate({ to: "/chat" })}
           >
             <MessageSquare size={18} sm={20} /> {/* Adjust icon size */}
-            Engage in Chat
+            {/* Hide text on small screens, show on sm and up */}
+            <span className="hidden sm:inline">Engage in Chat</span>
           </Button>
           <div className="relative" ref={profileMenuRef}>
             <button
