@@ -536,7 +536,7 @@ const Step1 = ({ currentTheme }: StepProps) => {
         </div>
 
         <div>
-          <Label className={`${textColor} mb-1 block`}>
+          <Label className={`${textColor} mb-3 block`}>
             Description <span className="text-red-500">*</span>
           </Label>
           <TextField
@@ -626,32 +626,50 @@ const Step2 = ({ currentTheme }: StepProps) => {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="relative w-full mx-auto">
-      <h3 className={`text-lg font-semibold ${labelTextColor} mb-4`}>
+    <div className="relative w-full mx-auto ">
+      <h3 className={`text-lg font-semibold ${labelTextColor} mb-3`}>
         Property Details
       </h3>
-      <div className="space-y-4">
+      <div className="grid md:grid-cols-2 gap-4 py-10">
         {/* Price */}
         <div>
-          <Label className={`${labelTextColor} mb-1 block`}>
+          <Label className={`${labelTextColor} block mb-3`}>
             Price (₹) <span className="text-red-500">*</span>
           </Label>
           <Input
-            className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} ${placeholderColor} transition-colors duration-200`}
             type="number"
-            {...register("price", { valueAsNumber: true })}
             placeholder="e.g., 5000"
+            {...register("price", { valueAsNumber: true })}
+            className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} ${placeholderColor} transition-colors duration-200`}
           />
           {formState.errors.price && (
             <p className="text-red-500 text-sm mt-1">
-              {formState.errors.price?.message}
+              {formState.errors.price.message}
+            </p>
+          )}
+        </div>
+
+        {/* Available From */}
+        <div>
+          <Label className={`${labelTextColor} block mb-3`}>
+            Available From <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            type="date"
+            min={today}
+            {...register("availableFrom")}
+            className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} transition-colors duration-200`}
+          />
+          {formState.errors.availableFrom && (
+            <p className="text-red-500 text-sm mt-1">
+              {formState.errors.availableFrom.message}
             </p>
           )}
         </div>
 
         {/* Location */}
-        <div className="relative">
-          <Label className={`${labelTextColor} mb-1 block`}>
+        <div className="relative col-span-full">
+          <Label className={`${labelTextColor} block mb-3`}>
             Location <span className="text-red-500">*</span>
           </Label>
           <Input
@@ -662,11 +680,11 @@ const Step2 = ({ currentTheme }: StepProps) => {
               setValue("location", e.target.value, { shouldValidate: false });
             }}
             autoComplete="off"
-            placeholder="Search for city, school, popular place..."
-            className={`z-20 relative ${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} ${placeholderColor} transition-colors duration-200`}
+            placeholder="Search city, school, area..."
+            className={`z-20 ${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} ${placeholderColor} transition-colors duration-200`}
           />
           {loadingSuggestions && (
-            <div className="absolute z-30 w-full flex justify-center items-center py-2">
+            <div className="absolute z-30 w-full flex justify-center py-2">
               <Loader2
                 className={`animate-spin w-5 h-5 ${
                   isDark ? "text-gray-300" : "text-gray-600"
@@ -675,23 +693,21 @@ const Step2 = ({ currentTheme }: StepProps) => {
             </div>
           )}
           {suggestions.length > 0 &&
-            !loadingSuggestions &&
-            query.length >= 3 && (
+            query.length >= 3 &&
+            !loadingSuggestions && (
               <ul
-                className={`absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-md border ${
+                className={`absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-md border shadow-lg ${
                   isDark
-                    ? "border-gray-700 bg-gray-800"
-                    : "border-gray-300 bg-white"
-                } shadow-lg scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100`}
+                    ? "border-gray-700 bg-gray-800 text-gray-300"
+                    : "border-gray-300 bg-white text-gray-800"
+                } scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100`}
               >
                 {suggestions.map((place: any) => (
                   <li
                     key={place.place_id}
                     onClick={() => handleSelect(place)}
-                    className={`cursor-pointer px-3 py-2 ${
+                    className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
                       isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                    } transition-colors duration-150 text-sm ${
-                      isDark ? "text-gray-300" : "text-gray-800"
                     }`}
                   >
                     {place.display_name}
@@ -701,14 +717,14 @@ const Step2 = ({ currentTheme }: StepProps) => {
             )}
           {formState.errors.location && (
             <p className="text-red-500 text-sm mt-1">
-              {formState.errors.location?.message}
+              {formState.errors.location.message}
             </p>
           )}
         </div>
 
         {/* Type */}
         <div>
-          <Label className={`${labelTextColor} mb-1 block`}>
+          <Label className={`${labelTextColor} block mb-3`}>
             Type <span className="text-red-500">*</span>
           </Label>
           <Select
@@ -723,18 +739,12 @@ const Step2 = ({ currentTheme }: StepProps) => {
               <SelectValue placeholder="Choose type" />
             </SelectTrigger>
             <SelectContent
-              className={`${
-                isDark
-                  ? "bg-gray-800 text-white border-gray-700"
-                  : "bg-white text-gray-900 border-gray-200"
-              }`}
+              className={
+                isDark ? "bg-gray-800 text-white" : "bg-white text-black"
+              }
             >
               {["Room", "House", "PG", "Shared"].map((type) => (
-                <SelectItem
-                  key={type}
-                  value={type}
-                  className={isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}
-                >
+                <SelectItem key={type} value={type} className="cursor-pointer">
                   {type}
                 </SelectItem>
               ))}
@@ -742,14 +752,14 @@ const Step2 = ({ currentTheme }: StepProps) => {
           </Select>
           {formState.errors.type && (
             <p className="text-red-500 text-sm mt-1">
-              {formState.errors.type?.message}
+              {formState.errors.type.message}
             </p>
           )}
         </div>
 
         {/* Occupancy */}
         <div>
-          <Label className={`${labelTextColor} mb-1 block`}>
+          <Label className={`${labelTextColor} block mb-3`}>
             Occupancy <span className="text-red-500">*</span>
           </Label>
           <Select
@@ -764,18 +774,12 @@ const Step2 = ({ currentTheme }: StepProps) => {
               <SelectValue placeholder="Choose occupancy" />
             </SelectTrigger>
             <SelectContent
-              className={`${
-                isDark
-                  ? "bg-gray-800 text-white border-gray-700"
-                  : "bg-white text-gray-900 border-gray-200"
-              }`}
+              className={
+                isDark ? "bg-gray-800 text-white" : "bg-white text-black"
+              }
             >
               {["Single", "Double", "Triple", "Any"].map((o) => (
-                <SelectItem
-                  key={o}
-                  value={o}
-                  className={isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"}
-                >
+                <SelectItem key={o} value={o} className="cursor-pointer">
                   {o}
                 </SelectItem>
               ))}
@@ -783,44 +787,24 @@ const Step2 = ({ currentTheme }: StepProps) => {
           </Select>
           {formState.errors.occupancy && (
             <p className="text-red-500 text-sm mt-1">
-              {formState.errors.occupancy?.message}
+              {formState.errors.occupancy.message}
             </p>
           )}
         </div>
 
         {/* Furnished */}
-        <div className="flex items-center space-x-2 py-2">
+        <div className="flex items-center mt-2 col-span-full">
           <Checkbox
             id="furnished"
             checked={watch("furnished")}
             onCheckedChange={(v) => setValue("furnished", !!v)}
             className={
-              isDark
-                ? "data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 border-gray-500"
-                : ""
+              isDark ? "data-[state=checked]:bg-blue-500 border-gray-500" : ""
             }
           />
-          <Label htmlFor="furnished" className={labelTextColor}>
+          <Label htmlFor="furnished" className={`${labelTextColor} ml-2`}>
             Furnished
           </Label>
-        </div>
-
-        {/* Available From */}
-        <div>
-          <Label className={`${labelTextColor} mb-1 block`}>
-            Available From <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            type="date"
-            min={today}
-            {...register("availableFrom")}
-            className={`${inputBgColor} ${inputTextColor} ${inputBorderColor} ${inputFocusRing} transition-colors duration-200`}
-          />
-          {formState.errors.availableFrom && (
-            <p className="text-red-500 text-sm mt-1">
-              {formState.errors.availableFrom?.message}
-            </p>
-          )}
         </div>
       </div>
     </div>
@@ -979,88 +963,74 @@ const Step4 = ({ currentTheme }: StepProps) => {
     : [];
 
   return (
-    <div className="w-full mx-auto p-4 rounded-xl">
-      <h3
-        className={`text-xl sm:text-2xl font-semibold mb-6 ${labelTextColor}`}
-      >
+    <div className="w-full mx-auto p-3 rounded-md">
+      <h3 className={`text-base font-semibold mb-3 ${labelTextColor}`}>
         Confirm Details
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-2 text-sm">
         <div>
-          <Label className={`${labelTextColor} font-semibold`}>Title</Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>{data.title}</p>
+          <Label className={`${labelTextColor} font-medium`}>Title</Label>
+          <p className={`${valueTextColor}`}>{data.title}</p>
         </div>
 
         <div>
-          <Label className={`${labelTextColor} font-semibold`}>Location</Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>{data.location}</p>
+          <Label className={`${labelTextColor} font-medium`}>Location</Label>
+          <p className={`${valueTextColor}`}>{data.location}</p>
         </div>
 
         <div className="md:col-span-2">
-          <Label className={`${labelTextColor} font-semibold`}>
-            Description
-          </Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>
-            {data.description}
-          </p>
+          <Label className={`${labelTextColor} font-medium`}>Description</Label>
+          <p className={`${valueTextColor}`}>{data.description}</p>
         </div>
 
         <div>
-          <Label className={`${labelTextColor} font-semibold`}>Price (₹)</Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>
+          <Label className={`${labelTextColor} font-medium`}>Price (₹)</Label>
+          <p className={`${valueTextColor}`}>
             ₹ {data.price?.toLocaleString()}
           </p>
         </div>
 
         <div>
-          <Label className={`${labelTextColor} font-semibold`}>Type</Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>{data.type}</p>
+          <Label className={`${labelTextColor} font-medium`}>Type</Label>
+          <p className={`${valueTextColor}`}>{data.type}</p>
         </div>
 
         <div>
-          <Label className={`${labelTextColor} font-semibold`}>Occupancy</Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>{data.occupancy}</p>
+          <Label className={`${labelTextColor} font-medium`}>Occupancy</Label>
+          <p className={`${valueTextColor}`}>{data.occupancy}</p>
         </div>
 
         <div>
-          <Label className={`${labelTextColor} font-semibold`}>Furnished</Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>
-            {data.furnished ? "Yes" : "No"}
-          </p>
+          <Label className={`${labelTextColor} font-medium`}>Furnished</Label>
+          <p className={`${valueTextColor}`}>{data.furnished ? "Yes" : "No"}</p>
         </div>
 
         <div>
-          <Label className={`${labelTextColor} font-semibold`}>
+          <Label className={`${labelTextColor} font-medium`}>
             Available From
           </Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>
-            {data.availableFrom}
+          <p className={`${valueTextColor}`}>{data.availableFrom}</p>
+        </div>
+
+        <div className="md:col-span-2">
+          <Label className={`${labelTextColor} font-medium`}>Amenities</Label>
+          <p className={`${valueTextColor}`}>
+            {data.amenities?.length ? data.amenities.join(", ") : "None"}
           </p>
         </div>
 
         <div className="md:col-span-2">
-          <Label className={`${labelTextColor} font-semibold`}>Amenities</Label>
-          <p className={`mt-1 text-base ${valueTextColor}`}>
-            {data.amenities && data.amenities.length > 0
-              ? data.amenities.join(", ")
-              : "None"}
-          </p>
-        </div>
-
-        <div className="md:col-span-2">
-          <Label className={`${labelTextColor} font-semibold mb-2 block`}>
-            Images
-          </Label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+          <Label className={`${labelTextColor} font-medium`}>Images</Label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-1">
             {imagePreviews.length > 0 ? (
               imagePreviews.map((src, idx) => (
                 <img
                   key={idx}
                   src={src}
-                  alt={`Uploaded preview ${idx + 1}`}
-                  className="w-full h-28 sm:h-32 object-cover rounded-lg shadow-md"
-                  onLoad={() => URL.revokeObjectURL(src)} // Clean up memory
+                  alt={`Preview ${idx + 1}`}
+                  className="w-full h-20 object-cover rounded shadow-sm"
+                  onLoad={() => URL.revokeObjectURL(src)}
                 />
               ))
             ) : (

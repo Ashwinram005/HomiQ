@@ -249,13 +249,11 @@ export function SinglePost() {
     <div
       className={`w-full min-h-screen transition-colors duration-300 ${containerBgClass}`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-16">
-        <div className="flex justify-between items-center mb-8">
-          {" "}
-          {/* Flex container for back button and theme switcher */}
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex justify-between items-center mb-4">
           <Button
             onClick={() => navigate({ to: "/otherposts" })}
-            className={`inline-flex items-center px-4 py-2 rounded-md font-semibold transition duration-300 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${backButtonClass} ${
+            className={`inline-flex items-center px-3 py-1.5 rounded-md font-semibold text-sm transition duration-300 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${backButtonClass} ${
               currentTheme === "dark"
                 ? "focus:ring-blue-400 focus:ring-offset-gray-900"
                 : "focus:ring-blue-500 focus:ring-offset-gray-100"
@@ -263,7 +261,7 @@ export function SinglePost() {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="mr-2 h-5 w-5"
+              className="mr-2 h-4 w-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -277,7 +275,6 @@ export function SinglePost() {
             </svg>
             Back
           </Button>
-          {/* Theme Switcher Icon */}
           <button
             type="button"
             onClick={toggleTheme}
@@ -288,23 +285,22 @@ export function SinglePost() {
             }`}
             aria-label="Toggle theme"
           >
-            {currentTheme === "light" ? <Moon size={24} /> : <Sun size={24} />}
+            {currentTheme === "light" ? <Moon size={20} /> : <Sun size={20} />}
           </button>
         </div>
 
         <div
-          className={`flex flex-col md:flex-row gap-12 shadow-lg rounded-lg p-8 transition-colors duration-300 ${panelBgClass}`}
+          className={`flex flex-col md:flex-row gap-8 shadow-md rounded-lg p-6 transition-colors duration-300 ${panelBgClass}`}
         >
-          {post.images && post.images.length > 0 && (
+          {post.images?.length > 0 && (
             <div className="md:w-1/2 w-full flex flex-col">
-              {/* Main Image with Carousel Buttons and Animation */}
               <div className="relative">
                 <motion.div
                   key={currentImageIndex}
                   initial={{ opacity: 0.5, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4 }}
-                  className={`rounded-lg overflow-hidden border aspect-[4/3] mb-4 ${
+                  className={`rounded-md overflow-hidden border aspect-video mb-3 ${
                     currentTheme === "dark"
                       ? "border-gray-700"
                       : "border-gray-300"
@@ -318,7 +314,7 @@ export function SinglePost() {
                   />
                 </motion.div>
 
-                {/* Carousel Navigation Buttons */}
+                {/* Carousel Buttons */}
                 <button
                   onClick={() =>
                     setCurrentImageIndex(
@@ -344,15 +340,14 @@ export function SinglePost() {
                 </button>
               </div>
 
-              {/* Thumbnails Strip */}
-              <div className="flex space-x-3 overflow-x-auto px-1 pb-2">
+              <div className="flex space-x-2 overflow-x-auto pb-1 px-1">
                 {post.images.map((imgUrl: string, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentImageIndex(idx)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-shadow duration-300 ${
+                    className={`w-16 h-16 flex-shrink-0 overflow-hidden border-2 rounded-md ${
                       idx === currentImageIndex
-                        ? "border-blue-600 dark:border-blue-400 shadow-lg"
+                        ? "border-blue-600 dark:border-blue-400 shadow"
                         : `border-gray-300 dark:border-gray-600 ${
                             currentTheme === "dark"
                               ? "hover:border-blue-400"
@@ -372,12 +367,11 @@ export function SinglePost() {
             </div>
           )}
 
-          {/* Post Details */}
-          <div className="md:w-2/3 flex flex-col space-y-6">
+          <div className="md:w-1/2 flex flex-col space-y-4">
             <motion.h2
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`text-4xl font-extrabold tracking-tight ${detailTitleClass}`}
+              className={`text-2xl font-bold ${detailTitleClass}`}
             >
               {post.title}
             </motion.h2>
@@ -385,112 +379,74 @@ export function SinglePost() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className={`text-lg leading-relaxed ${
+              className={`text-sm ${
                 currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
               }`}
             >
               {post.description}
             </motion.p>
 
-            {/* Key Details Grid */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className={`grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 ${
+              className={`grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm ${
                 currentTheme === "dark" ? "text-gray-300" : "text-gray-700"
               }`}
             >
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Location:
                 </strong>{" "}
                 {post.location}
               </div>
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Type:
                 </strong>{" "}
                 {post.type}
               </div>
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Occupancy:
                 </strong>{" "}
                 {post.occupancy}
               </div>
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Furnished:
                 </strong>{" "}
                 {post.furnished ? "Yes" : "No"}
               </div>
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Available From:
                 </strong>{" "}
                 {new Date(post.availableFrom).toLocaleDateString()}
               </div>
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Price:
                 </strong>{" "}
                 ₹{post.price}
               </div>
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Posted By:
                 </strong>{" "}
                 {post.email || "N/A"}
               </div>
               <div>
-                <strong
-                  className={
-                    currentTheme === "dark" ? "text-white" : "text-gray-900"
-                  }
-                >
+                <strong className="font-medium text-gray-900 dark:text-white">
                   Distance:
                 </strong>{" "}
                 {distanceInKm
                   ? `${distanceInKm} km`
-                  : geoError || "Calculating..."}{" "}
-                {/* Show geoError if present */}
+                  : geoError || "Calculating..."}
               </div>
 
               {post.amenities?.length > 0 && (
                 <div className="sm:col-span-2">
-                  <strong
-                    className={
-                      currentTheme === "dark" ? "text-white" : "text-gray-900"
-                    }
-                  >
+                  <strong className="font-medium text-gray-900 dark:text-white">
                     Amenities:
                   </strong>
                   <ul className="list-disc list-inside">
@@ -502,12 +458,12 @@ export function SinglePost() {
               )}
             </motion.div>
 
-            {/* Location Map */}
+            {/* Condensed Map */}
             {postCoords && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className={`h-96 rounded-lg overflow-hidden border transition-colors duration-300 ${
+                className={`h-64 rounded-md overflow-hidden border ${
                   currentTheme === "dark"
                     ? "border-gray-700"
                     : "border-gray-300"
@@ -519,17 +475,13 @@ export function SinglePost() {
                   scrollWheelZoom={false}
                   style={{ height: "100%", width: "100%" }}
                 >
-                  {/* Use a different tile layer for dark mode if desired, requires conditional rendering */}
-
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-
                   <Marker position={[postCoords.lat, postCoords.lng]}>
                     <Popup>{post.location}</Popup>
                   </Marker>
-
                   {userLocation && (
                     <>
                       <Marker position={[userLocation.lat, userLocation.lng]}>
@@ -546,9 +498,10 @@ export function SinglePost() {
                 </MapContainer>
               </motion.div>
             )}
+
             {geoError && (
               <div
-                className={`text-sm mt-4 ${
+                className={`text-sm mt-2 ${
                   currentTheme === "dark" ? "text-red-400" : "text-red-600"
                 }`}
               >
@@ -557,10 +510,10 @@ export function SinglePost() {
             )}
 
             {/* Chat Button */}
-            {getUserIdFromToken() !== post.postedBy && ( // Only show chat button if not viewing your own post
+            {getUserIdFromToken() !== post.postedBy && (
               <Button
                 onClick={handleChatClick}
-                className={`self-start px-6 py-3 font-semibold rounded-md transition-colors duration-300 ${
+                className={`self-start px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-300 ${
                   currentTheme === "dark"
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-blue-600 text-white hover:bg-blue-700"
