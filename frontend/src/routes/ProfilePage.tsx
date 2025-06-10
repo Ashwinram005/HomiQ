@@ -139,7 +139,7 @@ export function ProfilePage() {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `http://localhost:5000/api/users/by-email?email=${email}`,
+          `https://homiq.onrender.com/api/users/by-email?email=${email}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -173,7 +173,7 @@ export function ProfilePage() {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "http://localhost:5000/api/users/update-name", // Your backend endpoint
+        "https://homiq.onrender.com/api/users/update-name", // Your backend endpoint
         { email: user?.email, newName: newName.trim() },
         {
           headers: {
@@ -213,7 +213,7 @@ export function ProfilePage() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/users/verify-password", // Your backend endpoint
+        "https://homiq.onrender.com/api/users/verify-password", // Your backend endpoint
         { email: user?.email, password: currentPassword }
       );
 
@@ -271,7 +271,7 @@ export function ProfilePage() {
     toast.loading("Updating password...", { id: "passwordUpdate" });
     try {
       await axios.put(
-        "http://localhost:5000/api/users/update-password", // Your backend endpoint
+        "https://homiq.onrender.com/api/users/update-password", // Your backend endpoint
         { email: user?.email, newPassword: data.newPassword }
       );
       toast.success("Password updated successfully!", { id: "passwordUpdate" });

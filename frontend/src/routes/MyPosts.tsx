@@ -148,7 +148,7 @@ export const MyPosts = () => {
   const fetchPosts = async ({ pageParam = 1 }) => {
     const token = localStorage.getItem("token");
     const response = await axios.get(
-      `http://localhost:5000/api/posts/myPosts?page=${pageParam}&limit=${PAGE_LIMIT}`,
+      `https://homiq.onrender.com/api/posts/myPosts?page=${pageParam}&limit=${PAGE_LIMIT}`,
       {
         headers: { Authorization: `Bearer ${token}` },
         params: filters,
@@ -241,7 +241,7 @@ export const MyPosts = () => {
         const publicId = getPublicIdFromUrl(imageUrl);
         if (publicId) {
           const res = await fetch(
-            "http://localhost:5000/api/cloudinary/delete",
+            "https://homiq.onrender.com/api/cloudinary/delete",
             {
               method: "DELETE",
               headers: {
@@ -257,7 +257,7 @@ export const MyPosts = () => {
         }
       }
 
-      const res = await fetch(`http://localhost:5000/api/posts/${postId}`, {
+      const res = await fetch(`https://homiq.onrender.com/api/posts/${postId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

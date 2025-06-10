@@ -117,7 +117,7 @@ export const OtherPosts = () => {
   const fetchOtherPosts = async ({ pageParam = 1 }) => {
     const token = localStorage.getItem("token");
     const res = await axios.get(
-      `http://localhost:5000/api/posts/others?page=${pageParam}&limit=7`,
+      `https://homiq.onrender.com/api/posts/others?page=${pageParam}&limit=7`,
       {
         headers: { Authorization: `Bearer ${token}` },
         params: filters,

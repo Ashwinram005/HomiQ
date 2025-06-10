@@ -74,7 +74,7 @@ console.log(urlChatId)
     queryKey: ["userByEmail", email],
     queryFn: async () => {
       const res = await fetch(
-        `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
+        `https://homiq.onrender.com/api/users/by-email?email=${encodeURIComponent(
           email
         )}`
       );
@@ -91,7 +91,7 @@ console.log(urlChatId)
     queryKey: ["chats", userId],
     queryFn: async () => {
       const res = await fetch(
-        `http://localhost:5000/api/chatroom/user/${userId}`
+        `https://homiq.onrender.com/api/chatroom/user/${userId}`
       );
       const json = await res.json();
       if (!json.success) throw new Error("Failed to fetch chats");
@@ -105,7 +105,7 @@ console.log(urlChatId)
   const { data: myRooms = [] } = useQuery({
     queryKey: ["myRooms", userId],
     queryFn: async () => {
-      const res = await fetch(`http://localhost:5000/api/posts/user/${userId}`);
+      const res = await fetch(`https://homiq.onrender.com/api/posts/user/${userId}`);
       const json = await res.json();
       if (!json.success) throw new Error("Failed to fetch rooms");
       return json.rooms;

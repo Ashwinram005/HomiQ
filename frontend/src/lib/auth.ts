@@ -6,7 +6,7 @@ export const isAuthenticated = async () => {
   if (!token) return false;
 
   try {
-    const res = await fetch("http://localhost:5000/api/users/validate-token", {
+    const res = await fetch("https://homiq.onrender.com/api/users/validate-token", {
       headers: { Authorization: `Bearer ${token}` },
     });
     return res.ok;

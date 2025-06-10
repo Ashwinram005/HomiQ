@@ -183,7 +183,7 @@ function LoginForm() {
 
   const onSubmit = async (data: LoginSchema) => {
     try {
-      const response = await fetch("http://localhost:5000/api/users/login", {
+      const response = await fetch("https://homiq.onrender.com/api/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -312,7 +312,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
 
   const onSubmit = async (data: SignupSchema) => {
     try {
-      const response = await fetch("http://localhost:5000/api/users/register", {
+      const response = await fetch("https://homiq.onrender.com/api/users/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -336,7 +336,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
 
   const verifyOtp = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/users/verify-otp", {
+      const res = await fetch("https://homiq.onrender.com/api/users/verify-otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
