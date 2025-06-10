@@ -270,7 +270,6 @@ export function ProfilePage() {
     setLoading(true); // Indicate submitting state
     toast.loading("Updating password...", { id: "passwordUpdate" });
     try {
-      const token = localStorage.getItem("token");
       await axios.put(
         "http://localhost:5000/api/users/update-password", // Your backend endpoint
         { email: user?.email, newPassword: data.newPassword }
