@@ -37,7 +37,13 @@ export function ChatList({ setOpenChatList }: { setOpenChatList: React.Dispatch<
   const navigate = useNavigate();
 
   const email = localStorage.getItem("email") || "";
-  const { chatId: urlChatId } = useParams({});
+let urlChatId: string | null = null;
+try {
+  urlChatId = useParams({ from: "/chat/$chatId" }).chatId ?? null;
+} catch {
+  urlChatId = null;
+}
+console.log(urlChatId)  
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   useEffect(() => setSelectedChatId(urlChatId || null), [urlChatId]);
 
