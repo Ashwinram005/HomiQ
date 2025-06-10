@@ -214,6 +214,8 @@ export const MyPosts = () => {
     queryFn: fetchPosts,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     refetchOnWindowFocus: false, // Prevents re-fetching on window focus, can be adjusted
+      initialPageParam: 1, // or undefined if your API expects it
+
   });
 
   //delete
@@ -768,7 +770,7 @@ export const MyPosts = () => {
                   Start posting to showcase your listings!
                 </p>
                 <Button
-                  onClick={() => navigate({ to: "/create-post" })}
+                  onClick={() => navigate({ to: "/post" })}
                   className={`mt-6 px-6 py-3 rounded-full text-white font-semibold shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 ${
                     currentTheme === "dark"
                       ? "bg-indigo-600 hover:bg-indigo-700"
