@@ -24,6 +24,7 @@ import { getUserIdFromToken } from "@/lib/getUserIdFromToken";
 import { Sun, Moon } from "lucide-react"; // Import Sun and Moon icons
 
 // Fix Leaflet marker icons
+// @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -192,8 +193,14 @@ export function SinglePost() {
       const currentUserId = getUserIdFromToken();
       const otherUserId = post.postedBy;
       const roomId = post._id;
+
       if (!token || !currentUserId || !otherUserId || !roomId) {
-        navigate({ to: "/?tab=login" });
+        navigate({
+          to: "/",
+          search: {
+            tab: "login",
+          },
+        });
         return;
       }
       const response = await axios.post(
@@ -251,7 +258,7 @@ export function SinglePost() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-4">
           <Button
-            onClick={() => navigate({ to: "/otherposts" })}
+            onClick={() => navigate({ to: "/otherposts", search: { otherUserId: post.postedBy } })}
             className={`inline-flex items-center px-3 py-1.5 rounded-md font-semibold text-sm transition duration-300 ease-in-out shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${backButtonClass} ${
               currentTheme === "dark"
                 ? "focus:ring-blue-400 focus:ring-offset-gray-900"
