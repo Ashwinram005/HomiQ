@@ -84,7 +84,6 @@ export function Dashboard() {
   const email = localStorage.getItem("email");
   const navigate = useNavigate();
   const username = localStorage.getItem("username") || "Valued Member";
-  const queryClient = useQueryClient();
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);

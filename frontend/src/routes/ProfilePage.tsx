@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { Toaster, toast } from "sonner"; // Using react-hot-toast for notifications
@@ -9,8 +9,6 @@ import {
   Sun,
   Moon,
   Edit2,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   ShieldCheck,
   Loader2,
@@ -18,7 +16,6 @@ import {
 } from "lucide-react"; // Using lucide-react for icons
 import {
   createRoute,
-  Navigate,
   redirect,
   useNavigate,
   type RootRoute,
@@ -215,7 +212,6 @@ export function ProfilePage() {
     clearErrors("currentPassword"); // Clear errors before verification attempt
 
     try {
-      const token = localStorage.getItem("token");
       const res = await axios.post(
         "http://localhost:5000/api/users/verify-password", // Your backend endpoint
         { email: user?.email, password: currentPassword }
