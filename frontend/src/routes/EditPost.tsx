@@ -45,7 +45,8 @@ const schema = z.object({
     .regex(/^\d+$/, "Price must be a positive number")
     .min(1, "Price is required"),
   location: z.string().min(1, "Location is required"),
-  type: z.enum(["Room", "House", "PG", "Shared"], "Select a valid type"),
+  type: z.enum(["Room", "House", "PG", "Shared"])
+    .refine((val) => !!val, { message: "Select a valid type" }),
   occupancy: z
     .enum(["Single", "Double", "Triple", "Any"])
     .refine((val) => !!val, { message: "Select a valid occupancy" }),
