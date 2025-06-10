@@ -5,7 +5,6 @@ import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Keep Textarea for better control if needed
 import { Checkbox } from "@/components/ui/checkbox";
 import { TextField, Typography, Box } from "@mui/material"; // Keep MUI for TextField
 import {
