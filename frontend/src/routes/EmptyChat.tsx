@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ChatList } from "./ChatList";
 import { createRoute, redirect, type RootRoute } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
