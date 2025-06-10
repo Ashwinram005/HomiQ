@@ -47,7 +47,7 @@ interface Post {
 
 const fetchPosts = async ({ pageParam = 1, queryKey }: any) => {
   const [_key, filters] = queryKey;
-  const res = await axios.get(`http://localhost:5000/api/posts/all`, {
+  const res = await axios.get(`https://homiq.onrender.com/api/posts/all`, {
     params: {
       page: pageParam,
       limit: 6,

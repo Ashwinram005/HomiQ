@@ -113,7 +113,7 @@ export function EditPost() {
   } = useQuery({
     queryKey: ["post", postId],
     queryFn: async () => {
-      const res = await axios.get(`http://localhost:5000/api/posts/${postId}`);
+      const res = await axios.get(`https://homiq.onrender.com/api/posts/${postId}`);
       return res.data.data;
     },
     enabled: !!postId,
@@ -190,7 +190,7 @@ export function EditPost() {
   const uploadImageToCloudinary = async (file: File) => {
     try {
       const signatureResponse = await fetch(
-        "http://localhost:5000/api/cloudinary/sign"
+        "https://homiq.onrender.com/api/cloudinary/sign"
       );
       if (!signatureResponse.ok) throw new Error("Failed to get signature");
 
@@ -263,7 +263,7 @@ export function EditPost() {
     const deleteToastId = toast.loading("Deleting image...");
 
     try {
-      await axios.delete("http://localhost:5000/api/cloudinary/delete", {
+      await axios.delete("https://homiq.onrender.com/api/cloudinary/delete", {
         data: { publicId },
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -289,7 +289,7 @@ export function EditPost() {
 
     try {
       const payload = { ...data, price: Number(data.price) };
-      await axios.put(`http://localhost:5000/api/posts/${postId}`, payload, {
+      await axios.put(`https://homiq.onrender.com/api/posts/${postId}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

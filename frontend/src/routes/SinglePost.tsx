@@ -116,7 +116,7 @@ export function SinglePost() {
     queryKey: ["singlePost", id],
     queryFn: async () => {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`http://localhost:5000/api/posts/${id}`, {
+      const res = await axios.get(`https://homiq.onrender.com/api/posts/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return res.data.data;
@@ -204,7 +204,7 @@ export function SinglePost() {
         return;
       }
       const response = await axios.post(
-        "http://localhost:5000/api/chatroom/create",
+        "https://homiq.onrender.com/api/chatroom/create",
         {
           userId: currentUserId,
           otherUserId,

@@ -22,14 +22,14 @@ interface Message {
 }
 
 async function fetchChatRoom(chatId: string) {
-  const res = await fetch(`http://localhost:5000/api/chatroom/${chatId}`);
+  const res = await fetch(`https://homiq.onrender.com/api/chatroom/${chatId}`);
   const data = await res.json();
   if (!data.success) throw new Error("Failed to fetch chatroom");
   return data.data;
 }
 
 async function fetchRoom(roomId: string) {
-  const res = await fetch(`http://localhost:5000/api/posts/${roomId}`);
+  const res = await fetch(`https://homiq.onrender.com/api/posts/${roomId}`);
   const data = await res.json();
   if (!data.success) throw new Error("Failed to fetch room");
   return data.data;
@@ -38,8 +38,8 @@ async function fetchRoom(roomId: string) {
 async function fetchUser(userIdOrEmail: string) {
   const url =
     userIdOrEmail.length === 24
-      ? `http://localhost:5000/api/users/${userIdOrEmail}`
-      : `http://localhost:5000/api/users/by-email?email=${encodeURIComponent(
+      ? `https://homiq.onrender.com/api/users/${userIdOrEmail}`
+      : `https://homiq.onrender.com/api/users/by-email?email=${encodeURIComponent(
           userIdOrEmail
         )}`;
   const res = await fetch(url);
@@ -53,7 +53,7 @@ async function fetchMessages(
   senderEmail: string,
   receiverEmail: string
 ) {
-  const res = await fetch(`http://localhost:5000/api/messages/${chatId}`);
+  const res = await fetch(`https://homiq.onrender.com/api/messages/${chatId}`);
   const data = await res.json();
 
   if (!data.success) throw new Error("Failed to fetch messages");
@@ -176,7 +176,7 @@ export function Chat() {
     setInput("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/messages/send", {
+      const res = await fetch("https://homiq.onrender.com/api/messages/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

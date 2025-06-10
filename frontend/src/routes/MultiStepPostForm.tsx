@@ -111,7 +111,7 @@ export const MultiStepPostForm = () => {
   const uploadImageToCloudinary = async (file: File) => {
     try {
       const signatureResponse = await fetch(
-        "http://localhost:5000/api/cloudinary/sign"
+        "https://homiq.onrender.com/api/cloudinary/sign"
       );
       if (!signatureResponse.ok)
         throw new Error("Failed to get Cloudinary signature");
@@ -145,7 +145,7 @@ export const MultiStepPostForm = () => {
   const createPost = async (data: PostFormData) => {
     const token = localStorage.getItem("token");
 
-    const response = await fetch("http://localhost:5000/api/posts", {
+    const response = await fetch("https://homiq.onrender.com/api/posts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
