@@ -260,6 +260,7 @@ const LandingPage: React.FC = () => {
     queryFn: fetchPosts,
     getNextPageParam: (lastPage: any, allPages: any) =>
       lastPage.hasMore ? allPages.length + 1 : undefined,
+      initialPageParam: 1, // <-- Add this line
   });
 
   const handleAmenityChange = (amenity: string) => {
