@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate } from "@tanstack/react-router";
 import { isAuthenticated } from "@/lib/auth";
-import { toast, Toaster } from "sonner";
+import { toast, Toaster } from "sonner"; // Assuming 'sonner' is used for toasts
 
 // Validation schemas
 export const loginSchema = z.object({
@@ -44,9 +44,11 @@ export const signupSchema = z
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type SignupSchema = z.infer<typeof signupSchema>;
 
+// Corrected AuthFormProps interface
 type AuthFormProps = {
   className?: string;
   defaultTab?: "login" | "signup";
+  onClose?: () => void; // <--- ADDED THIS PROP
 };
 
 export function AuthForm({
@@ -75,7 +77,7 @@ export function AuthForm({
   return (
     <Tabs
       value={tab}
-      onValueChange={setTab}
+      onValueChange={(value) => setTab(value as "login" | "signup")} // <--- FIXED HERE
       className={cn("w-full max-w-md mx-auto", className)}
       {...props}
     >
@@ -163,7 +165,8 @@ function LoginForm() {
     const checkAuthentication = async () => {
       const auth = await isAuthenticated();
       if (auth) {
-        navigate({ to: "/dashboard" });
+        // Also ensure search: {} if your dashboard route has search params
+        navigate({ to: "/dashboard", search: {} });
       }
     };
 
@@ -199,7 +202,8 @@ function LoginForm() {
       localStorage.setItem("token", result.token);
       localStorage.setItem("email", result.email);
       localStorage.setItem("username", result.name);
-      navigate({ to: "/dashboard" });
+      // Also ensure search: {} if your dashboard route has search params
+      navigate({ to: "/dashboard", search: {} });
     } catch (error) {
       console.error("Error:", error);
       toast.error("Something went wrong");

@@ -24,7 +24,6 @@ import {
   Building,
   Users,
   Calendar,
-  ChevronDown,
   ChevronUp, // Added ChevronUp icon
   Loader2,
   Filter, // Added Filter icon
@@ -244,7 +243,6 @@ const LandingPage: React.FC = () => {
     isLoading,
     isError,
     error,
-    refetch,
   } = useInfiniteQuery({
     queryKey: [
       "posts",
