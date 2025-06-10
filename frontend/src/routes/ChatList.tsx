@@ -32,7 +32,7 @@ const getStoredTab = (): "mine" | "others" => {
   return "others";
 };
 
-export function ChatList({ setOpenChatList }) {
+export function ChatList({ setOpenChatList }: { setOpenChatList: React.Dispatch<React.SetStateAction<boolean>> }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -107,10 +107,10 @@ export function ChatList({ setOpenChatList }) {
     enabled: !!userId,
     staleTime: 0,
   });
-  const myRoomIds = myRooms?.map((room) => room._id.toString()) || [];
+  const myRoomIds = myRooms?.map((room: { _id: string }) => room._id.toString()) || [];
 
   // 4️⃣ Filter chats by tab
-  const filteredChats = chats?.filter((chat) => {
+  const filteredChats = chats?.filter((chat: any) => {
     const roomId = chat.roomId?.toString() || "";
     const isMine = myRoomIds.includes(roomId);
     return activeTab === "mine" ? isMine : !isMine;
@@ -121,12 +121,12 @@ export function ChatList({ setOpenChatList }) {
     if (!userId || !chats.length) return;
     if (!socket.connected) socket.connect();
 
-    chats.forEach((chat) => {
+    chats.forEach((chat: any) => {
       socket.emit("joinRoom", chat._id);
     });
 
     return () => {
-      chats.forEach((chat) => {
+      chats.forEach((chat: any) => {
         socket.emit("leaveRoom", chat._id);
       });
     };
@@ -273,7 +273,7 @@ export function ChatList({ setOpenChatList }) {
           <div className="flex justify-end flex-1">
             <button
               className="mr-3 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-pink-400"
-              onClick={() => setOpenChatList((prev) => !prev)}
+              onClick={() => setOpenChatList((prev: boolean) => !prev)}
               aria-label="Toggle sidebar"
             >
               <X />
@@ -317,7 +317,7 @@ export function ChatList({ setOpenChatList }) {
             </motion.div>
           )}
 
-          {filteredChats.map((chat) => {
+          {filteredChats.map((chat:any) => {
             const isSelected = selectedChatId === chat._id;
             const other = chat.participants.find((p: any) => p.email !== email);
             const lm = chat.latestMessage || {};
