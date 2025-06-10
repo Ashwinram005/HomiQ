@@ -122,11 +122,7 @@ export function Chat() {
     enabled: !!senderEmail,
   });
 
-  const { data: receiverUser } = useQuery({
-    queryKey: ["user", receiverEmail],
-    queryFn: () => fetchUser(receiverEmail),
-    enabled: !!receiverEmail,
-  });
+ 
 
   // Fetch messages initially & when dependencies change
   useEffect(() => {
