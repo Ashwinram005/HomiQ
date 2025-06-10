@@ -18,7 +18,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import socket from "@/lib/socket";
 import { createRoute, redirect, useNavigate } from "@tanstack/react-router";
 import type { RootRoute } from "@tanstack/react-router";
@@ -132,7 +131,7 @@ export function Dashboard() {
   };
 
   const handleRoomPosting = () => navigate({ to: "/post" });
-  const handleSearchRooms = () => navigate({ to: "/otherposts" });
+  const handleSearchRooms = () => navigate({ to: "/otherposts", search: {}  });
   const handleMyRooms = () => navigate({ to: "/myposts" });
 
   const goToProfile = () => {
