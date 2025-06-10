@@ -327,7 +327,7 @@ export const MultiStepPostForm = () => {
                         : "bg-gray-300 text-gray-800"
                     }`}
                 >
-                  {isCompleted ? <Check size={16} sm:size={20} /> : index + 1}
+                  {isCompleted ? <Check className="h-4 w-4 sm:h-5 sm:w-5" /> : index + 1}
                 </div>
                 <div
                   className={`text-xs sm:text-sm font-medium text-center mt-1 sm:mt-0 ${
@@ -848,7 +848,7 @@ const Step3 = ({ currentTheme }: StepProps) => {
     if (!e.target.files) return;
 
     // Convert FileList to array and append new files to existing images array
-    setImages((prev) => [...prev, ...Array.from(e.target.files)]);
+    setImages((prev) => [...prev, ...Array.from(e.target.files!)]);
     // Reset input value so same file can be uploaded again if needed
     e.target.value = "";
   };
@@ -958,7 +958,7 @@ const Step4 = ({ currentTheme }: StepProps) => {
 
   // Create image URLs to preview
   const imagePreviews = imageFiles
-    ? Array.from(imageFiles).map((file) => URL.createObjectURL(file))
+    ? Array.from(imageFiles).map((file) => URL.createObjectURL(file as File))
     : [];
 
   return (
